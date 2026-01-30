@@ -14,6 +14,7 @@ const serviceRoutes = require('./modules/services/service.routes');
 
 // Routes
 const authRoutes = require('./modules/auth/auth.routes');
+const bookingRoutes = require('./modules/bookings/booking.routes');
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/workers', workerRoutes);
 app.use('/api/services', serviceRoutes);
+app.use('/api/bookings', bookingRoutes); // Mount booking routes at /api/bookings
 
 // 404 and error handlers
 app.use(notFoundHandler);

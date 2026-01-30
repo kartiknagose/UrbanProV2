@@ -4,7 +4,7 @@ const { registerUser, loginUser } = require('./auth.service');
 const COOKIE_OPTIONS = {
   httpOnly: true,
   sameSite: 'lax',
-  secure: false, // set true in production with HTTPS
+  secure: process.env.NODE_ENV === 'production', // Auto-enable in production
   maxAge: 24 * 60 * 60 * 1000,
 };
 

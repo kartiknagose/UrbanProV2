@@ -108,22 +108,23 @@ model Availability {
 }
 
 model Booking {
-  id          Int           @id @default(autoincrement())
-  customerId  Int
-  customer    User          @relation("customerBookings", fields: [customerId], references: [id])
-  workerId    Int?
-  worker      User?         @relation("workerBookings", fields: [workerId], references: [id])
-  serviceId   Int
-  service     Service       @relation(fields: [serviceId], references: [id])
-  scheduledAt DateTime
-  status      BookingStatus @default(PENDING)
-  totalPrice  Decimal?
-  address     String?
-  notes       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id                 Int           @id @default(autoincrement())
+  customerId         Int
+  customer           User          @relation("customerBookings", fields: [customerId], references: [id])
+  workerId           Int?
+  worker             User?         @relation("workerBookings", fields: [workerId], references: [id])
+  serviceId          Int
+  service            Service       @relation(fields: [serviceId], references: [id])
+  scheduledAt        DateTime
+  status             BookingStatus @default(PENDING)
+  totalPrice         Decimal?
+  address            String?
+  notes              String?
+  cancellationReason String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
-  review      Review?
+  review             Review?
 
   @@index([status])
   @@index([customerId])
