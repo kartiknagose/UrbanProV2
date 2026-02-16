@@ -12,7 +12,8 @@
   }
 
   body {
-    @apply bg-white text-neutral-900 antialiased;
+    /* Slightly off-white background improves separation in light mode */
+    @apply bg-neutral-50 text-neutral-900 antialiased;
     font-feature-settings: 'cv11', 'ss01';
     font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
   }
@@ -47,7 +48,8 @@
 @layer components {
   /* Card */
   .card {
-    @apply bg-white border border-neutral-200 rounded-xl shadow-sm;
+    /* Keep cards white but add a stronger shadow and clear border for separation */
+    @apply bg-white border border-neutral-200 rounded-xl shadow-md;
   }
 
   .dark .card {
