@@ -26,7 +26,7 @@ const router = express.Router();
 const authenticate = require('../../middleware/auth');
 const validate = require('../../middleware/validation');
 const { bookingLimiter } = require('../../config/rateLimit');
-const { requireCustomer } = require('../../middleware/requireRole');
+const { requireCustomer, requireWorker } = require('../../middleware/requireRole');
 
 // Import validation schemas
 const {
@@ -198,6 +198,7 @@ router.post(
 router.post(
   '/:id/accept',
   authenticate,
+  requireWorker,
   bookingController.acceptBooking
 );
 
@@ -210,6 +211,7 @@ router.post(
 router.post(
   '/:id/start',
   authenticate,
+  requireWorker,
   bookingController.verifyBookingStart
 );
 
@@ -222,6 +224,7 @@ router.post(
 router.post(
   '/:id/complete',
   authenticate,
+  requireWorker,
   bookingController.verifyBookingCompletion
 );
 

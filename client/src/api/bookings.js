@@ -63,13 +63,12 @@ export const updateBookingStatus = async (bookingId, data) => {
 
 /**
  * Cancel a booking
- * - Customers can cancel their own bookings
- * - Workers can cancel bookings assigned to them
  * @param {string} bookingId - Booking ID
+ * @param {string} cancellationReason - Optional reason for cancellation
  * @returns {Promise} Response with cancelled booking
  */
-export const cancelBooking = async (bookingId) => {
-  const response = await axiosInstance.patch(BOOKINGS_ENDPOINTS.CANCEL(bookingId));
+export const cancelBooking = async (bookingId, cancellationReason) => {
+  const response = await axiosInstance.patch(BOOKINGS_ENDPOINTS.CANCEL(bookingId), { cancellationReason });
   return response.data;
 };
 

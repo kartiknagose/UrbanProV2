@@ -34,6 +34,7 @@ const CookiesPage = lazy(() => import('../pages/legal/CookiesPage').then(m => ({
 const CustomerProfilePage = lazy(() => import('../pages/profile/CustomerProfilePage').then(m => ({ default: m.CustomerProfilePage })));
 const CustomerDashboardPage = lazy(() => import('../pages/customer/CustomerDashboardPage').then(m => ({ default: m.CustomerDashboardPage })));
 const CustomerBookingsPage = lazy(() => import('../pages/customer/CustomerBookingsPage').then(m => ({ default: m.CustomerBookingsPage })));
+const CustomerBookingDetailPage = lazy(() => import('../pages/customer/CustomerBookingDetailPage').then(m => ({ default: m.CustomerBookingDetailPage })));
 const CustomerReviewsPage = lazy(() => import('../pages/customer/CustomerReviewsPage').then(m => ({ default: m.CustomerReviewsPage })));
 
 // Worker
@@ -41,6 +42,7 @@ const WorkerProfilePage = lazy(() => import('../pages/profile/WorkerProfilePage'
 const WorkerDashboardPage = lazy(() => import('../pages/worker/WorkerDashboardPage').then(m => ({ default: m.WorkerDashboardPage })));
 const WorkerServicesPage = lazy(() => import('../pages/worker/WorkerServicesPage').then(m => ({ default: m.WorkerServicesPage })));
 const WorkerBookingsPage = lazy(() => import('../pages/worker/WorkerBookingsPage').then(m => ({ default: m.WorkerBookingsPage })));
+const WorkerBookingDetailPage = lazy(() => import('../pages/worker/WorkerBookingDetailPage').then(m => ({ default: m.WorkerBookingDetailPage })));
 const WorkerAvailabilityPage = lazy(() => import('../pages/worker/WorkerAvailabilityPage').then(m => ({ default: m.WorkerAvailabilityPage })));
 const WorkerVerificationPage = lazy(() => import('../pages/worker/WorkerVerificationPage').then(m => ({ default: m.WorkerVerificationPage })));
 const WorkerReviewsPage = lazy(() => import('../pages/worker/WorkerReviewsPage').then(m => ({ default: m.WorkerReviewsPage })));
@@ -93,6 +95,7 @@ export function AppRoutes() {
         <Route path="/profile" element={<CustomerRoute><CustomerProfilePage /></CustomerRoute>} />
         <Route path="/profile/setup" element={<Navigate to="/profile" replace />} />
         <Route path="/bookings" element={<CustomerRoute><CustomerBookingsPage /></CustomerRoute>} />
+        <Route path="/bookings/:id" element={<CustomerRoute><CustomerBookingDetailPage /></CustomerRoute>} />
         <Route path="/reviews" element={<CustomerRoute><CustomerReviewsPage /></CustomerRoute>} />
         <Route path="/dashboard" element={<CustomerRoute><CustomerDashboardPage /></CustomerRoute>} />
 
@@ -103,6 +106,7 @@ export function AppRoutes() {
         <Route path="/worker/dashboard" element={<WorkerRoute><WorkerDashboardPage /></WorkerRoute>} />
         <Route path="/worker/services" element={<WorkerRoute><WorkerServicesPage /></WorkerRoute>} />
         <Route path="/worker/bookings" element={<WorkerRoute><WorkerBookingsPage /></WorkerRoute>} />
+        <Route path="/worker/bookings/:id" element={<WorkerRoute><WorkerBookingDetailPage /></WorkerRoute>} />
         <Route path="/worker/availability" element={<WorkerRoute><WorkerAvailabilityPage /></WorkerRoute>} />
         <Route path="/worker/verification" element={<WorkerRoute><WorkerVerificationPage /></WorkerRoute>} />
         <Route path="/worker/reviews" element={<WorkerRoute><WorkerReviewsPage /></WorkerRoute>} />

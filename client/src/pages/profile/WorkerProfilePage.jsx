@@ -11,6 +11,7 @@ import { MainLayout } from '../../components/layout/MainLayout';
 import { Card, CardHeader, CardTitle, CardDescription } from '../../components/common';
 import { Input, Button, Badge } from '../../components/common';
 import { useTheme } from '../../context/ThemeContext';
+import { toast } from 'sonner';
 import { getMyWorkerProfile, createWorkerProfile } from '../../api/workers';
 import { uploadProfilePhoto } from '../../api/uploads';
 import { useAuth } from '../../hooks/useAuth';
@@ -31,7 +32,6 @@ export function WorkerProfilePage() {
   const [skillsList, setSkillsList] = useState([]);
   const [serviceAreasList, setServiceAreasList] = useState([]);
   const [serverError, setServerError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState('');
   const [initialPhotoUrl, setInitialPhotoUrl] = useState('');
@@ -132,14 +132,12 @@ export function WorkerProfilePage() {
       }
       setPhotoFile(file);
       setPhotoPreview(URL.createObjectURL(file));
-      setSuccessMessage('');
     }
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
     setServerError('');
-    setSuccessMessage('');
     setPhotoFile(null);
     setPhotoPreview(initialPhotoUrl || '');
     setSkillInput('');
@@ -198,7 +196,6 @@ export function WorkerProfilePage() {
 
   const onSubmit = async (data) => {
     setServerError('');
-    setSuccessMessage('');
 
     try {
       let profilePhotoUrl;
@@ -232,7 +229,7 @@ export function WorkerProfilePage() {
         setInitialAreasList(serviceAreasArray);
       }
 
-      setSuccessMessage('Profile updated successfully.');
+      toast.success('Profile updated successfully.');
 
       if (refreshedProfile?.user) {
         const updatedUser = { ...authUser, ...refreshedProfile.user };
@@ -254,6 +251,7 @@ export function WorkerProfilePage() {
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Failed to update profile';
       setServerError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -660,11 +658,6 @@ export function WorkerProfilePage() {
                     <p className="text-sm text-error-500">{serverError}</p>
                   )}
 
-                  {successMessage && (
-                    <p className={isDark ? 'text-sm text-success-400' : 'text-sm text-success-600'}>
-                      {successMessage}
-                    </p>
-                  )}
 
                   <div className="flex flex-col gap-3">
                     {canSave && (

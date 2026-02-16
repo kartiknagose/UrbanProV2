@@ -85,16 +85,36 @@ export function Modal({
   };
 
   const modalVariants = {
-    hidden: { opacity: 0, scale: 0.95, y: 20 },
-    visible: { opacity: 1, scale: 1, y: 0 },
-    exit: { opacity: 0, scale: 0.95, y: 20 },
+    hidden: {
+      opacity: window.innerWidth < 640 ? 1 : 0,
+      y: window.innerWidth < 640 ? '100%' : 20,
+      scale: window.innerWidth < 640 ? 1 : 0.95
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: 'spring',
+        damping: 25,
+        stiffness: 400
+      }
+    },
+    exit: {
+      opacity: window.innerWidth < 640 ? 1 : 0,
+      y: window.innerWidth < 640 ? '100%' : 20,
+      scale: window.innerWidth < 640 ? 1 : 0.95,
+      transition: {
+        duration: 0.2
+      }
+    },
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${backdropStyles} backdrop-blur-sm`}
+          className={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 ${backdropStyles} backdrop-blur-sm overflow-hidden`}
           variants={backdropVariants}
           initial="hidden"
           animate="visible"
@@ -102,29 +122,36 @@ export function Modal({
           onClick={handleBackdropClick}
         >
           <motion.div
-            className={`relative w-full ${sizeStyles[size]} ${modalStyles} rounded-xl shadow-2xl ${className}`}
+            className={`relative w-full ${sizeStyles[size]} ${modalStyles} 
+                            rounded-t-3xl sm:rounded-xl shadow-2xl ${className}
+                            fixed bottom-0 sm:relative sm:bottom-auto
+                            max-h-[90vh] overflow-y-auto custom-scrollbar
+                        `}
             variants={modalVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           >
+            {/* Mobile Handle */}
+            <div className="flex justify-center pt-3 pb-1 sm:hidden">
+              <div className={`w-12 h-1.5 rounded-full ${isDark ? 'bg-dark-600' : 'bg-gray-200'}`} />
+            </div>
+
             {/* Header */}
             {(title || showCloseButton) && (
-              <div className={`flex items-center justify-between p-6 ${isDark ? 'border-b border-dark-700' : 'border-b border-gray-200'}`}>
+              <div className={`flex items-center justify-between p-5 sm:p-6 ${isDark ? 'border-b border-dark-700' : 'border-b border-gray-200'}`}>
                 {title && (
-                  <h2 className={`text-xl font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                  <h2 className={`text-lg sm:text-xl font-black tracking-tight ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                     {title}
                   </h2>
                 )}
                 {showCloseButton && (
                   <button
                     onClick={onClose}
-                    className={`ml-auto p-2 rounded-lg transition-colors ${
-                      isDark
-                        ? 'text-gray-400 hover:text-gray-200 hover:bg-dark-700'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                    }`}
+                    className={`p-2 rounded-xl transition-colors ${isDark
+                      ? 'text-gray-400 hover:text-gray-200 hover:bg-dark-700'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                      }`}
                   >
                     <X size={20} />
                   </button>
@@ -133,7 +160,7 @@ export function Modal({
             )}
 
             {/* Content */}
-            <div className="p-6">
+            <div className="p-5 sm:p-6">
               {children}
             </div>
           </motion.div>

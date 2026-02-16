@@ -18,6 +18,7 @@
 
 const asyncHandler = require('../../common/utils/asyncHandler'); // Wrapper to catch errors automatically
 const bookingService = require('./booking.service'); // The service that does actual work
+const prisma = require('../../config/prisma');
 
 /**
  * CREATE A NEW BOOKING
@@ -45,12 +46,16 @@ const createBooking = asyncHandler(async (req, res) => {
   // Extract data from request body (sent by the frontend)
   const bookingData = req.body;
 
-  // Get the customer's ID from the JWT token
-  // Remember: Our auth middleware (auth.js) adds req.user to every authenticated request
   const customerId = req.user.id;
 
-  // Check if customer profile is complete
-  if (!req.user.isProfileComplete) {
+  // FETCH USER: We must fetch from DB because JWT payload only has {id, role}
+  // and does not contain fresh isProfileComplete status.
+  const user = await prisma.user.findUnique({
+    where: { id: customerId },
+    select: { isProfileComplete: true }
+  });
+
+  if (!user || !user.isProfileComplete) {
     res.status(403);
     throw new Error('You must complete your profile (address and details) before booking a service.');
   }
@@ -325,7 +330,13 @@ const acceptBooking = asyncHandler(async (req, res) => {
   // The prompt says "worker must complete his profile AND worker Identity verification to get booking requests"
   // But this is "Accepting" a booking. Same rule applies. 
 
-  if (!req.user.isProfileComplete) {
+  // Fetch user to check profile completion
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isProfileComplete: true }
+  });
+
+  if (!user || !user.isProfileComplete) {
     res.status(403);
     throw new Error('Please complete your profile details first.');
   }

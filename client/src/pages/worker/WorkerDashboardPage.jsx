@@ -1,7 +1,7 @@
 // Worker dashboard page
 // Shows job summary and recent bookings for the worker
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -20,15 +20,37 @@ import {
   MapPin,
   ChevronRight,
   User,
-  AlertCircle
+  AlertCircle,
+  XCircle,
+  PlayCircle,
+  ShieldAlert,
+  Image as ImageIcon
 } from 'lucide-react';
 import { MainLayout } from '../../components/layout/MainLayout';
-import { PageHeader, Card, CardHeader, CardTitle, CardDescription, Button, Badge, StatCard, Skeleton, AsyncState, Spinner, SimpleBarChart, SimpleDonutChart } from '../../components/common';
+import {
+  PageHeader,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Button,
+  Badge,
+  StatCard,
+  Skeleton,
+  AsyncState,
+  Spinner,
+  SimpleBarChart,
+  SimpleDonutChart,
+  Modal,
+  Input,
+  ImageUpload
+} from '../../components/common';
 
 import { useTheme } from '../../context/ThemeContext';
-import { getAllBookings, updateBookingStatus, cancelBooking, getOpenBookings, acceptBooking } from '../../api/bookings';
+import { getAllBookings, updateBookingStatus, cancelBooking, getOpenBookings, acceptBooking, verifyBookingStart, verifyBookingCompletion } from '../../api/bookings';
 import { getMyAvailability } from '../../api/availability';
 import { getMyServices, getMyWorkerProfile } from '../../api/workers';
+import { uploadBookingPhoto } from '../../api/uploads';
 import { queryKeys } from '../../utils/queryKeys';
 import { getBookingStatusVariant } from '../../utils/statusHelpers';
 
@@ -37,16 +59,29 @@ export function WorkerDashboardPage() {
   const { isDark } = useTheme();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [activeBookingId, setActiveBookingId] = useState(null);
+
+  // OTP Verification State
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState(null);
+  const [otpAction, setOtpAction] = useState(null); // 'start' or 'complete'
+  const [otpCode, setOtpCode] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.bookings.worker(),
     queryFn: getAllBookings,
+    refetchInterval: 30000, // Poll every 30s to catch new direct bookings
   });
 
-  const { data: profile } = useQuery({
+  const { data: profileData } = useQuery({
     queryKey: ['worker-profile'],
     queryFn: getMyWorkerProfile,
   });
+  const profile = profileData?.profile;
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }) => updateBookingStatus(id, { status }),
@@ -61,15 +96,30 @@ export function WorkerDashboardPage() {
   });
 
   const cancelMutation = useMutation({
-    mutationFn: (id) => cancelBooking(id),
+    mutationFn: (id) => cancelBooking(id, cancelReason),
     onSuccess: () => {
-      toast.success('Booking rejected successfully.');
+      toast.success('Booking updated successfully.');
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings.worker() });
+      setIsCancelModalOpen(false);
+      setCancelReason('');
+      setActiveBookingId(null);
     },
     onError: (err) => {
-      toast.error(err?.response?.data?.error || 'Failed to reject booking.');
+      toast.error(err?.response?.data?.error || 'Failed to update booking.');
     },
   });
+
+  const handleCancelClick = (e, bookingId) => {
+    e.stopPropagation();
+    setActiveBookingId(bookingId);
+    setCancelReason('');
+    setIsCancelModalOpen(true);
+  };
+
+  const handleCancelSubmit = () => {
+    if (!cancelReason.trim()) return;
+    cancelMutation.mutate(activeBookingId);
+  };
 
   // Query for Open Jobs (Job Board)
   const { data: openJobsData, refetch: refetchOpenJobs } = useQuery({
@@ -89,6 +139,67 @@ export function WorkerDashboardPage() {
     },
   });
 
+  // Verification Mutations
+  const verifyStartMutation = useMutation({
+    mutationFn: ({ bookingId, otp }) => verifyBookingStart(bookingId, otp),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.bookings.worker() });
+      setIsOtpModalOpen(false);
+      setOtpCode('');
+      setSelectedFile(null);
+      toast.success('Job started successfully!');
+    },
+    onError: (error) => toast.error(error.response?.data?.message || error.message || 'Invalid OTP'),
+  });
+
+  const verifyCompleteMutation = useMutation({
+    mutationFn: ({ bookingId, otp }) => verifyBookingCompletion(bookingId, otp),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.bookings.worker() });
+      setIsOtpModalOpen(false);
+      setOtpCode('');
+      setSelectedFile(null);
+      toast.success('Job completed successfully!');
+    },
+    onError: (error) => toast.error(error.response?.data?.message || error.message || 'Invalid OTP'),
+  });
+
+  const handleOtpSubmit = async () => {
+    if (!selectedFile) {
+      toast.error(`Please upload a ${otpAction === 'start' ? 'BEFORE' : 'AFTER'} photo as proof.`);
+      return;
+    }
+
+    if (!otpCode || otpCode.length < 4) {
+      toast.error('Please enter a valid OTP');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const type = otpAction === 'start' ? 'BEFORE' : 'AFTER';
+      await uploadBookingPhoto(selectedFile, selectedBookingId, type);
+
+      if (otpAction === 'start') {
+        verifyStartMutation.mutate({ bookingId: selectedBookingId, otp: otpCode });
+      } else if (otpAction === 'complete') {
+        verifyCompleteMutation.mutate({ bookingId: selectedBookingId, otp: otpCode });
+      }
+    } catch (error) {
+      toast.error('Failed to upload photo proof. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const openOtpModal = (bookingId, action) => {
+    setSelectedBookingId(bookingId);
+    setOtpAction(action);
+    setOtpCode('');
+    setSelectedFile(null);
+    setIsOtpModalOpen(true);
+  };
+
   const openJobs = openJobsData?.bookings || [];
   const bookings = data?.bookings || [];
 
@@ -99,16 +210,16 @@ export function WorkerDashboardPage() {
     const pendingJobs = bookings.filter((b) => ['PENDING', 'CONFIRMED', 'IN_PROGRESS'].includes(b.status)).length;
     const totalEarnings = bookings
       .filter((b) => b.status === 'COMPLETED')
-      .reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
+      .reduce((sum, b) => sum + (Number(b.totalPrice) || 0), 0);
 
     // Calculate rating (mock based on profile if available, else standard)
     const rating = profile?.rating || 0;
 
     return [
-      { label: 'Total Earnings', value: `₹${totalEarnings}`, icon: Wallet, color: 'text-green-500', bg: 'bg-green-500/10' },
-      { label: 'Active Jobs', value: pendingJobs, icon: Activity, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-      { label: 'Completed Jobs', value: completedJobs, icon: CheckCircle, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-      { label: 'Rating', value: rating ? rating.toFixed(1) : 'New', icon: Star, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+      { title: 'Total Earnings', value: `₹${totalEarnings.toFixed(0)}`, icon: Wallet, color: 'brand', trend: { value: 12, direction: 'up', label: 'vs last week' } },
+      { title: 'Active Jobs', value: pendingJobs, icon: Activity, color: 'info' },
+      { title: 'Completed Jobs', value: completedJobs, icon: CheckCircle, color: 'success' },
+      { title: 'Rating', value: rating ? rating.toFixed(1) : 'New', icon: Star, color: 'warning' },
     ];
   }, [bookings, profile]);
 
@@ -130,7 +241,7 @@ export function WorkerDashboardPage() {
           const bookingDate = new Date(b.scheduledDate).toISOString().split('T')[0];
           return bookingDate === dateString;
         })
-        .reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
+        .reduce((sum, b) => sum + (Number(b.totalPrice) || 0), 0);
 
       return {
         label: date.toLocaleDateString('en-US', { weekday: 'short' }),
@@ -153,7 +264,10 @@ export function WorkerDashboardPage() {
     return { earningsData, statusData };
   }, [bookings]);
 
-  const activeBookings = bookings.filter(b => ['CONFIRMED', 'IN_PROGRESS'].includes(b.status));
+  const activeBookings = bookings
+    .filter(b => ['PENDING', 'CONFIRMED', 'IN_PROGRESS'].includes(b.status))
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+    .slice(0, 5);
 
   return (
     <MainLayout>
@@ -188,12 +302,14 @@ export function WorkerDashboardPage() {
             {stats.map((stat, index) => (
               <StatCard
                 key={index}
-                label={stat.label}
+                title={stat.title}
                 value={stat.value}
                 icon={stat.icon}
-                trend={index === 0 ? "+12%" : null}
-                trendDirection="up"
-                className="shadow-lg border-none ring-1 ring-black/5 dark:ring-white/5"
+                color={stat.color}
+                trend={stat.trend}
+                delay={index}
+                onClick={stat.title === 'Rating' ? () => navigate('/worker/reviews') : undefined}
+                className={`shadow-lg border-none ring-1 ring-black/5 dark:ring-white/5 ${stat.title === 'Rating' ? 'cursor-pointer' : ''}`}
               />
             ))}
           </div>
@@ -231,7 +347,11 @@ export function WorkerDashboardPage() {
                 ) : activeBookings.length > 0 ? (
                   <div className="space-y-4">
                     {activeBookings.map((booking) => (
-                      <div key={booking.id} className={`p-6 rounded-2xl border transition-all duration-200 hover:shadow-md ${isDark ? 'bg-dark-800 border-dark-700' : 'bg-white border-gray-100'}`}>
+                      <div
+                        key={booking.id}
+                        onClick={() => navigate(`/worker/bookings/${booking.id}`)}
+                        className={`p-6 rounded-2xl border transition-all duration-300 cursor-pointer group hover:shadow-xl active:scale-[0.98] ${isDark ? 'bg-dark-800 border-dark-700 hover:border-brand-500/50' : 'bg-white border-gray-100 hover:border-brand-500/30'}`}
+                      >
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex gap-4">
                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isDark ? 'bg-brand-900/30 text-brand-400' : 'bg-brand-50 text-brand-600'}`}>
@@ -244,50 +364,78 @@ export function WorkerDashboardPage() {
                               </div>
                             </div>
                           </div>
-                          <Badge variant={getBookingStatusVariant(booking.status).variant}>
+                          <Badge variant={getBookingStatusVariant(booking.status)}>
                             {booking.status.replace('_', ' ')}
                           </Badge>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 pl-16">
-                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                            <Calendar size={16} className="text-gray-400" />
-                            {new Date(booking.scheduledDate).toLocaleString()}
+                          <div className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                            <Calendar size={16} className="text-brand-500" />
+                            {new Date(booking.scheduledAt || booking.scheduledDate).toLocaleDateString()} at {new Date(booking.scheduledAt || booking.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
                           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                            <MapPin size={16} className="text-gray-400" />
-                            <span className="truncate">{booking.addressDetails}</span>
+                            <MapPin size={16} className="text-success-500" />
+                            <span className="truncate">{booking.address || booking.addressDetails}</span>
                           </div>
                         </div>
 
-                        <div className="pl-16 flex gap-3">
+
+                        <div className="pl-16 flex flex-wrap gap-3">
+                          {booking.status === 'PENDING' && (
+                            <>
+                              <Button
+                                size="sm"
+                                icon={CheckCircle}
+                                onClick={(e) => { e.stopPropagation(); statusMutation.mutate({ id: booking.id, status: 'CONFIRMED' }); }}
+                                className="bg-accent-600 text-white hover:bg-accent-700"
+                              >
+                                Confirm Job
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                icon={XCircle}
+                                onClick={(e) => handleCancelClick(e, booking.id)}
+                                loading={cancelMutation.isPending && activeBookingId === booking.id}
+                                className="text-error-500 hover:bg-error-50"
+                              >
+                                Reject
+                              </Button>
+                            </>
+                          )}
                           {booking.status === 'CONFIRMED' && (
-                            <Button
-                              size="sm"
-                              onClick={() => statusMutation.mutate({ id: booking.id, status: 'IN_PROGRESS' })}
-                              loading={statusMutation.isPending}
-                              className="bg-brand-600 text-white hover:bg-brand-700"
-                            >
-                              Start Job
-                            </Button>
+                            <>
+                              <Button
+                                size="sm"
+                                icon={PlayCircle}
+                                onClick={(e) => { e.stopPropagation(); openOtpModal(booking.id, 'start'); }}
+                                className="bg-brand-600 text-white hover:bg-brand-700"
+                              >
+                                Start Job
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                icon={XCircle}
+                                onClick={(e) => handleCancelClick(e, booking.id)}
+                                loading={cancelMutation.isPending && activeBookingId === booking.id}
+                                className="text-error-500 hover:bg-error-50"
+                              >
+                                Cancel Job
+                              </Button>
+                            </>
                           )}
                           {booking.status === 'IN_PROGRESS' && (
                             <Button
                               size="sm"
-                              onClick={() => statusMutation.mutate({ id: booking.id, status: 'COMPLETED' })}
-                              loading={statusMutation.isPending}
+                              icon={CheckCircle}
+                              onClick={(e) => { e.stopPropagation(); openOtpModal(booking.id, 'complete'); }}
                               className="bg-green-600 text-white hover:bg-green-700"
                             >
                               Complete Job
                             </Button>
                           )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigate(`/worker/bookings/${booking.id}`)}
-                          >
-                            View Details
-                          </Button>
                         </div>
                       </div>
                     ))}
@@ -313,23 +461,62 @@ export function WorkerDashboardPage() {
                 {openJobs.length > 0 ? (
                   <div className="space-y-4">
                     {openJobs.map((job) => (
-                      <Card key={job.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-accent-500">
+                      <Card key={job.id} className="group overflow-hidden hover:shadow-2xl hover:shadow-brand-500/10 transition-all duration-300 border-none ring-1 ring-black/5 dark:ring-white/10 relative">
+                        {/* Decorative Gradient Background */}
+                        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-accent-500 to-brand-500" />
+
                         <div className="p-6">
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>{job.service?.name}</h3>
-                            <Badge variant="outline" className="text-accent-600 border-accent-200 bg-accent-50">New Lead</Badge>
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h3 className={`font-bold text-xl mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                {job.service?.name}
+                              </h3>
+                              <div className="flex items-center gap-3">
+                                <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest text-accent-600 border-accent-200 bg-accent-50 dark:bg-accent-900/20 dark:border-accent-800">
+                                  New Request
+                                </Badge>
+                                <span className={`text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                  ID: #{job.id}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className={`block text-xs uppercase tracking-tighter font-bold ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Est. Payout</span>
+                              <span className={`text-2xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                ₹{job.totalPrice || job.estimatedPrice || job.service?.basePrice}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
-                            <span className="flex items-center gap-1"><MapPin size={14} /> {job.addressDetails?.split(',')[0] || 'Local'}</span>
-                            <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(job.scheduledDate).toLocaleDateString()}</span>
+
+                          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 p-4 rounded-xl ${isDark ? 'bg-dark-900/50' : 'bg-gray-50'}`}>
+                            <div className="flex items-center gap-2 text-sm font-medium">
+                              <Calendar size={16} className="text-brand-500" />
+                              <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>
+                                {new Date(job.scheduledAt || job.scheduledDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm font-medium">
+                              <Clock size={16} className="text-blue-500" />
+                              <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>
+                                {new Date(job.scheduledAt || job.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm font-medium sm:col-span-2">
+                              <MapPin size={16} className="text-success-500" />
+                              <span className={`truncate ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                {job.address || job.addressDetails || 'Service Location Specified'}
+                              </span>
+                            </div>
                           </div>
+
                           <Button
                             fullWidth
+                            size="lg"
                             onClick={() => acceptJobMutation.mutate(job.id)}
                             loading={acceptJobMutation.isPending}
-                            className="bg-black dark:bg-white dark:text-black text-white hover:bg-gray-800 dark:hover:bg-gray-200"
+                            className="bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-500/20 h-12 rounded-xl text-base font-bold transition-transform active:scale-95"
                           >
-                            Accept Job
+                            Claim Job
                           </Button>
                         </div>
                       </Card>
@@ -377,6 +564,108 @@ export function WorkerDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Verification Modal */}
+      <Modal
+        isOpen={isOtpModalOpen}
+        onClose={() => setIsOtpModalOpen(false)}
+        title={otpAction === 'start' ? 'Start Verification' : 'Completion Verification'}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className={`p-4 rounded-xl border ${isDark ? 'bg-brand-900/10 border-brand-800' : 'bg-brand-50 border-brand-100'}`}>
+            <p className={`text-sm font-bold ${isDark ? 'text-brand-300' : 'text-brand-800'}`}>
+              Step 1: Upload Proof
+            </p>
+            <p className={`text-xs mt-1 ${isDark ? 'text-brand-400' : 'text-brand-600'}`}>
+              A {otpAction === 'start' ? 'BEFORE' : 'AFTER'} photo is required to document the work area.
+            </p>
+          </div>
+
+          <ImageUpload
+            label={otpAction === 'start' ? "Work area before starting" : "Completed service photo"}
+            onUpload={setSelectedFile}
+            value={selectedFile}
+          />
+
+          <div className={`border-t pt-6 ${isDark ? 'border-dark-700' : 'border-gray-100'}`}>
+            <p className={`text-sm font-bold mb-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+              Step 2: Enter Verification Code
+            </p>
+            <p className={`text-xs mb-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              Get the code from the customer's dashboard.
+            </p>
+
+            <Input
+              placeholder="e.g. 1234"
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value)}
+              maxLength={6}
+              className="text-center text-2xl tracking-widest font-bold h-16"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={() => setIsOtpModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleOtpSubmit}
+              loading={verifyStartMutation.isPending || verifyCompleteMutation.isPending || isUploading}
+              disabled={!selectedFile || !otpCode}
+              className="px-8"
+            >
+              Verify & {otpAction === 'start' ? 'Start' : 'Complete'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Cancellation Reason Modal */}
+      <Modal
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        title="Reason for Cancellation"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className={`p-4 rounded-xl flex items-center gap-4 bg-error-50 dark:bg-error-950/20 text-error-600`}>
+            <ShieldAlert size={24} />
+            <p className="text-sm font-bold leading-tight">Please provide a reason for cancelling or rejecting this job.</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-black uppercase text-gray-500 tracking-widest pl-1">Cancellation Reason</label>
+            <Input
+              placeholder="e.g., Scheduling conflict, out of specialized tools..."
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              className="h-12 text-sm"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              fullWidth
+              variant="ghost"
+              onClick={() => setIsCancelModalOpen(false)}
+            >
+              Go Back
+            </Button>
+            <Button
+              fullWidth
+              className="bg-error-600 text-white hover:bg-error-700"
+              onClick={handleCancelSubmit}
+              disabled={!cancelReason.trim()}
+              loading={cancelMutation.isPending}
+            >
+              Confirm Cancellation
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </MainLayout>
   );
 }

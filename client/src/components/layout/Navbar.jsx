@@ -121,6 +121,7 @@ export function Navbar({ onOpenSidebar = () => { }, sidebarOffset = '', showBran
         return [
           { label: 'Dashboard', href: '/worker/dashboard' },
           { label: 'My Profile', href: '/worker/profile' },
+          { label: 'My Reviews', href: '/worker/reviews' },
           { label: 'Verification', href: '/worker/verification' },
         ];
       case 'ADMIN':

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -13,6 +13,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
 import { getServiceById, getServiceWorkers } from '../../api/services';
 import { createBooking } from '../../api/bookings';
+import { queryKeys } from '../../utils/queryKeys';
+import { resolveProfilePhotoUrl } from '../../utils/profilePhoto';
 
 const bookingSchema = z.object({
   workerProfileId: z.preprocess((val) => (val === '' || val === undefined ? undefined : Number(val)), z.number().int().positive().optional()), // Optional for Auto-Assign
@@ -23,6 +25,7 @@ const bookingSchema = z.object({
 });
 
 export function ServiceDetailPage() {
+  const queryClient = useQueryClient();
   const { isDark } = useTheme();
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -158,8 +161,13 @@ export function ServiceDetailPage() {
 
       setSuccessMessage('Booking placed successfully! Workers will be notified.');
       reset();
-      // Optional: Redirect to bookings page after delay
-      setTimeout(() => navigate('/bookings'), 2000);
+
+      // Real-time update: Invalidate booking queries so they refresh immediately
+      queryClient.invalidateQueries({ queryKey: queryKeys.bookings.customer() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.bookings.worker() });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+
+      setTimeout(() => navigate('/dashboard'), 2000);
 
     } catch (err) {
       const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to create booking';
@@ -353,10 +361,10 @@ export function ServiceDetailPage() {
                             >
                               <div className="flex gap-4">
                                 <div className="relative shrink-0">
-                                  <div className="w-16 h-16 rounded-2xl bg-gray-200 dark:bg-dark-700 bg-cover bg-center shadow-md"
-                                    style={{ backgroundImage: worker.user?.profilePhotoUrl ? `url(${worker.user.profilePhotoUrl})` : undefined }}
+                                  <div className="w-16 h-16 rounded-2xl bg-gray-200 dark:bg-dark-700 bg-cover bg-center shadow-md overflow-hidden flex items-center justify-center"
+                                    style={{ backgroundImage: worker.user?.profilePhotoUrl ? `url(${resolveProfilePhotoUrl(worker.user.profilePhotoUrl)})` : undefined }}
                                   >
-                                    {!worker.user?.profilePhotoUrl && <User className="w-full h-full p-4 text-gray-400" />}
+                                    {!worker.user?.profilePhotoUrl && <User className="w-8 h-8 text-gray-400" />}
                                   </div>
                                   {worker.isVerified && (
                                     <div className="absolute -bottom-2 -right-2 bg-white dark:bg-dark-800 rounded-full p-0.5 shadow-sm">

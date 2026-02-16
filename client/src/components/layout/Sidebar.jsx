@@ -13,6 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  LayoutDashboard,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../context/ThemeContext';
@@ -26,15 +28,16 @@ const navConfig = {
     { label: 'Reviews', to: '/reviews', icon: Star },
   ],
   WORKER: [
-    { label: 'Dashboard', to: '/worker/dashboard', icon: Home },
+    { label: 'Dashboard', to: '/worker/dashboard', icon: LayoutDashboard },
     { label: 'Browse Services', to: '/services', icon: Search },
     { label: 'My Services', to: '/worker/services', icon: Briefcase },
-    { label: 'Bookings', to: '/worker/bookings', icon: Calendar },
+    { label: 'Bookings', to: '/worker/bookings', icon: ClipboardList },
     { label: 'Availability', to: '/worker/availability', icon: Clock },
+    { label: 'Reviews', to: '/worker/reviews', icon: Star },
     { label: 'Verification', to: '/worker/verification', icon: ShieldCheck },
   ],
   ADMIN: [
-    { label: 'Dashboard', to: '/admin/dashboard', icon: Home },
+    { label: 'Dashboard', to: '/admin/dashboard', icon: LayoutDashboard },
     { label: 'Services', to: '/admin/services', icon: Briefcase },
     { label: 'Bookings', to: '/admin/bookings', icon: Calendar },
     { label: 'Users', to: '/admin/users', icon: User },

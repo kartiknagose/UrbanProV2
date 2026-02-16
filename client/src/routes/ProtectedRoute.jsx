@@ -248,8 +248,11 @@ export function CustomerRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (user?.role !== 'CUSTOMER' && user?.role !== 'WORKER') {
+  if (user?.role !== 'CUSTOMER') {
     // Redirect to appropriate dashboard based on role
+    if (user?.role === 'WORKER') {
+      return <Navigate to="/worker/dashboard" replace />;
+    }
     if (user?.role === 'ADMIN') {
       return <Navigate to="/admin/dashboard" replace />;
     }

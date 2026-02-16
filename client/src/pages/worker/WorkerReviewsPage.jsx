@@ -55,6 +55,7 @@ export function WorkerReviewsPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.reviews.workerWritten() });
         queryClient.invalidateQueries({ queryKey: queryKeys.reviews.workerPending() });
         queryClient.invalidateQueries({ queryKey: queryKeys.bookings.worker() });
+        queryClient.invalidateQueries({ queryKey: ['worker-profile'] });
       }, 1500);
     },
   });
@@ -115,8 +116,8 @@ export function WorkerReviewsPage() {
 
             {/* Rating Summary Card */}
             <div className={`rounded-2xl p-6 ${isDark
-                ? 'bg-gradient-to-br from-brand-900/40 via-dark-800 to-dark-900 border border-dark-600'
-                : 'bg-gradient-to-br from-brand-50 via-white to-yellow-50 border border-gray-100'
+              ? 'bg-gradient-to-br from-brand-900/40 via-dark-800 to-dark-900 border border-dark-600'
+              : 'bg-gradient-to-br from-brand-50 via-white to-yellow-50 border border-gray-100'
               }`}>
               <div className="flex items-center gap-6">
                 <div className="text-center">
@@ -168,19 +169,19 @@ export function WorkerReviewsPage() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex-1 px-4 py-3 text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 ${activeTab === tab.id
-                      ? isDark
-                        ? 'bg-brand-600 text-white'
-                        : 'bg-brand-500 text-white'
-                      : isDark
-                        ? 'bg-dark-800 text-gray-300 hover:bg-dark-700'
-                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    ? isDark
+                      ? 'bg-brand-600 text-white'
+                      : 'bg-brand-500 text-white'
+                    : isDark
+                      ? 'bg-dark-800 text-gray-300 hover:bg-dark-700'
+                      : 'bg-white text-gray-600 hover:bg-gray-50'
                     }`}
                 >
                   {tab.label}
                   {tab.count > 0 && (
                     <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.id
-                        ? 'bg-white/20 text-white'
-                        : isDark ? 'bg-dark-600 text-gray-400' : 'bg-gray-100 text-gray-500'
+                      ? 'bg-white/20 text-white'
+                      : isDark ? 'bg-dark-600 text-gray-400' : 'bg-gray-100 text-gray-500'
                       }`}>
                       {tab.count}
                     </span>
@@ -272,8 +273,8 @@ export function WorkerReviewsPage() {
                       <Card key={booking.id} className={`overflow-hidden transition-all duration-300 ${isSubmitted ? 'ring-2 ring-green-500/50' : ''
                         }`}>
                         <div className={`px-6 py-3 flex items-center justify-between ${isDark
-                            ? 'bg-gradient-to-r from-accent-900/30 to-transparent border-b border-dark-600'
-                            : 'bg-gradient-to-r from-accent-50 to-transparent border-b border-gray-100'
+                          ? 'bg-gradient-to-r from-accent-900/30 to-transparent border-b border-dark-600'
+                          : 'bg-gradient-to-r from-accent-50 to-transparent border-b border-gray-100'
                           }`}>
                           <div>
                             <p className={`font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
@@ -309,8 +310,8 @@ export function WorkerReviewsPage() {
                                   onChange={(val) => updateDraft(booking.id, 'rating', val)}
                                 />
                                 <span className={`text-sm font-medium ${draft.rating >= 4 ? 'text-green-500' :
-                                    draft.rating >= 3 ? 'text-blue-500' :
-                                      draft.rating >= 2 ? 'text-yellow-500' : 'text-red-500'
+                                  draft.rating >= 3 ? 'text-blue-500' :
+                                    draft.rating >= 2 ? 'text-yellow-500' : 'text-red-500'
                                   }`}>
                                   {getRatingLabel(draft.rating)}
                                 </span>
@@ -327,8 +328,8 @@ export function WorkerReviewsPage() {
                                 onChange={(e) => updateDraft(booking.id, 'comment', e.target.value)}
                                 placeholder="Was the customer polite? Was the address easy to find?"
                                 className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 resize-none ${isDark
-                                    ? 'bg-dark-800 border-dark-600 text-gray-100 placeholder-gray-500 focus:border-brand-500 focus:ring-brand-500/30'
-                                    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-brand-500 focus:ring-brand-500/30'
+                                  ? 'bg-dark-800 border-dark-600 text-gray-100 placeholder-gray-500 focus:border-brand-500 focus:ring-brand-500/30'
+                                  : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-brand-500 focus:ring-brand-500/30'
                                   }`}
                               />
                             </div>

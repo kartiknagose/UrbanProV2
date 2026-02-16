@@ -49,7 +49,9 @@ async function isWorkerAvailable(workerId, date) {
   const conflictingBooking = await prisma.booking.findFirst({
     where: {
       workerProfileId: workerId,
-      status: { in: ['CONFIRMED', 'IN_PROGRESS'] }, // Only confirmed/active jobs block time
+      // PENDING direct requests also block the slot to prevent double-booking 
+      // while the worker is deciding.
+      status: { in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS'] },
       scheduledAt: {
         gte: new Date(start.getTime() - 119 * 60 * 1000), // Check ~2 hours before
         lt: end // Check up until our end time
@@ -277,8 +279,11 @@ async function getBookingById(bookingId, userId, role) {
       },
       reviews: true,
       workerProfile: {
-        select: { id: true, userId: true },
-        include: { user: { select: { id: true, name: true, email: true, mobile: true, profilePhotoUrl: true, rating: true, totalReviews: true } } },
+        select: {
+          id: true,
+          userId: true,
+          user: { select: { id: true, name: true, email: true, mobile: true, profilePhotoUrl: true, rating: true, totalReviews: true } }
+        },
       },
       customer: {
         select: { id: true, name: true, email: true, mobile: true, profilePhotoUrl: true, rating: true, totalReviews: true },
@@ -376,6 +381,16 @@ async function updateBookingStatus(bookingId, newStatus, userId, role) {
       data: {
         status: newStatus,
         updatedAt: new Date(),
+        // Generate Start OTP when confirmed
+        ...(newStatus === 'CONFIRMED' && !currentBooking.startOtp && {
+          startOtp: generateOTP(),
+          otpGeneratedAt: new Date()
+        }),
+        // Generate Completion OTP when started (though workers usually use verifyBookingStart)
+        ...(newStatus === 'IN_PROGRESS' && !currentBooking.completionOtp && {
+          completionOtp: generateOTP(),
+          otpGeneratedAt: new Date()
+        })
       },
       include: {
         service: { select: { id: true, name: true, category: true } },

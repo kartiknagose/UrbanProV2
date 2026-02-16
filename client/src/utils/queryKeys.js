@@ -6,6 +6,7 @@ export const queryKeys = {
     customer: () => ['bookings', 'customer'],
     worker: () => ['bookings', 'worker'],
     admin: () => ['bookings', 'admin'],
+    detail: (id) => ['bookings', 'detail', id],
   },
   reviews: {
     customerPending: () => ['reviews', 'customer', 'pending'],

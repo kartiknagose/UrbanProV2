@@ -38,6 +38,7 @@ export function CustomerReviewsPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.reviews.customerPending() });
         queryClient.invalidateQueries({ queryKey: queryKeys.reviews.customerWritten() });
         queryClient.invalidateQueries({ queryKey: queryKeys.bookings.customer() });
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
       }, 1500);
     },
   });
@@ -120,11 +121,14 @@ export function CustomerReviewsPage() {
                         }`}>
                         {/* Header Strip */}
                         <div className={`px-6 py-3 flex items-center justify-between ${isDark
-                            ? 'bg-gradient-to-r from-brand-900/40 to-transparent border-b border-dark-600'
-                            : 'bg-gradient-to-r from-brand-50 to-transparent border-b border-gray-100'
+                          ? 'bg-gradient-to-r from-brand-900/40 to-transparent border-b border-dark-600'
+                          : 'bg-gradient-to-r from-brand-50 to-transparent border-b border-gray-100'
                           }`}>
                           <div>
-                            <p className={`font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                            <p
+                              className={`font-black uppercase text-sm cursor-pointer hover:text-brand-500 transition-colors ${isDark ? 'text-gray-100' : 'text-gray-900'}`}
+                              onClick={() => navigate(`/bookings/${booking.id}`)}
+                            >
                               {booking.service?.name || `Service #${booking.serviceId}`}
                             </p>
                             <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -161,8 +165,8 @@ export function CustomerReviewsPage() {
                                   onChange={(val) => updateDraft(booking.id, 'rating', val)}
                                 />
                                 <span className={`text-sm font-medium ${draft.rating >= 4 ? 'text-green-500' :
-                                    draft.rating >= 3 ? 'text-blue-500' :
-                                      draft.rating >= 2 ? 'text-yellow-500' : 'text-red-500'
+                                  draft.rating >= 3 ? 'text-blue-500' :
+                                    draft.rating >= 2 ? 'text-yellow-500' : 'text-red-500'
                                   }`}>
                                   {getRatingLabel(draft.rating)}
                                 </span>
@@ -180,8 +184,8 @@ export function CustomerReviewsPage() {
                                 onChange={(e) => updateDraft(booking.id, 'comment', e.target.value)}
                                 placeholder="What went well? Any suggestions for improvement?"
                                 className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 resize-none ${isDark
-                                    ? 'bg-dark-800 border-dark-600 text-gray-100 placeholder-gray-500 focus:border-brand-500 focus:ring-brand-500/30'
-                                    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-brand-500 focus:ring-brand-500/30'
+                                  ? 'bg-dark-800 border-dark-600 text-gray-100 placeholder-gray-500 focus:border-brand-500 focus:ring-brand-500/30'
+                                  : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-brand-500 focus:ring-brand-500/30'
                                   }`}
                               />
                             </div>

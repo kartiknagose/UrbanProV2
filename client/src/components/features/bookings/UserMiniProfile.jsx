@@ -21,70 +21,63 @@ export function UserMiniProfile({ user, label, showContact = false }) {
     const totalReviews = user.totalReviews || 0;
 
     return (
-        <div className={`p-4 rounded-xl border transition-all ${isDark ? 'bg-dark-800/50 border-dark-700' : 'bg-gray-50/50 border-gray-100'
+        <div className={`p-3 rounded-xl border transition-all ${isDark ? 'bg-dark-800/30 border-dark-700/50' : 'bg-gray-50/30 border-gray-100'
             }`}>
-            <p className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'
-                }`}>
-                {label}
-            </p>
-
-            <div className="flex items-start gap-4">
-                {/* Avatar */}
-                <div className="shrink-0">
-                    {profilePhotoUrl ? (
-                        <img
-                            src={profilePhotoUrl}
-                            alt={user.name}
-                            className="w-12 h-12 rounded-full object-cover border-2 border-brand-500/20"
-                        />
-                    ) : (
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center text-white text-lg font-bold">
-                            {profileInitial}
-                        </div>
-                    )}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                    <h4 className={`font-bold truncate ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
-                        {user.name}
-                    </h4>
-
-                    <div className="flex items-center gap-2 mt-1">
-                        <div className="flex items-center gap-1">
-                            <Star size={14} className="fill-yellow-400 text-yellow-400" />
-                            <span className={`text-sm font-bold ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                                {rating}
-                            </span>
-                        </div>
-                        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                            ({totalReviews} reviews)
-                        </span>
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                    {/* Avatar */}
+                    <div className="shrink-0">
+                        {profilePhotoUrl ? (
+                            <img
+                                src={profilePhotoUrl}
+                                alt={user.name}
+                                className="w-10 h-10 rounded-lg object-cover border border-brand-500/10"
+                            />
+                        ) : (
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center text-white text-base font-bold shadow-sm">
+                                {profileInitial}
+                            </div>
+                        )}
                     </div>
 
-                    {showContact && (
-                        <div className="mt-3 space-y-1.5 border-t border-inherit pt-3">
-                            <div className="flex items-center gap-2 text-sm">
-                                <Phone size={14} className="text-brand-500" />
-                                <a
-                                    href={`tel:${user.mobile}`}
-                                    className={`hover:underline ${isDark ? 'text-gray-300' : 'text-gray-600'}`}
-                                >
-                                    {user.mobile || 'No mobile'}
-                                </a>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                                <Mail size={14} className="text-accent-500" />
-                                <a
-                                    href={`mailto:${user.email}`}
-                                    className={`hover:underline truncate ${isDark ? 'text-gray-300' : 'text-gray-600'}`}
-                                >
-                                    {user.email}
-                                </a>
-                            </div>
+                    {/* Info */}
+                    <div className="min-w-0">
+                        <p className={`text-[10px] font-black uppercase tracking-widest leading-none mb-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                            {label}
+                        </p>
+                        <h4 className={`font-bold text-sm truncate leading-tight ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                            {user.name}
+                        </h4>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                            <Star size={10} className="fill-yellow-400 text-yellow-400 shrink-0" />
+                            <span className={`text-[11px] font-black ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                {rating}
+                            </span>
+                            <span className={`text-[10px] font-medium ${isDark ? 'text-gray-550' : 'text-gray-400'}`}>
+                                ({totalReviews})
+                            </span>
                         </div>
-                    )}
+                    </div>
                 </div>
+
+                {showContact && (
+                    <div className="flex items-center gap-2 pr-1">
+                        <a
+                            href={`tel:${user.mobile}`}
+                            title={`Call ${user.name}`}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${isDark ? 'bg-brand-900/30 text-brand-400 hover:bg-brand-900/50' : 'bg-brand-50 text-brand-600 hover:bg-brand-100'}`}
+                        >
+                            <Phone size={14} />
+                        </a>
+                        <a
+                            href={`mailto:${user.email}`}
+                            title={`Email ${user.name}`}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${isDark ? 'bg-accent-900/30 text-accent-400 hover:bg-accent-900/50' : 'bg-accent-50 text-accent-600 hover:bg-accent-100'}`}
+                        >
+                            <Mail size={14} />
+                        </a>
+                    </div>
+                )}
             </div>
         </div>
     );

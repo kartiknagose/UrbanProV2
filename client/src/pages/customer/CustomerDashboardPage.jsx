@@ -20,7 +20,9 @@ import {
   CalendarClock,
   Wallet,
   Zap,
-  ChevronRight
+  ChevronRight,
+  Search,
+  ShieldAlert
 } from 'lucide-react';
 import { getAllBookings, payBooking } from '../../api/bookings';
 import { getAllServices } from '../../api/services';
@@ -155,7 +157,8 @@ export function CustomerDashboardPage() {
                       <div className="space-y-4">
                         {bookings.slice(0, 5).map((booking) => (
                           <div key={booking.id}
-                            className={`group flex flex-col sm:flex-row gap-4 p-5 rounded-2xl border transition-all duration-200 hover:shadow-md ${isDark ? 'bg-dark-800 border-dark-700 hover:border-brand-500/30' : 'bg-white border-gray-100 hover:border-brand-200'
+                            onClick={() => navigate(`/bookings/${booking.id}`)}
+                            className={`group flex flex-col sm:flex-row gap-4 p-5 rounded-2xl border transition-all duration-200 cursor-pointer hover:shadow-xl active:scale-[0.98] ${isDark ? 'bg-dark-800 border-dark-700 hover:border-brand-500/30' : 'bg-white border-gray-100 hover:border-brand-200'
                               }`}>
 
                             {/* Icon/Image Placeholder */}
@@ -167,45 +170,89 @@ export function CustomerDashboardPage() {
                             <div className="flex-1 min-w-0">
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <h4 className={`font-semibold text-lg ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                                  <h4 className={`font-black text-lg ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                                     {booking.service?.name || `Service #${booking.serviceId}`}
                                   </h4>
                                   <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} flex items-center gap-2 mt-1`}>
-                                    <Calendar size={14} />
-                                    {new Date(booking.scheduledAt || booking.scheduledDate).toLocaleString()}
+                                    <Calendar size={14} className="text-brand-500" />
+                                    {new Date(booking.scheduledAt || booking.scheduledDate).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                                   </p>
                                 </div>
-                                <Badge variant={getBookingStatusVariant(booking.status)} className="capitalize">
-                                  {booking.status.toLowerCase()}
+                                <Badge variant={getBookingStatusVariant(booking.status)} className="font-black uppercase text-[10px]">
+                                  {booking.status}
                                 </Badge>
                               </div>
 
-                              <div className="mt-4 flex items-center justify-between">
+                              {/* Prominent OTP Banner for Ease of Use */}
+                              {((booking.status === 'CONFIRMED' && booking.startOtp) || (booking.status === 'IN_PROGRESS' && booking.completionOtp)) && (
+                                <div className="mt-4">
+                                  <div className={`px-4 py-2.5 rounded-xl flex items-center justify-between border-2 border-dashed ${booking.status === 'CONFIRMED' ? (isDark ? 'bg-brand-950/20 border-brand-800' : 'bg-brand-50 border-brand-200 shadow-sm') : (isDark ? 'bg-success-950/20 border-success-800' : 'bg-success-50 border-success-200 shadow-sm')}`}>
+                                    <div className="flex items-center gap-3">
+                                      <div className={`p-1.5 rounded-lg ${booking.status === 'CONFIRMED' ? 'bg-brand-500 text-white' : 'bg-success-500 text-white'}`}>
+                                        <ShieldAlert size={16} />
+                                      </div>
+                                      <div>
+                                        <span className={`text-[10px] font-black uppercase tracking-widest block leading-none mb-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                          {booking.status === 'CONFIRMED' ? 'Start Code' : 'Completion Code'}
+                                        </span>
+                                        <span className={`text-[9px] font-bold ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Give to professional</span>
+                                      </div>
+                                    </div>
+                                    <span className={`text-2xl font-black tracking-[0.2em] font-mono leading-none ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                      {booking.status === 'CONFIRMED' ? booking.startOtp : booking.completionOtp}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Action Area */}
+                              <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                 <div className="flex items-center gap-3">
-                                  <div className={`text-xs px-2 py-1 rounded-md ${isDark ? 'bg-dark-900 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>
+                                  <div className={`text-[10px] font-black uppercase px-2 py-1 rounded-md tracking-widest ${isDark ? 'bg-dark-900 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
                                     ID: {booking.id}
                                   </div>
                                   {booking.workerProfile && (
-                                    <div className="text-xs flex items-center gap-1 text-gray-500">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                      {booking.workerProfile.user?.name || 'Worker Assigned'}
+                                    <div className="text-xs font-bold flex items-center gap-2 text-gray-500">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-success-500 animate-pulse"></div>
+                                      {booking.workerProfile.user?.name}
                                     </div>
+                                  )}
+                                  {booking.status === 'COMPLETED' && booking.paymentStatus !== 'PAID' && (
+                                    <Badge variant="warning" size="sm" className="font-black uppercase text-[8px]">Payment Required</Badge>
                                   )}
                                 </div>
 
-                                {/* Action Buttons */}
-                                <div className="flex gap-2">
-                                  {booking.status === 'COMPLETED' && booking.paymentStatus !== 'PAID' && (
-                                    <Button size="sm" className="h-8" onClick={() => payMutation.mutate(booking.id)} loading={payMutation.isPending}>
-                                      Pay Now
-                                    </Button>
+                                <div className="flex gap-2 w-full sm:w-auto" onClick={(e) => e.stopPropagation()}>
+                                  {booking.status === 'COMPLETED' && (
+                                    <>
+                                      {booking.paymentStatus !== 'PAID' && (
+                                        <Button
+                                          size="sm"
+                                          className="h-9 px-6 font-bold flex-1 sm:flex-none"
+                                          onClick={() => payMutation.mutate(booking.id)}
+                                          loading={payMutation.isPending}
+                                        >
+                                          Pay now
+                                        </Button>
+                                      )}
+                                      {(!booking.reviews || booking.reviews.length === 0) && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="h-9 px-6 font-bold flex-1 sm:flex-none"
+                                          onClick={() => navigate('/reviews')}
+                                        >
+                                          Rate & Review
+                                        </Button>
+                                      )}
+                                    </>
                                   )}
-                                  {booking.status === 'COMPLETED' && booking.paymentStatus === 'PAID' && (!booking.reviews || booking.reviews.length === 0) && (
-                                    <Button size="sm" variant="outline" className="h-8 border-yellow-200 text-yellow-600 hover:bg-yellow-50" onClick={() => navigate('/reviews')}>
-                                      <Star size={14} className="mr-1" /> Rate
-                                    </Button>
+                                  {booking.status === 'PENDING' && (
+                                    <div className="flex items-center gap-2 text-[10px] font-black text-brand-500 uppercase tracking-widest bg-brand-500/10 px-3 py-1.5 rounded-lg border border-brand-500/20">
+                                      <Search size={12} className="animate-pulse" />
+                                      Finding Provider...
+                                    </div>
                                   )}
-                                  <Button size="sm" variant="ghost" className="h-8" onClick={() => navigate('/bookings')}>Details</Button>
                                 </div>
                               </div>
                             </div>
@@ -315,8 +362,8 @@ export function CustomerDashboardPage() {
               </div>
             </>
           </AsyncState>
-        </div>
-      </div>
-    </MainLayout>
+        </div >
+      </div >
+    </MainLayout >
   );
 }
