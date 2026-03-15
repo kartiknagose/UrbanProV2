@@ -1,4 +1,4 @@
-name: UrbanPro V2 - Production Pipeline
+name: UrbanPro V2 - Production Pipeline (Docker-Free)
 
 on:
   push:
@@ -52,13 +52,7 @@ jobs:
         env:
           VITE_API_URL: "/api"
 
-  # Job 3: Docker Build (Verification)
-  docker-verification:
-    runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-build]
-    steps:
-      - uses: actions/checkout@v3
-      - name: Build Server Image (Check Dockerfile)
-        run: docker build -t urbanpro-server ./server
-      - name: Build Client Image (Check Dockerfile)
-        run: docker build -t urbanpro-client ./client
+  # Production deployment path is platform-native:
+  # - Frontend: Vercel
+  # - Backend: Render (Node runtime)
+  # Docker image checks are intentionally excluded from this pipeline.

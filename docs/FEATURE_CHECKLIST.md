@@ -271,8 +271,8 @@
 
 | Feature | Status | Notes |
 |---|---|---|
-| GitHub Actions test + lint pipeline | ✅ Done | `.github/workflows/ci.yml` — server lint, client lint+build, Docker build smoke test |
-| Automated container build & push on merge | ❌ Not implemented | |
+| GitHub Actions test + lint pipeline | ✅ Done | `.github/workflows/ci.yml` — server lint, Prisma generate, client lint+build |
+| Automated container build & push on merge | Optional | Not required for current Vercel + Render production path |
 | Environment secrets management (AWS Secrets Manager) | ❌ Not implemented | `.env` files only |
 | Staging environment | ❌ Not implemented | |
 
@@ -642,7 +642,7 @@
 | 66 | Dockerization (Server + Client) | ✅ | Dockerfiles for Node backend and Nginx-served Vite frontend. |
 | 67 | Docker Compose Orchestration | ✅ | Complete stack with PG, Redis, API, and Frontend. |
 | 68 | Nginx Reverse Proxy | ✅ | Nginx config handles SPA routing and API proxying. |
-| 69 | CI/CD Pipeline (GitHub Actions) | ✅ | Build, test, and dockerize on every push to main. |
+| 69 | CI/CD Pipeline (GitHub Actions) | ✅ | Build, lint, and verify app health on every push to main (Docker-free production path). |
 | 70 | Production Scaling Configs | ✅ | Gzip, security headers, and health checks in place. |
 
 ---

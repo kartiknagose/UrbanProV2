@@ -2,9 +2,10 @@
 // Handles authentication tokens, request/response logging, and error handling
 
 import axios from 'axios';
+import { API_BASE_URL } from '../config/runtime';
 
 // Base API URL - points to backend server
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = API_BASE_URL;
 
 // Create axios instance with default config
 const axiosInstance = axios.create({

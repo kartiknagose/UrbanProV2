@@ -11,11 +11,9 @@ import { getAllServices } from '../../api/services';
 import { getPageLayout } from '../../constants/layout';
 import { queryKeys } from '../../utils/queryKeys';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import { API_ORIGIN } from '../../config/runtime';
 
-const getApiRoot = () => {
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-  return apiBase.replace(/\/api\/?$/, '');
-};
+const getApiRoot = () => API_ORIGIN;
 
 const fetchHealth = async () => {
   const response = await fetch(`${getApiRoot()}/health`);

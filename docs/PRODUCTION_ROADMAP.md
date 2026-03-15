@@ -963,86 +963,32 @@ enum MessageType {
 
 ### 6.2 Deployment Stack
 
-| Component        | Dev / Small Scale        | Production / Scale        |
-| ---------------- | ------------------------ | ------------------------- |
-| Hosting          | Railway / Render         | AWS ECS / GCP Cloud Run   |
-| Database         | Supabase Free            | AWS RDS (Multi-AZ)        |
-| Cache            | In-memory                | AWS ElastiCache (Redis)   |
-| File Storage     | Local disk               | AWS S3 + CloudFront       |
-| CI/CD            | GitHub Actions           | GitHub Actions + ArgoCD   |
-| Container        | Docker Compose           | Kubernetes (EKS/GKE)     |
-| Monitoring       | Console logs             | Grafana + Prometheus      |
-| Error Tracking   | Console                  | Sentry                    |
-| Logging          | Console                  | Winston + Loki / ELK      |
-| Secrets          | .env files               | AWS Secrets Manager       |
+| Component        | Free-Tier Production (Current)          | Scale-Up (Future)               |
+| ---------------- | ---------------------------------------- | ------------------------------- |
+| Hosting          | Vercel (frontend) + Render Node (API)   | AWS ECS / GCP Cloud Run         |
+| Database         | Supabase / Neon                          | AWS RDS (Multi-AZ)              |
+| Cache            | Upstash Redis                            | AWS ElastiCache (Redis)         |
+| File Storage     | Cloudinary                               | AWS S3 + CloudFront             |
+| CI/CD            | GitHub Actions (lint + build checks)     | GitHub Actions + progressive CD |
+| Container        | Not required                             | Optional (Docker/Kubernetes)    |
+| Monitoring       | Render logs + basic metrics              | Grafana + Prometheus            |
+| Error Tracking   | Console + host logs                      | Sentry                          |
+| Logging          | Console / Winston                         | Winston + Loki / ELK            |
+| Secrets          | Render/Vercel env vars                   | Secrets Manager/Vault           |
 
 ---
 
-### 6.3 Docker Configuration
+### 6.3 Deployment Policy (Docker-Free by Default)
 
-```dockerfile
-# server/Dockerfile
-FROM node:22-alpine AS base
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
+Production deployments use platform-native runtimes:
 
-FROM base AS build
-RUN npm ci
-COPY . .
-RUN npx prisma generate
+- Frontend: Vercel (root directory: client)
+- Backend: Render Web Service (root directory: server, runtime: Node)
+- Database: Supabase or Neon PostgreSQL
+- Cache: Upstash Redis
+- Media: Cloudinary
 
-FROM node:22-alpine AS production
-WORKDIR /app
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/src ./src
-COPY --from=build /app/prisma ./prisma
-COPY --from=build /app/package.json ./
-
-ENV NODE_ENV=production
-EXPOSE 3000
-CMD ["node", "src/index.js"]
-```
-
-```yaml
-# docker-compose.yml
-version: '3.8'
-services:
-  api:
-    build: ./server
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=postgresql://user:pass@db:5432/urbanpro
-      - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=${JWT_SECRET}
-    depends_on:
-      - db
-      - redis
-
-  client:
-    build: ./client
-    ports:
-      - "80:80"
-
-  db:
-    image: postgres:16-alpine
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=urbanpro
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=pass
-
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redisdata:/data
-
-volumes:
-  pgdata:
-  redisdata:
-```
+Docker is optional and used only for local full-stack parity or later infra migration.
 
 ---
 
@@ -1056,7 +1002,7 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -1065,18 +1011,9 @@ jobs:
           node-version: 22
       - run: cd server && npm ci && npm test
       - run: cd client && npm ci && npm run build
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to production
-        run: |
-          # Build and push Docker images
-          # Deploy to your hosting platform
-          echo "Deploy steps here"
 ```
+
+Deployments are then triggered by platform hooks (Render auto-deploy for backend and Vercel auto-deploy for frontend) instead of Docker image publishing.
 
 ---
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
+import { SOCKET_BASE_URL } from '../config/runtime';
 
 // Lightweight hook to connect to Socket.IO server and return socket instance.
 // If `user` is provided, the hook will automatically join user-specific rooms
@@ -83,8 +84,7 @@ export default function useSocket(user = null) {
     // successful connection. This helps when server runs on 3000 or 3001 or
     // when `VITE_API_URL` is not set.
     const candidates = [];
-    const envUrl = import.meta.env.VITE_API_URL;
-    if (envUrl) candidates.push(envUrl.replace(/\/$/, ''));
+    if (SOCKET_BASE_URL) candidates.push(SOCKET_BASE_URL);
 
     try {
       const host = window.location.hostname || 'localhost';

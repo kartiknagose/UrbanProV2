@@ -140,7 +140,7 @@
 - Real-time notifications, browser push, notification inbox, and preferences are complete.
 - Refund and cancellation policy logic is implemented and tested.
 - Frontend and backend are fully integrated, with no errors found in build/lint checks.
-- Docker/Redis setup is running and confirmed.
+- Redis setup is running and confirmed; Docker is optional for local-only parity.
 
 **Ready to begin Sprint 4: Database & Infrastructure Hardening, Worker Location Tracking, and Payment Integration.**
 

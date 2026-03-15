@@ -4,10 +4,12 @@ const prisma = require('../../config/prisma');
 const { registerUser, loginUser, verifyEmailToken, requestPasswordReset, resetPasswordWithToken, changePassword } = require('./auth.service');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../../common/utils/mailer');
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  sameSite: 'lax',
-  secure: process.env.NODE_ENV === 'production', // Auto-enable in production
+  sameSite: isProduction ? 'none' : 'lax',
+  secure: isProduction,
   maxAge: 24 * 60 * 60 * 1000,
 };
 
@@ -64,7 +66,7 @@ exports.login = asyncHandler(async (req, res) => {
 });
 
 exports.logout = asyncHandler(async (_req, res) => {
-  res.clearCookie('token');
+  res.clearCookie('token', COOKIE_OPTIONS);
   res.json({ message: 'Logged out' });
 });
 

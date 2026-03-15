@@ -1,7 +1,5 @@
 // Resolve a profile photo URL from the API or DB to a browser-usable URL.
-
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace(/\/$/, '');
-const API_ORIGIN = API_BASE.endsWith('/api') ? API_BASE.slice(0, -4) : API_BASE;
+import { API_ORIGIN } from '../config/runtime';
 
 export function resolveProfilePhotoUrl(url) {
   if (!url) return '';

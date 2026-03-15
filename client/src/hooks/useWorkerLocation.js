@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { updateWorkerLocation } from '../api/location';
 import { toast } from 'sonner';
 import { io } from 'socket.io-client';
+import { SOCKET_BASE_URL } from '../config/runtime';
 
 const ONLINE_STATE_KEY = 'upro.worker.online';
 const LAST_LOCATION_KEY = 'upro.worker.last_location';
@@ -196,7 +197,7 @@ export function useLiveWorkerLocation(workerProfileId) {
 
     useEffect(() => {
         if (!workerProfileId) return;
-        const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+        const socket = io(SOCKET_BASE_URL, {
             withCredentials: true,
         });
         socket.emit('joinRoom', `worker_tracking:${workerProfileId}`);
