@@ -14,15 +14,40 @@ const buildTransport = () => {
   const secure = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true';
 
   if (!host || !user || !pass) {
-    throw new Error('SMTP credentials are not configured');
+    const missingFields = [];
+    if (!host) missingFields.push('SMTP_HOST');
+    if (!user) missingFields.push('SMTP_USER');
+    if (!pass) missingFields.push('SMTP_PASS');
+    throw new Error(`SMTP credentials are not configured. Missing: ${missingFields.join(', ')}`);
   }
 
-  return nodemailer.createTransport({
+  const transporter = nodemailer.createTransport({
     host,
     port,
     secure,
     auth: { user, pass },
+    connectionUrl: `smtp${secure ? 's' : ''}://${user}:***@${host}:${port}`,
   });
+
+  // Test connection on creation
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error(`[Email] ❌ SMTP Connection Failed:\n`, {
+        host,
+        port,
+        secure,
+        user,
+        error: error.message,
+        code: error.code,
+        command: error.command,
+      });
+      logger.error('SMTP Connection verification failed', { error: error.message, code: error.code });
+    } else if (success) {
+      console.log(`[Email] ✅ SMTP Connected Successfully (${host}:${port})`);
+    }
+  });
+
+  return transporter;
 };
 
 const getFromAddress = () => {
@@ -32,47 +57,87 @@ const getFromAddress = () => {
 };
 
 async function sendVerificationEmail({ to, link }) {
-  const transporter = buildTransport();
-
-  return transporter.sendMail({
-    from: getFromAddress(),
-    to,
-    subject: 'Verify your UrbanPro email',
-    text: `Welcome to UrbanPro! Verify your email: ${link}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-        <h2>Verify your email</h2>
-        <p>Thanks for signing up with UrbanPro. Please verify your email to continue.</p>
-        <p>
-          <a href="${link}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;">Verify Email</a>
-        </p>
-        <p>If the button does not work, copy and paste this link into your browser:</p>
-        <p>${link}</p>
-      </div>
-    `,
-  });
+  try {
+    const transporter = buildTransport();
+    
+    const info = await transporter.sendMail({
+      from: getFromAddress(),
+      to,
+      subject: 'Verify your UrbanPro email',
+      text: `Welcome to UrbanPro! Verify your email: ${link}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2>Verify your email</h2>
+          <p>Thanks for signing up with UrbanPro. Please verify your email to continue.</p>
+          <p>
+            <a href="${link}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;">Verify Email</a>
+          </p>
+          <p>If the button does not work, copy and paste this link into your browser:</p>
+          <p>${link}</p>
+        </div>
+      `,
+    });
+    
+    console.log(`[Email] ✅ Verification email sent: ${info.messageId} → ${to}`);
+    logger.info('Verification email sent', { to, messageId: info.messageId });
+    return info;
+  } catch (error) {
+    console.error(`[Email] ❌ Failed to send verification email to ${to}:`, {
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      response: error.response,
+      stack: error.stack.split('\n').slice(0, 3).join('\n'),
+    });
+    logger.error('Failed to send verification email', { 
+      to, 
+      message: error.message, 
+      code: error.code,
+      response: error.response 
+    });
+    throw error;
+  }
 }
 
 async function sendPasswordResetEmail({ to, link }) {
-  const transporter = buildTransport();
+  try {
+    const transporter = buildTransport();
 
-  return transporter.sendMail({
-    from: getFromAddress(),
-    to,
-    subject: 'Reset your UrbanPro password',
-    text: `Reset your password here: ${link}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-        <h2>Reset Password</h2>
-        <p>You requested a password reset for UrbanPro.</p>
-        <p>
-          <a href="${link}" style="display:inline-block;padding:10px 16px;background:#ef4444;color:#ffffff;text-decoration:none;border-radius:6px;">Reset Password</a>
-        </p>
-        <p>If you didn't request this, you can ignore this email.</p>
-        <p>Link: ${link}</p>
-      </div>
-    `,
-  });
+    const info = await transporter.sendMail({
+      from: getFromAddress(),
+      to,
+      subject: 'Reset your UrbanPro password',
+      text: `Reset your password here: ${link}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2>Reset Password</h2>
+          <p>You requested a password reset for UrbanPro.</p>
+          <p>
+            <a href="${link}" style="display:inline-block;padding:10px 16px;background:#ef4444;color:#ffffff;text-decoration:none;border-radius:6px;">Reset Password</a>
+          </p>
+          <p>If you didn't request this, you can ignore this email.</p>
+          <p>Link: ${link}</p>
+        </div>
+      `,
+    });
+    
+    console.log(`[Email] ✅ Password reset email sent: ${info.messageId} → ${to}`);
+    logger.info('Password reset email sent', { to, messageId: info.messageId });
+    return info;
+  } catch (error) {
+    console.error(`[Email] ❌ Failed to send password reset email to ${to}:`, {
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      response: error.response,
+    });
+    logger.error('Failed to send password reset email', { 
+      to, 
+      message: error.message, 
+      code: error.code 
+    });
+    throw error;
+  }
 }
 
 const BOOKING_STATUS_CONFIG = {

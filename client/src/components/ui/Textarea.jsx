@@ -88,10 +88,10 @@ export const Textarea = forwardRef(function Textarea(
               focus-visible:!outline-none focus-visible:!ring-0
               text-gray-900 dark:text-white font-medium resize-none scrollbar-thin appearance-none selection:bg-brand-500/30
               placeholder:text-neutral-400/40 dark:placeholder:text-neutral-500/40
-              rounded-2xl
               ${Icon ? 'pl-12' : 'pl-5'}
               pr-12
               ${label ? 'pt-8 pb-3' : 'py-5'}
+              rounded-2xl
               ${textareaClassName}
             `}
             ref={ref}

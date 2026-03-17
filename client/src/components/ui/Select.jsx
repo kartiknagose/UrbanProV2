@@ -87,6 +87,10 @@ export const Select = forwardRef(function Select(
               ${label ? 'pt-8 pb-3' : 'py-5'}
               ${selectClassName}
             `}
+            style={{
+              colorScheme: 'light dark',
+              optionColorScheme: 'light',
+            }}
             ref={ref}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}

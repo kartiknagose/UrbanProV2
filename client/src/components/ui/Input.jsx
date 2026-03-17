@@ -111,6 +111,8 @@ export const Input = forwardRef(function Input(
               focus-visible:!outline-none focus-visible:!ring-0
               text-gray-900 dark:text-white font-medium appearance-none selection:bg-brand-500/30
               placeholder:text-neutral-400/40 dark:placeholder:text-neutral-500/40
+              autofill:!text-gray-900 dark:autofill:!text-white
+              autofill:!shadow-[inset_0_0_0px_1000px_rgba(255,255,255,1)] dark:autofill:!shadow-[inset_0_0_0px_1000px_rgba(25,28,35,1)]
               ${isCompact ? 'rounded-xl' : 'rounded-2xl'}
               ${Icon ? 'pl-12' : 'pl-5'}
               ${(type === 'password' || rightElement || success || error || showClear) ? 'pr-20' : 'pr-5'}

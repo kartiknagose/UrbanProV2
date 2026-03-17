@@ -18,14 +18,21 @@ exports.register = asyncHandler(async (req, res) => {
   const { user, verificationToken } = await registerUser({ name, email, mobile, password, role });
   const baseUrl = req.get('origin') || process.env.CORS_ORIGIN || 'http://localhost:5173';
   const verificationLink = `${baseUrl}/verify-email?token=${encodeURIComponent(verificationToken)}`;
-  try {
-    await sendVerificationEmail({ to: user.email, link: verificationLink });
-  } catch (error) {
-    console.error('❌ Verification email failed (SMTP Error):');
-    if (error.response) console.error('Response:', error.response);
-    if (error.code) console.error('Code:', error.code);
-    console.error('Message:', error.message);
-  }
+  
+  // Send email ASYNCHRONOUSLY (non-blocking) to avoid signup delays
+  // Fire and forget pattern - don't await email sending
+  (async () => {
+    try {
+      await sendVerificationEmail({ to: user.email, link: verificationLink });
+      console.log(`✅ Verification email sent to ${user.email}`);
+    } catch (error) {
+      console.error('❌ Verification email failed (SMTP Error):');
+      if (error.response) console.error('Response:', error.response);
+      if (error.code) console.error('Code:', error.code);
+      console.error('Message:', error.message);
+      console.error('Stack:', error.stack);
+    }
+  })();
 
   // ALWAYS log link in dev for easy testing
   if (process.env.NODE_ENV === 'development') {
@@ -36,7 +43,9 @@ exports.register = asyncHandler(async (req, res) => {
       console.error('Failed to write verification link to file:', e);
     }
   }
+  
   // User must verify email before logging in, so we don't set the auth cookie yet.
+  // Response returned immediately - email sending happens in background
   res.status(201).json({
     user: {
       id: user.id,
