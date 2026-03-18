@@ -33,4 +33,25 @@ const FRONTEND_URL = process.env.FRONTEND_URL
     || (CORS_ORIGIN.includes(',') ? CORS_ORIGIN.split(',')[0].trim() : CORS_ORIGIN)
     || 'http://localhost:5173';
 
-module.exports = { PORT, JWT_SECRET, CORS_ORIGIN, NODE_ENV, FRONTEND_URL };
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const CACHE_RELAY_SECRET = process.env.CACHE_RELAY_SECRET || '';
+const SENTRY_DSN = process.env.SENTRY_DSN || '';
+const SENTRY_ENVIRONMENT = process.env.SENTRY_ENVIRONMENT || NODE_ENV;
+const SENTRY_TRACES_SAMPLE_RATE = process.env.SENTRY_TRACES_SAMPLE_RATE || '0.1';
+
+module.exports = {
+    PORT,
+    JWT_SECRET,
+    CORS_ORIGIN,
+    NODE_ENV,
+    FRONTEND_URL,
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
+    SUPABASE_SERVICE_ROLE_KEY,
+    CACHE_RELAY_SECRET,
+    SENTRY_DSN,
+    SENTRY_ENVIRONMENT,
+    SENTRY_TRACES_SAMPLE_RATE,
+};

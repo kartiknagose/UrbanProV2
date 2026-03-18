@@ -3,7 +3,6 @@ const { hashPassword, comparePassword } = require('../../common/utils/bcrypt');
 const { signJwt } = require('../../common/utils/jwt');
 const { generateEmailVerificationToken, generatePasswordResetToken } = require('../../common/utils/tokenGenerator');
 const AppError = require('../../common/errors/AppError');
-const GrowthService = require('../business_growth/business_growth.service');
 
 async function registerUser({ name, email, mobile, password, role = 'CUSTOMER', referralCode = null }) {
   const validRoles = ['CUSTOMER', 'WORKER'];
@@ -58,21 +57,6 @@ async function registerUser({ name, email, mobile, password, role = 'CUSTOMER', 
     maxWait: 10000,
     timeout: 15000,
   });
-
-  // BUSINESS GROWTH: best-effort post-registration setup outside transaction.
-  // This prevents non-critical work from extending transaction time.
-  try {
-    await prisma.$transaction(async (tx) => {
-      await GrowthService.initializeWallet(user.id, tx);
-      await GrowthService.generateReferralCode(user.id, tx);
-    }, {
-      maxWait: 10000,
-      timeout: 15000,
-    });
-  } catch (setupError) {
-    // Registration succeeds even if optional growth setup is delayed.
-    console.error('[AUTH] Post-registration growth setup failed:', setupError.message);
-  }
 
   const jwtToken = signJwt({ id: user.id, role: user.role });
   return {

@@ -1,5 +1,8 @@
 const promClient = require('prom-client');
 const logger = require('./logger');
+const { initServerMonitoring, Sentry } = require('./sentry');
+
+initServerMonitoring();
 
 /**
  * Platform Monitoring (Sprint 15)
@@ -59,7 +62,7 @@ const metricsMiddleware = (req, res, next) => {
 };
 
 /**
- * Capture exceptions (Mock Sentry)
+ * Capture exceptions for monitoring and Sentry forwarding.
  */
 const captureException = (error, context = {}) => {
     logger.error(`[CRASH_REPORT] ${error.message}`, {
@@ -67,7 +70,12 @@ const captureException = (error, context = {}) => {
         ...context,
         timestamp: new Date().toISOString()
     });
-    // In production, this would go to Sentry.io
+
+    if (Sentry?.captureException) {
+        Sentry.captureException(error, {
+            extra: context,
+        });
+    }
 };
 
 module.exports = {

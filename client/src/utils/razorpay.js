@@ -1,9 +1,11 @@
+import { clientEnv } from '../config/env';
+
 let razorpayScriptPromise;
 
 const RAZORPAY_SCRIPT_URL = 'https://checkout.razorpay.com/v1/checkout.js';
 
 export function getRazorpayKeyId() {
-  return import.meta.env.VITE_RAZORPAY_KEY_ID || '';
+  return clientEnv.razorpayKeyId || '';
 }
 
 export async function ensureRazorpayLoaded() {

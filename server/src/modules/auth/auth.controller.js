@@ -4,6 +4,7 @@ const prisma = require('../../config/prisma');
 const { FRONTEND_URL } = require('../../config/env');
 const { registerUser, loginUser, verifyEmailToken, requestPasswordReset, resetPasswordWithToken, changePassword } = require('./auth.service');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../../common/utils/mailer');
+const GrowthService = require('../business_growth/business_growth.service');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -20,10 +21,8 @@ exports.register = asyncHandler(async (req, res) => {
   // Use FRONTEND_URL (never comma-separated CORS_ORIGIN) to build a valid, clickable link
   const baseUrl = FRONTEND_URL;
   const verificationLink = `${baseUrl}/verify-email?token=${encodeURIComponent(verificationToken)}`;
-  
-  // Send email ASYNCHRONOUSLY (non-blocking) to avoid signup delays
-  // Fire and forget pattern - don't await email sending
-  (async () => {
+
+  if (process.env.NODE_ENV === 'production') {
     try {
       await sendVerificationEmail({ to: user.email, link: verificationLink });
       console.log(`✅ Verification email sent to ${user.email}`);
@@ -33,8 +32,41 @@ exports.register = asyncHandler(async (req, res) => {
       if (error.code) console.error('Code:', error.code);
       console.error('Message:', error.message);
       console.error('Stack:', error.stack);
+
+      try {
+        await prisma.user.delete({ where: { id: user.id } });
+      } catch (cleanupError) {
+        console.error('Failed to clean up user after email failure:', cleanupError.message);
+      }
+
+      throw new AppError(502, 'Unable to send verification email. Please try again later.');
     }
-  })();
+  } else {
+    (async () => {
+      try {
+        await sendVerificationEmail({ to: user.email, link: verificationLink });
+        console.log(`✅ Verification email sent to ${user.email}`);
+      } catch (error) {
+        console.error('❌ Verification email failed (SMTP Error):');
+        if (error.response) console.error('Response:', error.response);
+        if (error.code) console.error('Code:', error.code);
+        console.error('Message:', error.message);
+        console.error('Stack:', error.stack);
+      }
+    })();
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await GrowthService.initializeWallet(user.id, tx);
+      await GrowthService.generateReferralCode(user.id, tx);
+    }, {
+      maxWait: 10000,
+      timeout: 15000,
+    });
+  } catch (setupError) {
+    console.error('[AUTH] Post-registration growth setup failed:', setupError.message);
+  }
 
   // ALWAYS log link in dev for easy testing
   if (process.env.NODE_ENV === 'development') {
@@ -47,7 +79,7 @@ exports.register = asyncHandler(async (req, res) => {
   }
   
   // User must verify email before logging in, so we don't set the auth cookie yet.
-  // Response returned immediately - email sending happens in background
+  // Production waits for the verification send to succeed; development logs it best-effort.
   res.status(201).json({
     user: {
       id: user.id,

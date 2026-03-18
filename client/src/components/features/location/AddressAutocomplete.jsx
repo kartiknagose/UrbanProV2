@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, MapPin, Loader2, X } from 'lucide-react';
 // Google Places API integration
 import axios from 'axios';
+import { clientEnv } from '../../../config/env';
 
-const GOOGLE_PLACES_API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
+const GOOGLE_PLACES_API_KEY = clientEnv.googlePlacesApiKey;
 const GOOGLE_PLACES_AUTOCOMPLETE_URL = 'https://maps.googleapis.com/maps/api/place/autocomplete/json';
 const GOOGLE_PLACES_DETAILS_URL = 'https://maps.googleapis.com/maps/api/place/details/json';
 

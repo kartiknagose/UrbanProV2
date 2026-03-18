@@ -6,6 +6,8 @@ const toNumber = (value, fallback) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 let transporterSingleton = null;
 
 const buildTransport = () => {
@@ -63,7 +65,11 @@ const getFromAddress = () => {
 async function sendEmail({ to, subject, text, html, logContext = 'Default' }) {
   const transporter = buildTransport();
   if (!transporter) {
-    console.warn(`[Email] ⚠️ Not sending email [${logContext}] to ${to}: Transporter not configured`);
+    const message = `SMTP transport not configured for ${logContext}`;
+    console.warn(`[Email] ⚠️ Not sending email [${logContext}] to ${to}: ${message}`);
+    if (isProduction) {
+      throw new Error(message);
+    }
     return null;
   }
 
@@ -210,6 +216,11 @@ async function sendBookingStatusEmail(booking) {
     transporter = buildTransport();
   } catch (err) {
     logger.warn('SMTP not configured, skipping booking email:', err.message);
+    return;
+  }
+
+  if (!transporter) {
+    logger.warn('SMTP not configured, skipping booking email: transport unavailable');
     return;
   }
 

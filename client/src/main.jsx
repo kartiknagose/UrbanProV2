@@ -6,10 +6,12 @@ import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import App from './App.jsx';
 import GlobalErrorBoundary from './components/common/GlobalErrorBoundary.jsx';
+import { initClientMonitoring } from './config/sentry';
 import './index.css';
 import './config/i18n';
 import { installToastDeduper } from './utils/toastDeduper';
 
+initClientMonitoring();
 installToastDeduper();
 
 /**

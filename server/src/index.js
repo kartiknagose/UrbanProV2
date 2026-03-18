@@ -48,7 +48,6 @@ const growthRoutes = require('./modules/business_growth/growth.routes'); // Refe
 const payoutRoutes = require('./modules/payouts/payout.routes');
 const invoiceRoutes = require('./modules/invoices/invoice.routes');
 const analyticsRoutes = require('./modules/analytics/analytics.routes');
-const systemRoutes = require('./modules/system/system.routes'); // Observability (Sprint 15)
 
 // Create Express application instance
 const app = express();
@@ -175,7 +174,6 @@ app.use('/api/growth', growthRoutes);
 app.use('/api/payouts', payoutRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/analytics', analyticsRoutes);
-app.use('/api/system', systemRoutes);
 
 // 404 and error handlers
 app.use(notFoundHandler);

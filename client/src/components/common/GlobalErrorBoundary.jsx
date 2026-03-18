@@ -1,7 +1,6 @@
 import React from 'react';
 import { AlertTriangle, RefreshCcw, Home } from 'lucide-react';
 import { Button } from './index';
-// import { reportClientError } from '../../api/system'; // Removed: system.js does not exist
 
 /**
  * GLOBAL ERROR BOUNDARY (Sprint 15)
@@ -20,9 +19,6 @@ class GlobalErrorBoundary extends React.Component {
     }
 
     componentDidCatch(error, errorInfo) {
-        // REPORT CRASH TO BACKEND (Mock Sentry)
-        // reportClientError(error, errorInfo);
-
         // Log locally for development
         if (import.meta.env.DEV) {
             console.error('[CRASH_DETECTED]', error, errorInfo);

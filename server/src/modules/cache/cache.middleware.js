@@ -12,7 +12,7 @@ async function serviceCatalogCache(req, res, next) {
 
 async function workerProfileCache(req, res, next) {
   try {
-    const workerId = parseInt(req.params.workerId);
+    const workerId = parseInt(req.params.id);
     if (isNaN(workerId)) return next(); // Fallback if ID is invalid
     
     const profile = await cacheService.getWorkerProfile(workerId);
