@@ -49,6 +49,12 @@ export function AddressAutocomplete({ value, onChange, placeholder = "Search for
     }, []);
 
     const fetchSuggestions = async (searchQuery) => {
+        if (!GOOGLE_PLACES_API_KEY) {
+            setSuggestions([]);
+            setShowDropdown(false);
+            return;
+        }
+
         if (searchQuery.length < 3) {
             setSuggestions([]);
             return;
@@ -117,6 +123,17 @@ export function AddressAutocomplete({ value, onChange, placeholder = "Search for
     const handleSelect = async (item) => {
         setQuery(item.description);
         setShowDropdown(false);
+
+        if (!GOOGLE_PLACES_API_KEY) {
+            onChange({
+                address: item.description,
+                lat: null,
+                lng: null,
+                details: {},
+            });
+            return;
+        }
+
         // Fetch place details for lat/lng and structured address
         try {
             const detailsResp = await axios.get(

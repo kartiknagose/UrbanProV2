@@ -1,7 +1,10 @@
 import { IndianRupee, CheckCircle2, Star, Clock } from 'lucide-react';
 import { Badge } from '../../../components/common';
+import { toFixedSafe } from '../../../utils/numberFormat';
 
 export function ServiceHeader({ service }) {
+  const avgRating = toFixedSafe(service?.avgRating, 1, null);
+
   return (
     <div>
       <div className="flex items-center gap-3 mb-4">
@@ -29,10 +32,10 @@ export function ServiceHeader({ service }) {
           <CheckCircle2 className="text-green-500" size={20} />
           <span className="font-medium text-gray-700 dark:text-gray-300">Background-Verified Professionals</span>
         </div>
-        {service.avgRating && (
+        {avgRating && (
           <div className="flex items-center gap-2">
             <div className="text-yellow-500"><Star size={20} fill="currentColor" /></div>
-            <span className="font-medium text-gray-700 dark:text-gray-300">{service.avgRating.toFixed(1)} Avg Rating</span>
+            <span className="font-medium text-gray-700 dark:text-gray-300">{avgRating} Avg Rating</span>
           </div>
         )}
         <div className="flex items-center gap-2">

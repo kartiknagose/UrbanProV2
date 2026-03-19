@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Circle } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../../../utils/leafletSetup';
 import { MAP_TILES } from '../../../utils/mapTiles';
+import { toFixedSafe } from '../../../utils/numberFormat';
 import { Layers, Map as MapIcon, Mountain, Satellite, Moon, Zap } from 'lucide-react';
 import './map-styles.css';
 
@@ -139,7 +140,7 @@ export function MiniMap({ lat, lng, height = "200px", zoom = 14, radius = 0 }) {
             {/* Branded Coordinate Badge */}
             <div className="absolute bottom-3 right-3 z-[400] px-2.5 py-1 rounded-lg text-[9px] font-black tracking-widest shadow-lg border backdrop-blur-md select-none bg-white/90 text-gray-500 border-black/5 dark:bg-dark-950/80 dark:text-gray-400 dark:border-white/5">
                 <span className="opacity-40 mr-1.5 uppercase font-black tracking-tighter">Coord:</span>
-                {latitude.toFixed(4)}, {longitude.toFixed(4)}
+                {toFixedSafe(latitude, 4, '0.0000')}, {toFixedSafe(longitude, 4, '0.0000')}
             </div>
         </div>
     );

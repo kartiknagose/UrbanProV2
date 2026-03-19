@@ -10,6 +10,7 @@ import { Button, Badge, Spinner } from '../../common';
 import { queryKeys } from '../../../utils/queryKeys';
 import { checkFavoriteWorker, toggleFavoriteWorker } from '../../../api/growth';
 import { toast } from 'sonner';
+import { toFixedSafe } from '../../../utils/numberFormat';
 
 const getSkillBadge = (completions) => {
     if (completions >= 100) return { label: "Master", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800" };
@@ -147,7 +148,7 @@ export function WorkerProfileWindow({ workerId, isOpen, onClose }) {
                                     <div className="flex flex-wrap items-center gap-3 mt-2">
                                         <div className="flex items-center text-yellow-500 gap-1 bg-yellow-500/10 px-2 py-0.5 rounded-lg">
                                             <Star size={14} fill="currentColor" />
-                                            <span className="text-sm font-bold">{profile.user?.rating?.toFixed(1) || '4.9'}</span>
+                                            <span className="text-sm font-bold">{toFixedSafe(profile.user?.rating, 1, '4.9')}</span>
                                         </div>
                                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">• {profile.totalReviews || 0} Successful Jobs</span>
                                         {(() => {

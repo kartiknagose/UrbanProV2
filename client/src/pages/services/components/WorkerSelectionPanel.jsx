@@ -3,6 +3,7 @@ import { Search, CheckCircle2, Star, MessageSquare, User, ShieldCheck, Filter } 
 import { Input, Badge, Button, Avatar } from "../../../components/common";
 import { bookingModes } from "./bookingModes";
 import { motion as Motion, AnimatePresence } from "framer-motion";
+import { toFixedSafe } from "../../../utils/numberFormat";
 
 const getVerificationLevelVariant = (level) => {
   switch (level) {
@@ -180,7 +181,7 @@ export function WorkerSelectionPanel({
                             <div className="flex items-center gap-2 mb-4 text-xs font-semibold text-neutral-500 dark:text-neutral-400">
                               <div className="flex items-center gap-1 text-warning-500">
                                 <Star size={12} className="fill-warning-400" />
-                                <span>{worker.rating?.toFixed(1) || "New"}</span>
+                                <span>{toFixedSafe(worker.rating, 1, 'New')}</span>
                               </div>
                               <span className="w-1 h-1 rounded-full bg-neutral-300 dark:bg-dark-700" />
                               <span>{worker.totalReviews} jobs</span>

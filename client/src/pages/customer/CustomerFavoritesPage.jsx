@@ -11,6 +11,7 @@ import { getFavoriteWorkers, toggleFavoriteWorker } from '../../api/growth';
 import { WorkerProfileWindow } from '../../components/features/workers/WorkerProfileWindow';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { getPageLayout } from '../../constants/layout';
+import { toFixedSafe } from '../../utils/numberFormat';
 
 export function CustomerFavoritesPage() {
   usePageTitle('My Favorites');
@@ -130,7 +131,7 @@ export function CustomerFavoritesPage() {
                           <div className="flex items-center gap-1">
                             <Star size={13} className="text-amber-500" fill="currentColor" />
                             <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                              {fav.worker.rating?.toFixed(1) || 'New'}
+                              {toFixedSafe(fav.worker.rating, 1, 'New')}
                             </span>
                           </div>
                           <span className="text-xs text-gray-400">·</span>

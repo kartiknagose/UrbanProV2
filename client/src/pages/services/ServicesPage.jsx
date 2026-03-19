@@ -14,6 +14,7 @@ import { queryKeys } from '../../utils/queryKeys';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { useCity } from '../../context/CityContext';
 import { useTranslation } from 'react-i18next';
+import { toFixedSafe } from '../../utils/numberFormat';
 
 const categoryIconMap = {
   cleaning: Sparkles,
@@ -42,7 +43,7 @@ const ServiceCard = memo(({ service }) => {
   const iconType = getCategoryIcon(service.category);
   const bgImage = getServiceImage(service.name || service.category);
 
-  const rating = service.avgRating?.toFixed(1) || null;
+  const rating = toFixedSafe(service.avgRating, 1, null);
 
   return (
     <Card hoverable className="h-full flex flex-col relative overflow-hidden group border-0 shadow-2xl ring-1 ring-gray-200 dark:ring-white/10 rounded-[2.5rem]">

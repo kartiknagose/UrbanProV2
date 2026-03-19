@@ -7,6 +7,7 @@ import { AddressAutocomplete } from './AddressAutocomplete';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { MAP_TILES, MAP_TILE_ATTRIBUTION } from '../../../utils/mapTiles';
+import { toFixedSafe } from '../../../utils/numberFormat';
 
 /**
  * MapEvents
@@ -54,13 +55,6 @@ export function LocationPicker({ onChange, initialLocation = null, className = '
     const [isLocating, setIsLocating] = useState(false);
     const [isCalibrating, setIsCalibrating] = useState(false);
 
-    // Proactive Auto-Location: If no position provided, try to detect current user city
-    useEffect(() => {
-        if (!initialLocation) {
-            getUserLocation();
-        }
-    }, [initialLocation, getUserLocation]); // Include dependencies for linting and stability
-
     // Sync state with initialLocation if it changes (e.g. after profile fetch)
     useEffect(() => {
         if (initialLocation && typeof initialLocation.lat === 'number' && typeof initialLocation.lng === 'number' && !isNaN(initialLocation.lat) && !isNaN(initialLocation.lng)) {
@@ -69,13 +63,19 @@ export function LocationPicker({ onChange, initialLocation = null, className = '
     }, [initialLocation]);
 
     const handleLocationChange = useCallback((latlng, addr = '') => {
+        const lat = Number(latlng?.lat);
+        const lng = Number(latlng?.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            return;
+        }
+
         setPosition(latlng);
         // Using functional update to avoid 'address' dependency loop
         setAddress(prev => {
             const finalAddr = addr || prev;
             onChange({
-                lat: latlng.lat,
-                lng: latlng.lng,
+                lat,
+                lng,
                 address: finalAddr
             });
             return finalAddr;
@@ -156,6 +156,14 @@ export function LocationPicker({ onChange, initialLocation = null, className = '
             { enableHighAccuracy: true, timeout: 20000, maximumAge: 15000 }
         );
     }, [handleLocationChange, fetchReverseGeocode]);
+
+    // Proactive Auto-Location: If no position provided, try to detect current user city.
+    // Declared after getUserLocation to avoid use-before-initialization runtime errors.
+    useEffect(() => {
+        if (!initialLocation) {
+            getUserLocation();
+        }
+    }, [initialLocation, getUserLocation]);
 
     const [mapType, setMapType] = useState('satellite');
 
@@ -265,7 +273,7 @@ export function LocationPicker({ onChange, initialLocation = null, className = '
                 {/* Coordinate Display Overlay */}
                 <div className="absolute bottom-6 left-6 z-[400] px-4 py-2 rounded-xl shadow-2xl backdrop-blur-md text-[10px] font-black tracking-widest uppercase
                                 bg-dark-950/80 text-neutral-400 border border-white/5">
-                    {position?.lat ? position.lat.toFixed(6) : '0.000000'} <span className="text-brand-500 mx-1">/</span> {position?.lng ? position.lng.toFixed(6) : '0.000000'}
+                    {toFixedSafe(position?.lat, 6, '0.000000')} <span className="text-brand-500 mx-1">/</span> {toFixedSafe(position?.lng, 6, '0.000000')}
                 </div>
             </div>
 

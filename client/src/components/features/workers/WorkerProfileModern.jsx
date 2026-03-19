@@ -30,6 +30,7 @@ import { Button, Badge, Spinner } from '../../common';
 import { MiniMap } from '../../features/location/MiniMap';
 import { ChatToggle } from '../../features/chat/ChatWindow';
 import { queryKeys } from '../../../utils/queryKeys';
+import { toFixedSafe } from '../../../utils/numberFormat';
 
 /**
  * WorkerProfileModern
@@ -91,7 +92,7 @@ export function WorkerProfileModern({ workerId, onClose, onAction }) {
     const isOnline = profile?.location?.isOnline || false;
 
     const stats = useMemo(() => [
-        { label: 'Rating', value: profile?.user?.rating?.toFixed(1) || 'N/A', icon: Star, color: 'text-yellow-500' },
+        { label: 'Rating', value: toFixedSafe(profile?.user?.rating, 1, 'N/A'), icon: Star, color: 'text-yellow-500' },
         { label: 'Jobs Done', value: profile?.totalReviews || 0, icon: CheckCircle2, color: 'text-green-500' },
         { label: 'Exp', value: profile?.experienceYears ? `${profile.experienceYears} Yrs` : 'N/A', icon: Briefcase, color: 'text-blue-500' },
         { label: 'Response', value: isOnline ? 'Online Now' : '< 1hr', icon: Clock, color: isOnline ? 'text-success-500' : 'text-purple-500' }
@@ -349,7 +350,7 @@ export function WorkerProfileModern({ workerId, onClose, onAction }) {
                                 <div>
                                     <span className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-40">Starting from</span>
                                     <div className="flex items-baseline gap-1 mt-1">
-                                        <span className="text-4xl font-black tracking-tight text-brand-500">₹{Number(profile.hourlyRate).toFixed(0)}</span>
+                                        <span className="text-4xl font-black tracking-tight text-brand-500">₹{toFixedSafe(profile.hourlyRate, 0, '0')}</span>
                                         <span className="text-sm font-bold opacity-40 italic">/ hour</span>
                                     </div>
                                 </div>
@@ -404,7 +405,7 @@ export function WorkerProfileModern({ workerId, onClose, onAction }) {
                 <div className="flex items-center justify-between gap-4 max-w-lg mx-auto">
                     <div>
                         <p className="text-[10px] font-bold uppercase opacity-40">Rate</p>
-                        <p className="text-xl font-black">₹{Number(profile.hourlyRate).toFixed(0)}<span className="text-xs opacity-50 font-normal">/hr</span></p>
+                        <p className="text-xl font-black">₹{toFixedSafe(profile.hourlyRate, 0, '0')}<span className="text-xs opacity-50 font-normal">/hr</span></p>
                     </div>
                     <Button onClick={onAction} className="flex-1 h-12 rounded-xl text-xs font-bold uppercase tracking-widest">
                         Book Now

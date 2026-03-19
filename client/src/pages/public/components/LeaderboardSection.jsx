@@ -4,6 +4,7 @@ import { Star, Trophy, Award, ShieldCheck, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getLeaderboard } from '../../../api/workers';
 import { Avatar, Button, Card } from '../../../components/common';
+import { toFixedSafe } from '../../../utils/numberFormat';
 
 const getSkillBadge = (completions) => {
   if (completions >= 100) return { label: "Master", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800", icon: Trophy };
@@ -91,7 +92,7 @@ export function LeaderboardSection() {
                     <div className="flex items-center gap-3 text-sm font-bold text-neutral-600 dark:text-neutral-400 mb-6 bg-neutral-100 dark:bg-dark-800 px-4 py-1.5 rounded-full">
                       <div className="flex items-center gap-1">
                         <Star size={14} className="fill-warning-500 text-warning-500" />
-                        <span className="text-neutral-900 dark:text-white">{pro.user?.rating?.toFixed(1) || 'N/A'}</span>
+                        <span className="text-neutral-900 dark:text-white">{toFixedSafe(pro.user?.rating, 1, 'N/A')}</span>
                       </div>
                       <div className="w-1 h-1 rounded-full bg-neutral-300 dark:border-dark-600" />
                       <span>{pro.user?.totalReviews} Jobs</span>
