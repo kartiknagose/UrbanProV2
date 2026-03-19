@@ -12,9 +12,13 @@ module.exports = (err, _req, res, _next) => {
   const status = err.statusCode || err.status || 500;
   const isDevelopment = process.env.NODE_ENV === 'development';
 
-  // Do not expose internal 5xx details in production responses.
+  // Do not expose unknown 5xx details in production responses.
+  // Operational errors (AppError) are safe to show as curated user messages.
   const rawMessage = err.message || 'Internal Server Error';
-  const message = status >= 500 && !isDevelopment ? 'Internal Server Error' : rawMessage;
+  const isOperational = Boolean(err?.isOperational);
+  const message = status >= 500 && !isDevelopment && !isOperational
+    ? 'Internal Server Error'
+    : rawMessage;
 
   if (status >= 500) {
     // CRASH REPORTING (Sprint 15)
