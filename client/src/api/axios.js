@@ -3,6 +3,7 @@
 
 import axios from 'axios';
 import { API_BASE_URL } from '../config/runtime';
+import { clientEnv } from '../config/env';
 
 // Base API URL - points to backend server
 const API_URL = API_BASE_URL;
@@ -10,7 +11,7 @@ const API_URL = API_BASE_URL;
 // Create axios instance with default config
 const axiosInstance = axios.create({
   baseURL: API_URL,
-  timeout: 15000,
+  timeout: clientEnv.apiTimeoutMs,
   headers: {
     'Content-Type': 'application/json',
   },

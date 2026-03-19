@@ -93,7 +93,7 @@ function authReducer(state, action) {
 
 const getApiErrorMessage = (error, fallback) => {
   if (error?.code === 'ECONNABORTED') {
-    return 'Server timeout. Please try again in a few seconds.';
+    return 'Server is waking up or slow. Please try again in a few seconds.';
   }
 
   if (error?.request && !error?.response) {

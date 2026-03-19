@@ -16,8 +16,17 @@ const readEnv = (key, fallback = '') => {
   return typeof value === 'string' ? value : fallback;
 };
 
+const readNumberEnv = (key, fallback) => {
+  const parsed = Number(readEnv(key, String(fallback)));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
 export const clientEnv = Object.freeze({
   apiUrl: readEnv('VITE_API_URL', 'http://localhost:3000/api'),
+  apiTimeoutMs: readNumberEnv(
+    'VITE_API_TIMEOUT_MS',
+    (import.meta.env.MODE || 'development') === 'production' ? 45000 : 15000
+  ),
   socketUrl: readEnv('VITE_SOCKET_URL', ''),
   razorpayKeyId: readEnv('VITE_RAZORPAY_KEY_ID', ''),
   googlePlacesApiKey: readEnv('VITE_GOOGLE_PLACES_API_KEY', ''),

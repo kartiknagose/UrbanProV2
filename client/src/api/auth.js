@@ -16,6 +16,40 @@ const AUTH_ENDPOINTS = {
   CHANGE_PASSWORD: '/auth/change-password',
 };
 
+const isRetryableNetworkError = (error) => (
+  error?.code === 'ECONNABORTED' || (error?.request && !error?.response)
+);
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const wakeBackend = async () => {
+  try {
+    await axiosInstance.get('/health', { timeout: 20000 });
+  } catch (_error) {
+    // Ignore wake-up ping failures and let the next request determine final outcome.
+  }
+};
+
+const withRetryOnNetworkTimeout = async (requestFn, retries = 1) => {
+  let lastError;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return await requestFn();
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableNetworkError(error) || attempt === retries) {
+        throw error;
+      }
+
+      await wakeBackend();
+      await sleep(1200);
+    }
+  }
+
+  throw lastError;
+};
+
 /**
  * Register a new customer
  * @param {Object} data - Registration data
@@ -55,7 +89,10 @@ export const registerWorker = async (data) => {
  * @returns {Promise} Response with user data and token
  */
 export const login = async (credentials) => {
-  const response = await axiosInstance.post(AUTH_ENDPOINTS.LOGIN, credentials);
+  const response = await withRetryOnNetworkTimeout(
+    () => axiosInstance.post(AUTH_ENDPOINTS.LOGIN, credentials),
+    1
+  );
   return response.data;
 };
 
@@ -73,7 +110,10 @@ export const logout = async () => {
  * @returns {Promise} Response with current user data
  */
 export const getCurrentUser = async () => {
-  const response = await axiosInstance.get(AUTH_ENDPOINTS.GET_ME);
+  const response = await withRetryOnNetworkTimeout(
+    () => axiosInstance.get(AUTH_ENDPOINTS.GET_ME),
+    1
+  );
   return response.data;
 };
 
