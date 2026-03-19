@@ -1414,39 +1414,37 @@ async function verifyBookingCompletion(bookingId, otp, userId) {
 
     await recordStatusChange(bookingId, 'IN_PROGRESS', 'COMPLETED', userId, 'OTP verified — job completed', tx);
 
-    // BUSINESS GROWTH: Update Coupon Count (Sprint 17)
-    if (booking.couponId) {
-      await runNonBlocking('Coupon usage increment', async () => {
-        await tx.coupon.update({
-          where: { id: booking.couponId },
-          data: { usageCount: { increment: 1 } }
-        });
-      });
-    }
-
-    // BUSINESS GROWTH: Award Referral Bonus if first job (Sprint 17)
-    await runNonBlocking('Referral bonus award', async () => {
-      await GrowthService.awardReferralBonus(bookingId, tx);
-    });
-
-    // BUSINESS GROWTH: Award Loyalty Points (Sprint 17 - #75)
-    const totalPrice = Number(updated.totalPrice || 0);
-    if (Number.isFinite(totalPrice) && totalPrice > 0) {
-      await runNonBlocking('Loyalty points award', async () => {
-        await GrowthService.awardLoyaltyPoints(updated.customerId, totalPrice, tx);
-      });
-    }
-
-    // BUSINESS GROWTH: Handle Recurring Bookings (Sprint 17 - #78)
-    await runNonBlocking('Recurring booking handling', async () => {
-      await handleRecurringBooking(updated, tx);
-    });
-
-    await runNonBlocking('Escrow release', async () => {
-      await releaseEscrowIfEligible(bookingId, tx);
-    });
-
     return updated;
+  });
+
+  // Run non-critical post-completion tasks outside the status transaction.
+  // This prevents transient downstream failures from returning 500 on OTP verify.
+  if (booking.couponId) {
+    await runNonBlocking('Coupon usage increment', async () => {
+      await prisma.coupon.update({
+        where: { id: booking.couponId },
+        data: { usageCount: { increment: 1 } }
+      });
+    });
+  }
+
+  await runNonBlocking('Referral bonus award', async () => {
+    await GrowthService.awardReferralBonus(bookingId);
+  });
+
+  const totalPrice = Number(updatedBooking.totalPrice || 0);
+  if (Number.isFinite(totalPrice) && totalPrice > 0) {
+    await runNonBlocking('Loyalty points award', async () => {
+      await GrowthService.awardLoyaltyPoints(updatedBooking.customerId, totalPrice);
+    });
+  }
+
+  await runNonBlocking('Recurring booking handling', async () => {
+    await handleRecurringBooking(updatedBooking, prisma);
+  });
+
+  await runNonBlocking('Escrow release', async () => {
+    await releaseEscrowIfEligible(bookingId, prisma);
   });
 
   // MOCK SMS/WA INTEGRATION

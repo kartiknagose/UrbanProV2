@@ -15,6 +15,7 @@ import { getPageLayout } from '../../constants/layout';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcut';
 import { queryKeys } from '../../utils/queryKeys';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import { asArray } from '../../utils/safeData';
 
 export function WorkerServicesPage() {
   const { t } = useTranslation();
@@ -52,8 +53,8 @@ export function WorkerServicesPage() {
     },
   });
 
-  const allServices = useMemo(() => servicesQuery.data?.services || servicesQuery.data || [], [servicesQuery.data]);
-  const myServices = useMemo(() => myServicesQuery.data?.services || [], [myServicesQuery.data?.services]);
+  const allServices = useMemo(() => asArray(servicesQuery.data?.services || servicesQuery.data), [servicesQuery.data]);
+  const myServices = useMemo(() => asArray(myServicesQuery.data?.services), [myServicesQuery.data?.services]);
   const isLoading = servicesQuery.isLoading || myServicesQuery.isLoading;
   const hasServicesError = servicesQuery.isError;
   const hasMyServicesError = myServicesQuery.isError;

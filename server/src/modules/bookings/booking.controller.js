@@ -61,16 +61,26 @@ async function emitBookingStatusUpdated(booking) {
       message = `The booking for ${booking.service?.name} has been cancelled.`;
     }
 
+    // Emit realtime updates first for fastest UI feedback.
+    if (customerId) {
+      io.to(`user:${customerId}`).emit('booking:status_updated', booking);
+    }
+    if (workerUserId) {
+      io.to(`user:${workerUserId}`).emit('booking:status_updated', booking);
+    }
+
+    // Persist notifications asynchronously so DB latency does not delay websocket updates.
+    const persistenceJobs = [];
+
     // Notify Customer
     if (customerId) {
-      await notificationService.createNotification({
+      persistenceJobs.push(notificationService.createNotification({
         userId: customerId,
         type,
         title,
         message,
         data: { bookingId: booking.id, status: booking.status }
-      });
-      io.to(`user:${customerId}`).emit('booking:status_updated', booking);
+      }));
     }
 
     // Notify Worker
@@ -79,14 +89,19 @@ async function emitBookingStatusUpdated(booking) {
       const workerTitle = `Status: ${booking.status}`;
       const workerMsg = `Booking #${booking.id} (${booking.service?.name}) is now ${booking.status}.`;
 
-      await notificationService.createNotification({
+      persistenceJobs.push(notificationService.createNotification({
         userId: workerUserId,
         type,
         title: workerTitle,
         message: workerMsg,
         data: { bookingId: booking.id, status: booking.status }
+      }));
+    }
+
+    if (persistenceJobs.length > 0) {
+      Promise.allSettled(persistenceJobs).catch(() => {
+        // Errors are already captured via allSettled results.
       });
-      io.to(`user:${workerUserId}`).emit('booking:status_updated', booking);
     }
 
     // Fire-and-forget booking status email

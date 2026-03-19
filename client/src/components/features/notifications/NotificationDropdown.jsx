@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../hooks/useAuth';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../../api';
 import { queryKeys } from '../../../utils/queryKeys';
+import { asArray } from '../../../utils/safeData';
 
 export function NotificationDropdown() {
     const { isAuthenticated, user } = useAuth();
@@ -22,7 +23,7 @@ export function NotificationDropdown() {
         refetchIntervalInBackground: false,
     });
 
-    const notifications = data?.notifications || [];
+    const notifications = asArray(data?.notifications);
     const unreadCount = data?.unreadCount || 0;
 
     const readMutation = useMutation({
@@ -41,12 +42,12 @@ export function NotificationDropdown() {
 
         // Handle navigation based on type
         if (n.type === 'CHAT_MESSAGE' && n.data?.bookingId) {
-            const path = user.role === 'CUSTOMER'
+            const path = user?.role === 'CUSTOMER'
                 ? `/customer/bookings/${n.data.bookingId}`
                 : `/worker/bookings/${n.data.bookingId}`;
             navigate(path);
         } else if (n.type === 'BOOKING_UPDATE' && n.data?.bookingId) {
-            const path = user.role === 'CUSTOMER'
+            const path = user?.role === 'CUSTOMER'
                 ? `/customer/bookings/${n.data.bookingId}`
                 : `/worker/bookings/${n.data.bookingId}`;
             navigate(path);

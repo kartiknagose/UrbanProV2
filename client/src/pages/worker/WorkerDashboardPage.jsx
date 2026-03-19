@@ -58,6 +58,7 @@ import { useBookingActions } from '../../hooks/useBookingActions';
 import { useSocketEvent } from '../../hooks/useSocket';
 import { toast } from 'sonner';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import { asArray } from '../../utils/safeData';
 
 export function WorkerDashboardPage() {
     const { t, i18n } = useTranslation();
@@ -97,15 +98,15 @@ export function WorkerDashboardPage() {
     queryFn: getOpenBookings,
   });
 
-  const openJobs = openJobsData?.bookings || [];
-  const bookings = useMemo(() => data?.bookings || [], [data?.bookings]);
+  const openJobs = asArray(openJobsData?.bookings);
+  const bookings = useMemo(() => asArray(data?.bookings), [data?.bookings]);
   const activeBookings = useMemo(() =>
     bookings.filter(b => {
       // Always show active jobs
       if (['CONFIRMED', 'IN_PROGRESS'].includes(b.status)) return true;
       // Keep completed jobs until worker has reviewed
       if (b.status === 'COMPLETED') {
-        const hasReviewed = (b.reviews || []).some(r => r.reviewerId === user?.id);
+        const hasReviewed = asArray(b.reviews).some(r => r.reviewerId === user?.id);
         return !hasReviewed;
       }
       return false;

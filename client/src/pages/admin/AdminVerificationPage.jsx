@@ -14,6 +14,7 @@ import { queryKeys } from '../../utils/queryKeys';
 import { useSocketEvent } from '../../hooks/useSocket';
 import { toast } from 'sonner';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import { asArray } from '../../utils/safeData';
 
 const statusFilters = ['ALL', 'PENDING', 'APPROVED', 'REJECTED'];
 
@@ -39,7 +40,7 @@ export function AdminVerificationPage() {
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to review application'),
   });
 
-  const applications = data?.applications || [];
+  const applications = asArray(data?.applications);
   const filteredApplications = statusFilter === 'ALL'
     ? applications
     : applications.filter((app) => app.status === statusFilter);
@@ -147,11 +148,11 @@ export function AdminVerificationPage() {
                   </div>
 
                   {/* Documents Section — Inline Document Viewer */}
-                  {application.documents && application.documents.length > 0 && (
+                  {asArray(application.documents).length > 0 && (
                     <div>
                       <h4 className="text-sm font-semibold mb-3 text-gray-800 dark:text-gray-200">Submitted Documents</h4>
                       <div className="flex flex-wrap gap-4">
-                        {application.documents.map((doc) => {
+                        {asArray(application.documents).map((doc) => {
                           const docUrl = resolveProfilePhotoUrl(doc.url);
                           const isPdf = doc.url.toLowerCase().endsWith('.pdf');
                           return (

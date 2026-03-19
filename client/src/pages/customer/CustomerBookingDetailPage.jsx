@@ -149,6 +149,27 @@ export function CustomerBookingDetailPage() {
                         paymentOrderId: razorpayResponse.razorpay_order_id,
                         paymentSignature: razorpayResponse.razorpay_signature,
                     });
+                    queryClient.setQueryData(queryKeys.bookings.detail(bookingId), (prev) => {
+                        if (!prev?.booking) return prev;
+                        return {
+                            ...prev,
+                            booking: {
+                                ...prev.booking,
+                                paymentStatus: 'PAID',
+                            },
+                        };
+                    });
+                    queryClient.setQueryData(queryKeys.bookings.customer(), (prev) => {
+                        if (!prev || !Array.isArray(prev.bookings)) return prev;
+                        return {
+                            ...prev,
+                            bookings: prev.bookings.map((b) => (
+                                String(b.id) === String(bookingId)
+                                    ? { ...b, paymentStatus: 'PAID' }
+                                    : b
+                            )),
+                        };
+                    });
                     queryClient.invalidateQueries({ queryKey: queryKeys.bookings.detail(bookingId) });
                     queryClient.invalidateQueries({ queryKey: queryKeys.bookings.customer() });
                     toast.success(t('Payment successful! Thank you.'));

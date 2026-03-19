@@ -23,11 +23,42 @@ class GlobalErrorBoundary extends React.Component {
         if (import.meta.env.DEV) {
             console.error('[CRASH_DETECTED]', error, errorInfo);
         }
+
+        const message = String(error?.message || error || '');
+        const isChunkLoadFailure = /ChunkLoadError|Failed to fetch dynamically imported module|Importing a module script failed/i.test(message);
+
+        if (isChunkLoadFailure && typeof window !== 'undefined') {
+            const reloadGuardKey = 'upro:global-chunk-recovery-attempted';
+            if (!sessionStorage.getItem(reloadGuardKey)) {
+                sessionStorage.setItem(reloadGuardKey, '1');
+                void this.handleHardRefresh();
+            }
+        }
     }
 
     handleReset = () => {
         this.setState({ hasError: false, error: null });
         window.location.href = '/';
+    };
+
+    handleHardRefresh = async () => {
+        try {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.allSettled(registrations.map((reg) => reg.unregister()));
+            }
+
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.allSettled(keys.map((key) => caches.delete(key)));
+            }
+        } catch (_err) {
+            // Ignore cleanup failures and force reload anyway.
+        }
+
+        const url = new URL(window.location.href);
+        url.searchParams.set('_cb', String(Date.now()));
+        window.location.replace(url.toString());
     };
 
     render() {
@@ -54,6 +85,15 @@ class GlobalErrorBoundary extends React.Component {
                                 onClick={() => window.location.reload()}
                             >
                                 Try Refreshing
+                            </Button>
+
+                            <Button
+                                variant="outline"
+                                className="w-full border-brand-300 text-brand-700"
+                                icon={RefreshCcw}
+                                onClick={() => this.handleHardRefresh()}
+                            >
+                                Hard Refresh App
                             </Button>
 
                             <Button

@@ -45,6 +45,7 @@ import { toast } from 'sonner';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { useRazorpay } from '../../hooks/useRazorpay';
 import { ensureRazorpayLoaded, getRazorpayKeyId } from '../../utils/razorpay';
+import { asArray } from '../../utils/safeData';
 
 export function CustomerDashboardPage() {
   const { t } = useTranslation();
@@ -179,8 +180,21 @@ export function CustomerDashboardPage() {
           }
         );
       });
+
+      return { bookingId: booking.id };
     },
-    onSuccess: () => {
+    onSuccess: ({ bookingId }) => {
+      queryClient.setQueryData(queryKeys.bookings.customer(), (prev) => {
+        if (!prev || !Array.isArray(prev.bookings)) return prev;
+        return {
+          ...prev,
+          bookings: prev.bookings.map((b) => (
+            String(b.id) === String(bookingId)
+              ? { ...b, paymentStatus: 'PAID' }
+              : b
+          )),
+        };
+      });
       toast.success(t('Payment successful! Thank you.'));
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings.customer() });
     },
@@ -191,14 +205,14 @@ export function CustomerDashboardPage() {
 
   const [activeActionId, setActiveActionId] = useState(null);
 
-  const bookings = useMemo(() => data?.bookings || [], [data?.bookings]);
+  const bookings = useMemo(() => asArray(data?.bookings), [data?.bookings]);
   const activeBookings = useMemo(() =>
     bookings.filter(b => {
       // Always show active jobs
       if (['PENDING', 'CONFIRMED', 'IN_PROGRESS'].includes(b.status)) return true;
       // Keep completed jobs until customer has paid AND reviewed
       if (b.status === 'COMPLETED') {
-        const hasReviewed = (b.reviews || []).some(r => r.reviewerId === user?.id);
+        const hasReviewed = asArray(b.reviews).some(r => r.reviewerId === user?.id);
         const hasPaid = b.paymentStatus === 'PAID';
         return !hasPaid || !hasReviewed;
       }
