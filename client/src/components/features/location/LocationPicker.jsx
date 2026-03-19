@@ -69,7 +69,7 @@ export function LocationPicker({ onChange, initialLocation = null, className = '
             return;
         }
 
-        setPosition(latlng);
+        setPosition({ lat, lng });
         // Using functional update to avoid 'address' dependency loop
         setAddress(prev => {
             const finalAddr = addr || prev;
@@ -158,7 +158,7 @@ export function LocationPicker({ onChange, initialLocation = null, className = '
     }, [handleLocationChange, fetchReverseGeocode]);
 
     // Proactive Auto-Location: If no position provided, try to detect current user city.
-    // Declared after getUserLocation to avoid use-before-initialization runtime errors.
+    // This must be declared after getUserLocation to avoid use-before-initialization crashes.
     useEffect(() => {
         if (!initialLocation) {
             getUserLocation();
