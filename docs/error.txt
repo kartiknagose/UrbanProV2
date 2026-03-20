@@ -1,0 +1,59 @@
+1. Verification and other mail system is failing.
+2026-03-20 22:35:56 [info]: HTTP request completed: POST /api/auth/register {"id":"0n16wgzkmmz5hgr4","method":"POST","url":"/api/auth/register","status":201,"duration":"5797.27ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"}
+[Email] ❌ SMTP Connection Failed for user kartiknagose007@gmail.com: {
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  code: 'EAUTH',
+  message: 'Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to\n' +
+    '535 5.7.8  https://support.google.com/mail/?p=BadCredentials d2e1a72fcca58-82b03aa5a9bsm2568532b3a.8 - gsmtp',
+  response: '535-5.7.8 Username and Password not accepted. For more information, go to\n' +
+    '535 5.7.8  https://support.google.com/mail/?p=BadCredentials d2e1a72fcca58-82b03aa5a9bsm2568532b3a.8 - gsmtp'
+}
+[Email] ❌ Failed to send [Verification] to kartiknagose1@gmail.com: {
+  message: 'Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to\n' +
+    '535 5.7.8  https://support.google.com/mail/?p=BadCredentials d9443c01a7336-2b08354bb76sm28210555ad.34 - gsmtp',
+  code: 'EAUTH',
+  response: '535-5.7.8 Username and Password not accepted. For more information, go to\n' +
+    '535 5.7.8  https://support.google.com/mail/?p=BadCredentials d9443c01a7336-2b08354bb76sm28210555ad.34 - gsmtp'
+}
+❌ Verification email failed (SMTP Error):
+Response: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials d9443c01a7336-2b08354bb76sm28210555ad.34 - gsmtp
+Code: EAUTH
+Message: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials d9443c01a7336-2b08354bb76sm28210555ad.34 - gsmtp
+Stack: Error: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials d9443c01a7336-2b08354bb76sm28210555ad.34 - gsmtp
+    at SMTPConnection._formatError (D:\mini_project\UrbanPro V2\server\node_modules\nodemailer\lib\smtp-connection\index.js:809:19)
+    at SMTPConnection._actionAUTHComplete (D:\mini_project\UrbanPro V2\server\node_modules\nodemailer\lib\smtp-connection\index.js:1617:34)
+    at SMTPConnection.<anonymous> (D:\mini_project\UrbanPro V2\server\node_modules\nodemailer\lib\smtp-connection\index.js:556:26)
+    at SMTPConnection._processResponse (D:\mini_project\UrbanPro V2\server\node_modules\nodemailer\lib\smtp-connection\index.js:993:20)
+    at SMTPConnection._onData (D:\mini_project\UrbanPro V2\server\node_modules\nodemailer\lib\smtp-connection\index.js:774:14)
+    at SMTPConnection._onSocketData (D:\mini_project\UrbanPro V2\server\node_modules\nodemailer\lib\smtp-connection\index.js:195:44)
+    at TLSSocket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+
+
+2. According to our project, I didn't understand the need of digital wallet in both customer side. Even if its necessary for our project, then the digital wallet should be connected with the razorpay's payment integration. I want you to analyze the project and implement the razorpay's payment integration properly at the required places in the project.
+
+3. Why there is the need for messages page? Even if it is necessary then why those messages routed to the booking detail page?
+
+4. In booking page, in direct worker booking, in worker card, when the view profile button is clicked the profile window opens but shows "Profile Locked or Missing We could not fetch the verified details for this professional right now". The profile window should display the workers profile should be displayed to everyone. Moreover this I think we should remove the current booking page and build and implement a new and modern booking wizard for both types of bookings.
+
+5. We need to rebuild the my profile page properly the current one is like overdesigned one at customer side while it is very simple at worker side. I want a simple but modern my profile page. Both customer and worker should have the common page with relevant fields respectively. I think we should create a wizard for profile completion like other platforms for both customer and worker at first login after mail Verification. In worker side when worker completed the profile. Immediately start the worker Verification which could be optional. I don't know much about it so implement it properly
+
+6. In customer side the earning page is giving following errors.
+TypeError: p.id.slice is not a function
+    at WorkerEarningsPage (http://localhost:5173/src/pages/worker/WorkerEarningsPage.jsx:39:23)
+    at WorkerRoute (http://localhost:5173/src/routes/ProtectedRoute.jsx:95:31)
+
+7. Analyze the full worker side and implement the razorpay integration properly in worker side.
+
+8. I tested direct worker booking in our test users. as test customer I was not able to hire the test worker. the ui displayed "Booking location is outside the worker's service area. Please select a location within the defined zone". I want to know why and how do I get this error. My current location was shegaon.
+
+9. We need to refine full UI properly which should be properly displayed with respect to the desktop users and mobile phone users in both browsers and the PWA.
+
+10. All the modifications you will perform, you have to triple check for the errors thorougly through the code cause lint is not unable detect all the errors. The typeerror and smtp error are the proof. So I don't want any type of error in my project at all.

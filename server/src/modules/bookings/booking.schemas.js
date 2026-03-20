@@ -147,6 +147,10 @@ const payBookingSchema = [
     .optional()
     .isBoolean().withMessage('createRazorpayOrder must be true or false'),
 
+  body('payWithWallet')
+    .optional()
+    .isBoolean().withMessage('payWithWallet must be true or false'),
+
   body('paymentReference')
     .optional()
     .isString().withMessage('Payment reference must be text')

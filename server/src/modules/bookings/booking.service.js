@@ -401,7 +401,18 @@ async function createBooking(customerId, bookingData) {
       }
 
       // CHECK 2: GEO-FENCING (Polygon)
-      if (workerProfile.serviceAreas && Array.isArray(workerProfile.serviceAreas) && latitude && longitude) {
+      // Only enforce polygon checks when serviceAreas is an actual coordinate polygon
+      // ([[lat,lng], ...]). Many profiles store service area as city/locality strings.
+      const polygonAreas = Array.isArray(workerProfile.serviceAreas)
+        ? workerProfile.serviceAreas.filter(
+          (point) => Array.isArray(point)
+            && point.length >= 2
+            && Number.isFinite(Number(point[0]))
+            && Number.isFinite(Number(point[1]))
+        )
+        : [];
+
+      if (polygonAreas.length >= 3 && latitude && longitude) {
         // serviceAreas is an array of [lat, lng] pairs forming a polygon
         // Use ray-casting point-in-polygon algorithm
         const pointInPolygon = (point, polygon) => {
@@ -417,7 +428,7 @@ async function createBooking(customerId, bookingData) {
           return inside;
         };
 
-        if (!pointInPolygon([latitude, longitude], workerProfile.serviceAreas)) {
+        if (!pointInPolygon([latitude, longitude], polygonAreas)) {
           throw new AppError(400, 'Booking location is outside the worker\'s service area. Please select a location within the defined zone.');
         }
       }
@@ -965,6 +976,7 @@ async function payBooking(bookingId, userId, userRole, reqOptions) {
     paymentOrderId,
     paymentSignature,
     createRazorpayOrder,
+    payWithWallet,
     isWebhook,
   } = options;
 
@@ -1009,6 +1021,7 @@ async function payBooking(bookingId, userId, userRole, reqOptions) {
 
   if (createRazorpayOrder) {
     if (isCashPayment) throw new AppError(400, 'Cannot create online order for cash payment.');
+    if (payWithWallet) throw new AppError(400, 'Wallet payments do not require Razorpay order creation.');
     const { createRazorpayOrder: createOrderHelper } = require('../payments/payment.service');
     const amount = Number(booking.totalPrice) || Number(booking.estimatedPrice) || 0;
     if (amount <= 0) {
@@ -1055,9 +1068,51 @@ async function payBooking(bookingId, userId, userRole, reqOptions) {
     }
   }
 
-  const reference = paymentReference || 'CASH';
+  if (payWithWallet && (isCashPayment || isWebhook)) {
+    throw new AppError(400, 'Wallet payment is only available for direct customer checkout.');
+  }
+
+  const reference = payWithWallet ? 'WALLET' : (paymentReference || 'CASH');
 
   return prisma.$transaction(async (tx) => {
+    const payableAmount = Number(booking.totalPrice) || Number(booking.estimatedPrice) || 0;
+    if (payWithWallet) {
+      if (userRole !== 'CUSTOMER' || booking.customerId !== userId) {
+        throw new AppError(403, 'Only the booking customer can pay from wallet.');
+      }
+      if (payableAmount <= 0) {
+        throw new AppError(400, 'Invalid payment amount.');
+      }
+
+      const wallet = await tx.wallet.upsert({
+        where: { userId: booking.customerId },
+        create: { userId: booking.customerId, balance: 0, currency: 'INR' },
+        update: {},
+      });
+
+      if (Number(wallet.balance) < payableAmount) {
+        throw new AppError(400, 'Insufficient wallet balance. Please top up and try again.');
+      }
+
+      await tx.wallet.update({
+        where: { id: wallet.id },
+        data: {
+          balance: { decrement: payableAmount },
+        },
+      });
+
+      await tx.walletTransaction.create({
+        data: {
+          userId: booking.customerId,
+          amount: -payableAmount,
+          type: 'PAYMENT',
+          description: `Booking payment via wallet (#${bookingId})`,
+          referenceId: String(bookingId),
+          status: 'COMPLETED',
+        },
+      });
+    }
+
     const updated = await tx.booking.update({
       where: { id: bookingId },
       data: {

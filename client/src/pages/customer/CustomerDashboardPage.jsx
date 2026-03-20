@@ -294,7 +294,7 @@ export function CustomerDashboardPage() {
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={() => navigate('/services')} className="px-8 rounded-2xl h-14 font-bold uppercase text-[10px] tracking-[0.2em] shadow-xl shadow-brand-500/20">
+            <Button onClick={() => navigate('/customer/bookings/wizard')} className="px-8 rounded-2xl h-14 font-bold uppercase text-[10px] tracking-[0.2em] shadow-xl shadow-brand-500/20">
               {t('Book New Service')}
             </Button>
           </div>

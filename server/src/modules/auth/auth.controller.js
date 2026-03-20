@@ -45,7 +45,10 @@ exports.register = asyncHandler(async (req, res) => {
           console.error('Failed to clean up user after email failure:', cleanupError.message);
         }
 
-        throw new AppError(502, 'Unable to send verification email. Please try again later.');
+        const smtpHint = error?.code === 'EAUTH'
+          ? ' SMTP authentication failed. Please check SMTP_USER/SMTP_PASS (Gmail App Password).'
+          : '';
+        throw new AppError(502, `Unable to send verification email.${smtpHint}`);
       }
 
       console.warn('⚠️ Continuing registration despite email failure because REQUIRE_EMAIL_VERIFICATION is false.');

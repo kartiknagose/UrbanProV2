@@ -1,101 +1,43 @@
-last 4 hrs logs
-2026-03-17T20:35:16.330126147Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.399 ms - 228\u001b[0m","timestamp":"2026-03-17 20:35:16"}
-2026-03-17T20:35:16.330150978Z {"duration":"0.94ms","id":"rxejvkybmmv2n8iw","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:35:16","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:35:21.333161459Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.410 ms - 228\u001b[0m","timestamp":"2026-03-17 20:35:21"}
-2026-03-17T20:35:21.3331895Z {"duration":"0.83ms","id":"ujh4juuxmmv2ncdv","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:35:21","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:35:21.334164133Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.296 ms - 228\u001b[0m","timestamp":"2026-03-17 20:35:21"}
-2026-03-17T20:35:21.336197892Z {"duration":"0.74ms","id":"y1tn0880mmv2ncdx","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:35:21","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:35:26.330422112Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.446 ms - 228\u001b[0m","timestamp":"2026-03-17 20:35:26"}
-2026-03-17T20:35:26.330446583Z {"duration":"0.94ms","id":"d6mi2d6nmmv2ng8o","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:35:26","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:35:31.32945751Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.360 ms - 228\u001b[0m","timestamp":"2026-03-17 20:35:31"}
-2026-03-17T20:35:31.329668335Z {"duration":"0.92ms","id":"21b8w094mmv2nk3k","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:35:31","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:35:36.329313958Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.376 ms - 228\u001b[0m","timestamp":"2026-03-17 20:35:36"}
-2026-03-17T20:35:36.329644836Z {"duration":"0.88ms","id":"z4ya5e4dmmv2nnyg","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:35:36","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:35:41.329218898Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.385 ms - 228\u001b[0m","timestamp":"2026-03-17 20:35:41"}
-2026-03-17T20:35:41.329970046Z {"duration":"1.11ms","id":"q1x1n57dmmv2nrtc","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:35:41","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:35:46.329424546Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.322 ms - 228\u001b[0m","timestamp":"2026-03-17 20:35:46"}
-2026-03-17T20:35:46.329579819Z {"duration":"0.76ms","id":"dx9xk1wrmmv2nvo8","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:35:46","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:35:51.329154863Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.361 ms - 228\u001b[0m","timestamp":"2026-03-17 20:35:51"}
-2026-03-17T20:35:51.329362338Z {"duration":"0.88ms","id":"n78yt0z3mmv2nzj4","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:35:51","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:35:51.33072014Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.266 ms - 228\u001b[0m","timestamp":"2026-03-17 20:35:51"}
-2026-03-17T20:35:51.330955516Z {"duration":"0.60ms","id":"9owyq06gmmv2nzj6","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:35:51","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:35:56.328666666Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.357 ms - 228\u001b[0m","timestamp":"2026-03-17 20:35:56"}
-2026-03-17T20:35:56.32883518Z {"duration":"0.80ms","id":"dtsgqiktmmv2o3dz","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:35:56","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:36:01.33113295Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.403 ms - 227\u001b[0m","timestamp":"2026-03-17 20:36:01"}
-2026-03-17T20:36:01.331180641Z {"duration":"0.94ms","id":"s8xtvj5lmmv2o78w","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:36:01","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:36:06.329993338Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.361 ms - 228\u001b[0m","timestamp":"2026-03-17 20:36:06"}
-2026-03-17T20:36:06.330012029Z {"duration":"0.86ms","id":"dg4w2eb3mmv2ob3s","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:36:06","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:36:11.330674802Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.410 ms - 228\u001b[0m","timestamp":"2026-03-17 20:36:11"}
-2026-03-17T20:36:11.330847296Z {"duration":"0.90ms","id":"or79ix9jmmv2oeyp","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:36:11","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:36:16.330161447Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.367 ms - 228\u001b[0m","timestamp":"2026-03-17 20:36:16"}
-2026-03-17T20:36:16.33028658Z {"duration":"0.80ms","id":"wih3q1jummv2oitl","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:36:16","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:36:21.329158251Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.386 ms - 228\u001b[0m","timestamp":"2026-03-17 20:36:21"}
-2026-03-17T20:36:21.329320015Z {"duration":"0.89ms","id":"ra28mjaqmmv2omog","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:36:21","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:36:21.332084221Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.429 ms - 227\u001b[0m","timestamp":"2026-03-17 20:36:21"}
-2026-03-17T20:36:21.332169343Z {"duration":"0.84ms","id":"hvp6zg0pmmv2omoj","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:36:21","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:36:26.32954214Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.325 ms - 228\u001b[0m","timestamp":"2026-03-17 20:36:26"}
-2026-03-17T20:36:26.329884378Z {"duration":"0.98ms","id":"l5voajy7mmv2oqjc","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:36:26","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:36:31.330074512Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.358 ms - 228\u001b[0m","timestamp":"2026-03-17 20:36:31"}
-2026-03-17T20:36:31.330095403Z {"duration":"0.92ms","id":"6lfymtehmmv2oue8","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:36:31","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:36:36.329451738Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.411 ms - 228\u001b[0m","timestamp":"2026-03-17 20:36:36"}
-2026-03-17T20:36:36.329599072Z {"duration":"0.88ms","id":"t1l8gkz3mmv2oy94","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:36:36","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:36:41.32986572Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.369 ms - 228\u001b[0m","timestamp":"2026-03-17 20:36:41"}
-2026-03-17T20:36:41.330050234Z {"duration":"1.06ms","id":"evzakcmvmmv2p240","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:36:41","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:36:46.329829511Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.377 ms - 228\u001b[0m","timestamp":"2026-03-17 20:36:46"}
-2026-03-17T20:36:46.330015265Z {"duration":"0.84ms","id":"ouzd8mnbmmv2p5yw","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:36:46","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:36:51.33090105Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.450 ms - 228\u001b[0m","timestamp":"2026-03-17 20:36:51"}
-2026-03-17T20:36:51.330930901Z {"duration":"0.94ms","id":"ccl5z7ywmmv2p9ts","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:36:51","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:36:51.330937081Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.290 ms - 228\u001b[0m","timestamp":"2026-03-17 20:36:51"}
-2026-03-17T20:36:51.331049734Z {"duration":"0.61ms","id":"pqpuo7vpmmv2p9tu","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:36:51","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:36:56.330284199Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.354 ms - 228\u001b[0m","timestamp":"2026-03-17 20:36:56"}
-2026-03-17T20:36:56.33030789Z {"duration":"0.87ms","id":"nbn7dwl7mmv2pdoo","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:36:56","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:37:01.329345531Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.377 ms - 228\u001b[0m","timestamp":"2026-03-17 20:37:01"}
-2026-03-17T20:37:01.33012951Z {"duration":"0.88ms","id":"5rw34l01mmv2phjk","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:37:01","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:37:06.331887328Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 1.228 ms - 228\u001b[0m","timestamp":"2026-03-17 20:37:06"}
-2026-03-17T20:37:06.331908318Z {"duration":"1.06ms","id":"ovurqrf0mmv2pleh","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:37:06","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:37:11.330380598Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.373 ms - 228\u001b[0m","timestamp":"2026-03-17 20:37:11"}
-2026-03-17T20:37:11.330407098Z {"duration":"0.75ms","id":"67zl40ommmv2pp9c","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:37:11","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:37:16.330779954Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.418 ms - 228\u001b[0m","timestamp":"2026-03-17 20:37:16"}
-2026-03-17T20:37:16.330962609Z {"duration":"1.13ms","id":"fvwvzhxbmmv2pt49","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:37:16","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:37:21.329819599Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.398 ms - 227\u001b[0m","timestamp":"2026-03-17 20:37:21"}
-2026-03-17T20:37:21.329946212Z {"duration":"0.81ms","id":"7oxc9v2ammv2pwz4","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:37:21","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:37:21.331251093Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.259 ms - 228\u001b[0m","timestamp":"2026-03-17 20:37:21"}
-2026-03-17T20:37:21.331385607Z {"duration":"0.53ms","id":"thra4bu0mmv2pwz6","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:37:21","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:37:26.332107813Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.437 ms - 228\u001b[0m","timestamp":"2026-03-17 20:37:26"}
-2026-03-17T20:37:26.332315598Z {"duration":"0.96ms","id":"tnadbs8gmmv2q0u3","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:37:26","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:37:31.333354632Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.449 ms - 228\u001b[0m","timestamp":"2026-03-17 20:37:31"}
-2026-03-17T20:37:31.333458134Z {"duration":"0.99ms","id":"rgq5sssymmv2q4p0","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:37:31","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:37:36.330160655Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.457 ms - 228\u001b[0m","timestamp":"2026-03-17 20:37:36"}
-2026-03-17T20:37:36.330343389Z {"duration":"0.98ms","id":"vr3pozjwmmv2q8jt","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:37:36","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:37:41.329635983Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.404 ms - 228\u001b[0m","timestamp":"2026-03-17 20:37:41"}
-2026-03-17T20:37:41.329841498Z {"duration":"0.91ms","id":"9bfqskvfmmv2qceo","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:37:41","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:37:46.328975299Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.464 ms - 228\u001b[0m","timestamp":"2026-03-17 20:37:46"}
-2026-03-17T20:37:46.32944105Z {"duration":"0.90ms","id":"bisii3h8mmv2qg9k","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:37:46","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:37:51.329863473Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.400 ms - 228\u001b[0m","timestamp":"2026-03-17 20:37:51"}
-2026-03-17T20:37:51.331137833Z {"duration":"0.88ms","id":"f6pu1oi5mmv2qk4g","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:37:51","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:37:51.331151363Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.236 ms - 228\u001b[0m","timestamp":"2026-03-17 20:37:51"}
-2026-03-17T20:37:51.331156264Z {"duration":"0.46ms","id":"oxs5mentmmv2qk4i","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:37:51","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:37:51.650236296Z ==> Detected service running on port 10000
-2026-03-17T20:37:51.739423909Z ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
-2026-03-17T20:37:56.335203914Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.440 ms - 228\u001b[0m","timestamp":"2026-03-17 20:37:56"}
-2026-03-17T20:37:56.335229854Z {"duration":"0.88ms","id":"iomc28k7mmv2qnzc","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:37:56","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:38:01.329178683Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.298 ms - 228\u001b[0m","timestamp":"2026-03-17 20:38:01"}
-2026-03-17T20:38:01.329915431Z {"duration":"1.13ms","id":"twvh2nhxmmv2qru8","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:38:01","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:38:06.329772082Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.394 ms - 228\u001b[0m","timestamp":"2026-03-17 20:38:06"}
-2026-03-17T20:38:06.329802543Z {"duration":"1.05ms","id":"7h66qgwcmmv2qvp4","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:38:06","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:38:11.330191318Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.385 ms - 228\u001b[0m","timestamp":"2026-03-17 20:38:11"}
-2026-03-17T20:38:11.330324121Z {"duration":"0.87ms","id":"ng3navxymmv2qzk1","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:38:11","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:38:16.331473414Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.369 ms - 228\u001b[0m","timestamp":"2026-03-17 20:38:16"}
-2026-03-17T20:38:16.331497434Z {"duration":"0.82ms","id":"16kkqzx8mmv2r3ey","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:38:16","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:38:21.329460893Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.386 ms - 228\u001b[0m","timestamp":"2026-03-17 20:38:21"}
-2026-03-17T20:38:21.329613196Z {"duration":"0.92ms","id":"0kp4sdujmmv2r79s","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:38:21","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:38:21.330837366Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.319 ms - 228\u001b[0m","timestamp":"2026-03-17 20:38:21"}
-2026-03-17T20:38:21.330981109Z {"duration":"0.57ms","id":"pe4w5v5dmmv2r79u","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:38:21","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:38:26.329377618Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.412 ms - 228\u001b[0m","timestamp":"2026-03-17 20:38:26"}
-2026-03-17T20:38:26.329399089Z {"duration":"0.88ms","id":"emzja4hrmmv2rb4n","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:38:26","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:38:31.332597024Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.470 ms - 228\u001b[0m","timestamp":"2026-03-17 20:38:31"}
-2026-03-17T20:38:31.332631455Z {"duration":"0.95ms","id":"6dd320k1mmv2rezm","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:38:31","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:38:36.331301612Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 1.659 ms - 228\u001b[0m","timestamp":"2026-03-17 20:38:36"}
-2026-03-17T20:38:36.331664521Z {"duration":"2.50ms","id":"y9clrkcommv2riug","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:38:36","url":"/health","userAgent":"Render/1.0"}
-2026-03-17T20:38:41.329806906Z {"level":"info","message":"\u001b[0mGET /health \u001b[32m200\u001b[0m 0.358 ms - 228\u001b[0m","timestamp":"2026-03-17 20:38:41"}
-2026-03-17T20:38:41.329925449Z {"duration":"1.00ms","id":"u2qu36oymmv2rmpc","ip":"::ffff:10.233.24.76","level":"info","message":"HTTP request completed: GET /health","method":"GET","status":200,"timestamp":"2026-03-17 20:38:41","url":"/health","userAgent":"Render/1.0"}
+2026-03-19T14:23:58.09156741Z ==> Cloning from https://github.com/kartiknagose/UrbanProV2
+2026-03-19T14:23:59.165512844Z ==> Checking out commit c7b576cfa3a132b8246b2a96d23048d65ab0ac88 in branch master
+2026-03-19T14:24:01.104308734Z ==> Using Node.js version 22.22.0 (default)
+2026-03-19T14:24:01.128850963Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2026-03-19T14:24:03.232346158Z ==> Running build command 'npm install && npx prisma generate && npx prisma migrate deploy'...
+2026-03-19T14:24:11.682161422Z 
+2026-03-19T14:24:11.682192753Z added 441 packages, and audited 442 packages in 8s
+2026-03-19T14:24:11.682222934Z 
+2026-03-19T14:24:11.682228954Z 61 packages are looking for funding
+2026-03-19T14:24:11.682234614Z   run `npm fund` for details
+2026-03-19T14:24:11.68418863Z 
+2026-03-19T14:24:11.684203391Z 2 high severity vulnerabilities
+2026-03-19T14:24:11.684208221Z 
+2026-03-19T14:24:11.684212971Z To address all issues, run:
+2026-03-19T14:24:11.684217951Z   npm audit fix
+2026-03-19T14:24:11.684222282Z 
+2026-03-19T14:24:11.684227012Z Run `npm audit` for details.
+2026-03-19T14:24:12.498987083Z Prisma schema loaded from prisma/schema.prisma
+2026-03-19T14:24:13.433387647Z 
+2026-03-19T14:24:13.433418318Z ✔ Generated Prisma Client (v5.22.0) to ./node_modules/@prisma/client in 463ms
+2026-03-19T14:24:13.433423179Z 
+2026-03-19T14:24:13.433427768Z Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+2026-03-19T14:24:13.433431649Z 
+2026-03-19T14:24:13.433435739Z Tip: Want to turn off tips and other hints? https://pris.ly/tip-4-nohints
+2026-03-19T14:24:13.433439679Z 
+2026-03-19T14:24:14.300425288Z Prisma schema loaded from prisma/schema.prisma
+2026-03-19T14:24:14.309805538Z Datasource "db": PostgreSQL database
+2026-03-19T14:24:14.313536386Z 
+2026-03-19T14:24:14.313717041Z Error: Prisma schema validation - (get-config wasm)
+2026-03-19T14:24:14.313732092Z Error code: P1012
+2026-03-19T14:24:14.313739392Z error: Environment variable not found: DATABASE_URL.
+2026-03-19T14:24:14.313746732Z   -->  prisma/schema.prisma:9
+2026-03-19T14:24:14.313752682Z    | 
+2026-03-19T14:24:14.313758492Z  8 |   provider = "postgresql"
+2026-03-19T14:24:14.313764973Z  9 |   url      = env("DATABASE_URL")
+2026-03-19T14:24:14.313770863Z    | 
+2026-03-19T14:24:14.313775973Z 
+2026-03-19T14:24:14.313781753Z Validation Error Count: 1
+2026-03-19T14:24:14.313787933Z [Context: getConfig]
+2026-03-19T14:24:14.313791793Z 
+2026-03-19T14:24:14.313795703Z Prisma CLI Version : 5.22.0
+2026-03-19T14:24:14.392703711Z ==> Build failed 😞
+2026-03-19T14:24:14.392740602Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys

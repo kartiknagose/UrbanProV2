@@ -449,6 +449,7 @@ const payBooking = asyncHandler(async (req, res) => {
     paymentOrderId,
     paymentSignature,
     createRazorpayOrder,
+    payWithWallet,
   } = req.body;
   const userId = req.user.id;
   const userRole = req.user.role;
@@ -457,10 +458,10 @@ const payBooking = asyncHandler(async (req, res) => {
     bookingId,
     userId,
     userRole,
-    { paymentReference, paymentOrderId, paymentSignature, createRazorpayOrder }
+    { paymentReference, paymentOrderId, paymentSignature, createRazorpayOrder, payWithWallet }
   );
 
-  if (createRazorpayOrder) {
+  if (createRazorpayOrder && result?.order) {
     return res.status(200).json({
       message: 'Razorpay order created successfully.',
       order: result.order,

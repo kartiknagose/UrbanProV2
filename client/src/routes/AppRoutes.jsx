@@ -44,6 +44,7 @@ const CustomerReviewsPage = lazy(() => import('../pages/customer/CustomerReviews
 const CustomerFavoritesPage = lazy(() => import('../pages/customer/CustomerFavoritesPage.jsx').then(m => ({ default: m.CustomerFavoritesPage })));
 const CustomerLoyaltyPage = lazy(() => import('../pages/customer/CustomerLoyaltyPage.jsx').then(m => ({ default: m.CustomerLoyaltyPage })));
 const CustomerProPlusPage = lazy(() => import('../pages/customer/CustomerProPlusPage.jsx').then(m => ({ default: m.CustomerProPlusPage })));
+const BookingWizardPage = lazy(() => import('../pages/customer/BookingWizardPage.jsx').then(m => ({ default: m.BookingWizardPage })));
 const MessagesPage = lazy(() => import('../pages/profile/MessagesPage.jsx').then(m => ({ default: m.MessagesPage })));
 const NotificationPreferencesPage = lazy(() => import('../pages/profile/NotificationPreferencesPage.jsx').then(m => ({ default: m.NotificationPreferencesPage })));
 
@@ -178,6 +179,7 @@ export function AppRoutes() {
         <Route path="/customer/wallet" element={<CustomerRoute><CustomerWalletPage /></CustomerRoute>} />
         <Route path="/customer/referrals" element={<CustomerRoute><CustomerReferralsPage /></CustomerRoute>} />
         <Route path="/customer/bookings" element={<CustomerRoute><CustomerBookingsPage /></CustomerRoute>} />
+        <Route path="/customer/bookings/wizard" element={<CustomerRoute><BookingWizardPage /></CustomerRoute>} />
         <Route path="/customer/bookings/:id" element={<CustomerRoute><CustomerBookingDetailPage /></CustomerRoute>} />
         <Route path="/customer/reviews" element={<CustomerRoute><CustomerReviewsPage /></CustomerRoute>} />
         <Route path="/customer/favorites" element={<CustomerRoute><CustomerFavoritesPage /></CustomerRoute>} />

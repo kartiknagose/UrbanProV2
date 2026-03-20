@@ -3,32 +3,34 @@ import { Button } from '../../../components/common';
 import { downloadInvoice } from '../../../api/bookings';
 import { toast } from 'sonner';
 
-const formatInrAmount = (value) => {
-    const amount = Number(value);
-    if (!Number.isFinite(amount)) return '0';
-    return amount.toLocaleString('en-IN', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-    });
-};
-
-export function CustomerMobileActions({ booking, navigate, payMutation, onCancelOpen }) {
+export function CustomerMobileActions({ booking, navigate, payMutation, onCancelOpen, onWalletPay }) {
     return (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 p-4 pb-8 border-t backdrop-blur-xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] bg-white/80 border-gray-100 dark:bg-dark-900/80 dark:border-dark-700">
             <div className="flex gap-3">
                 {booking.status === 'COMPLETED' ? (
                     <div className="flex flex-col w-full gap-3">
                         {booking.paymentStatus !== 'PAID' ? (
-                            <Button
-                                fullWidth
-                                size="lg"
-                                icon={CreditCard}
-                                onClick={() => payMutation.mutate()}
-                                loading={payMutation.isPending}
-                                className="bg-brand-600 text-white rounded-2xl font-black h-14"
-                            >
-                                Pay Now (₹{formatInrAmount(booking.totalPrice)})
-                            </Button>
+                            <div className="grid grid-cols-2 gap-3">
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    icon={CreditCard}
+                                    onClick={onWalletPay}
+                                    loading={payMutation.isPending}
+                                    className="rounded-2xl font-black h-14"
+                                >
+                                    Wallet
+                                </Button>
+                                <Button
+                                    size="lg"
+                                    icon={CreditCard}
+                                    onClick={() => payMutation.mutate('ONLINE')}
+                                    loading={payMutation.isPending}
+                                    className="bg-brand-600 text-white rounded-2xl font-black h-14"
+                                >
+                                    Online
+                                </Button>
+                            </div>
                         ) : (
                             <Button
                                 fullWidth

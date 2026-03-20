@@ -4,13 +4,14 @@ import { Search, Clock, ChevronRight, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MainLayout } from '../../components/layout/MainLayout';
-import { Card, AsyncState, PageHeader, Badge, Input } from '../../components/common';
+import { Card, AsyncState, PageHeader, Badge, Input, Button } from '../../components/common';
 import { useAuth } from '../../hooks/useAuth';
 import { getPageLayout } from '../../constants/layout';
 import { resolveProfilePhotoUrl } from '../../utils/profilePhoto';
 import { getUserConversations } from '../../api';
 import { queryKeys } from '../../utils/queryKeys';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import { ChatWindow } from '../../components/features/chat/ChatWindow';
 
 export function MessagesPage() {
     const { t, i18n } = useTranslation();
@@ -19,6 +20,7 @@ export function MessagesPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
+    const [activeChatBookingId, setActiveChatBookingId] = useState(null);
 
     const { data: conversations = [], isLoading, isError, error, refetch } = useQuery({
         queryKey: queryKeys.chat.conversations(),
@@ -45,7 +47,11 @@ export function MessagesPage() {
     });
 
     const handleConversationClick = (conv) => {
-        // Navigate to the relevant booking detail page which has the chat
+        if (!conv?.bookingId) return;
+        setActiveChatBookingId(conv.bookingId);
+    };
+
+    const navigateToBooking = (conv) => {
         const path = user?.role === 'CUSTOMER'
             ? `/customer/bookings/${conv.bookingId}`
             : `/worker/bookings/${conv.bookingId}`;
@@ -127,6 +133,19 @@ export function MessagesPage() {
 
                                             <ChevronRight size={20} className="text-gray-300" />
                                         </div>
+
+                                        <div className="mt-3 flex justify-end">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigateToBooking(conv);
+                                                }}
+                                            >
+                                                {t('View Booking')}
+                                            </Button>
+                                        </div>
                                     </Card>
                                 );
                             })}
@@ -134,6 +153,13 @@ export function MessagesPage() {
                     </AsyncState>
                 </div>
             </div>
+
+            {activeChatBookingId && (
+                <ChatWindow
+                    bookingId={activeChatBookingId}
+                    onClose={() => setActiveChatBookingId(null)}
+                />
+            )}
         </MainLayout>
     );
 }

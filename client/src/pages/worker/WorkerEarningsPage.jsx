@@ -317,7 +317,7 @@ export function WorkerEarningsPage() {
                               <p className="text-base font-bold text-neutral-900 dark:text-white leading-tight uppercase tracking-tight">
                                 {p.booking?.service?.name || t('Service Revenue')}
                               </p>
-                              <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400 mt-1.5 font-mono">ID: {p.id.slice(-8).toUpperCase()}</p>
+                              <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400 mt-1.5 font-mono">ID: {String(p.id || '').slice(-8).toUpperCase() || 'N/A'}</p>
                             </div>
                           </div>
                         </td>

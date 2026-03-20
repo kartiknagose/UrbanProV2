@@ -123,7 +123,36 @@ export function CustomerBookingDetailPage() {
     }
 
     const payMutation = useMutation({
-        mutationFn: async () => {
+        mutationFn: async (paymentMode = 'ONLINE') => {
+            if (paymentMode === 'WALLET') {
+                await payBooking(bookingId, { payWithWallet: true });
+                queryClient.setQueryData(queryKeys.bookings.detail(bookingId), (prev) => {
+                    if (!prev?.booking) return prev;
+                    return {
+                        ...prev,
+                        booking: {
+                            ...prev.booking,
+                            paymentStatus: 'PAID',
+                        },
+                    };
+                });
+                queryClient.setQueryData(queryKeys.bookings.customer(), (prev) => {
+                    if (!prev || !Array.isArray(prev.bookings)) return prev;
+                    return {
+                        ...prev,
+                        bookings: prev.bookings.map((b) => (
+                            String(b.id) === String(bookingId)
+                                ? { ...b, paymentStatus: 'PAID' }
+                                : b
+                        )),
+                    };
+                });
+                queryClient.invalidateQueries({ queryKey: queryKeys.bookings.detail(bookingId) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.bookings.customer() });
+                toast.success(t('Payment completed using wallet balance.'));
+                return;
+            }
+
             if (!razorpayKeyId) {
                 toast.error(t('Payment is not configured. Please contact support.'));
                 return;
@@ -370,15 +399,27 @@ export function CustomerBookingDetailPage() {
                                         </Button>
                                     )}
                                     {booking.status === 'COMPLETED' && booking.paymentStatus !== 'PAID' && (
-                                        <Button
-                                            size="md"
-                                            icon={CreditCard}
-                                            onClick={() => payMutation.mutate()}
-                                            loading={payMutation.isPending}
-                                            className="bg-brand-600 hover:bg-brand-700 text-white shadow-lg px-6 h-12 rounded-xl font-bold"
-                                        >
-                                            {t('Pay Now')}
-                                        </Button>
+                                        <>
+                                            <Button
+                                                size="md"
+                                                variant="outline"
+                                                icon={CreditCard}
+                                                onClick={() => payMutation.mutate('WALLET')}
+                                                loading={payMutation.isPending}
+                                                className="px-6 h-12 rounded-xl font-bold"
+                                            >
+                                                {t('Pay via Wallet')}
+                                            </Button>
+                                            <Button
+                                                size="md"
+                                                icon={CreditCard}
+                                                onClick={() => payMutation.mutate('ONLINE')}
+                                                loading={payMutation.isPending}
+                                                className="bg-brand-600 hover:bg-brand-700 text-white shadow-lg px-6 h-12 rounded-xl font-bold"
+                                            >
+                                                {t('Pay Online')}
+                                            </Button>
+                                        </>
                                     )}
                                     {['PENDING', 'CONFIRMED'].includes(booking.status) && (
                                         <Button
@@ -537,6 +578,7 @@ export function CustomerBookingDetailPage() {
                     booking={booking}
                     navigate={navigate}
                     payMutation={payMutation}
+                    onWalletPay={() => payMutation.mutate('WALLET')}
                     onCancelOpen={() => setIsCancelModalOpen(true)}
                 />
             )}
