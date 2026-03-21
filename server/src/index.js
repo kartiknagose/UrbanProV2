@@ -48,7 +48,7 @@ const growthRoutes = require('./modules/business_growth/growth.routes'); // Refe
 const payoutRoutes = require('./modules/payouts/payout.routes');
 const invoiceRoutes = require('./modules/invoices/invoice.routes');
 const analyticsRoutes = require('./modules/analytics/analytics.routes');
-const { verifySmtpConnection, isResendConfigured } = require('./common/utils/mailer');
+const { verifySmtpConnection, isResendConfigured, sendVerificationEmail } = require('./common/utils/mailer');
 
 // Create Express application instance
 const app = express();
@@ -173,6 +173,42 @@ app.get('/health/email', async (req, res) => {
       reason: result.reason,
     },
   });
+});
+
+// Sends a real test verification email (for production diagnostics).
+// Requires x-email-health-token when EMAIL_HEALTH_TOKEN is configured in production,
+// unless EMAIL_HEALTH_PROBE_PUBLIC=true.
+app.post('/health/email/send-test', async (req, res) => {
+  const normalizeToken = (value) => String(value || '').trim().replace(/^"|"$/g, '').replace(/^'|'$/g, '');
+  const configuredToken = normalizeToken(process.env.EMAIL_HEALTH_TOKEN);
+  const providedToken = normalizeToken(req.get('x-email-health-token') || req.query.token || '');
+  const publicProbeEnabled = String(process.env.EMAIL_HEALTH_PROBE_PUBLIC || '').toLowerCase() === 'true';
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (isProduction && !publicProbeEnabled && configuredToken && providedToken !== configuredToken) {
+    return res.status(403).json({ ok: false, message: 'Forbidden' });
+  }
+
+  const to = String(req.body?.to || req.query?.to || '').trim();
+  if (!to || !to.includes('@')) {
+    return res.status(400).json({ ok: false, message: 'Provide a valid recipient email in body.to or query ?to=' });
+  }
+
+  try {
+    await sendVerificationEmail({
+      to,
+      link: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=test-health-token`,
+    });
+    return res.status(200).json({ ok: true, message: 'Test verification email sent' });
+  } catch (error) {
+    return res.status(502).json({
+      ok: false,
+      message: error.message,
+      code: error.code,
+      status: error?.response?.status,
+      details: error?.response?.data,
+    });
+  }
 });
 
 // METRICS ENDPOINT (Sprint 15 - For Grafana / Prometheus)

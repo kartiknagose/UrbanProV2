@@ -13,6 +13,7 @@ const SMTP_GREETING_TIMEOUT_MS = toNumber(process.env.SMTP_GREETING_TIMEOUT_MS, 
 const SMTP_SOCKET_TIMEOUT_MS = toNumber(process.env.SMTP_SOCKET_TIMEOUT_MS, 20000);
 const SMTP_VERIFY_TIMEOUT_MS = toNumber(process.env.SMTP_VERIFY_TIMEOUT_MS, 12000);
 const RESEND_HTTP_TIMEOUT_MS = toNumber(process.env.RESEND_HTTP_TIMEOUT_MS, 10000);
+const SMTP_DISABLED = String(process.env.SMTP_DISABLED || '').toLowerCase() === 'true';
 
 let transporterSingleton = null;
 
@@ -51,6 +52,11 @@ const readSmtpConfig = () => {
 };
 
 const buildTransport = () => {
+  if (SMTP_DISABLED) {
+    console.warn('[Email] ⚠️ SMTP is disabled by SMTP_DISABLED=true. Using fallback provider if configured.');
+    return null;
+  }
+
   if (transporterSingleton) return transporterSingleton;
 
   const { host, port, user, pass, secure } = readSmtpConfig();
@@ -160,13 +166,25 @@ async function sendViaResend({ to, subject, text, html, logContext = 'Default' }
     text,
   };
 
-  const response = await axios.post('https://api.resend.com/emails', payload, {
-    timeout: RESEND_HTTP_TIMEOUT_MS,
-    headers: {
-      Authorization: `Bearer ${resendApiKey}`,
-      'Content-Type': 'application/json',
-    },
-  });
+  let response;
+  try {
+    response = await axios.post('https://api.resend.com/emails', payload, {
+      timeout: RESEND_HTTP_TIMEOUT_MS,
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch (error) {
+    const status = error?.response?.status;
+    const data = error?.response?.data;
+    console.error(`[Email] ❌ Resend failed for [${logContext}] to ${to}:`, {
+      message: error.message,
+      status,
+      data,
+    });
+    throw error;
+  }
 
   const messageId = response?.data?.id || 'unknown';
   console.log(`[Email] ✅ Sent [${logContext}] via Resend: ${messageId} → ${to}`);
