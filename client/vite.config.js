@@ -3,19 +3,25 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
-const isWindowsNonCI = globalThis.process?.platform === 'win32' && globalThis.process?.env?.CI !== 'true'
+const disablePwa = String(globalThis.process?.env?.VITE_PWA_DISABLED || '').toLowerCase() === 'true'
 
 export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      disable: isWindowsNonCI,
+      disable: disablePwa,
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['urbanpro-favicon.svg', 'apple-touch-icon-180x180.png', 'offline.html'],
       manifest: {
         name: 'UrbanPro',
         short_name: 'UrbanPro',
         description: 'UrbanPro - AI-Powered Local Services Marketplace',
+        start_url: '/',
+        display: 'standalone',
+        background_color: '#ffffff',
         theme_color: '#7c3aed',
         icons: [
           {
@@ -35,7 +41,10 @@ export default defineConfig({
             purpose: 'any maskable'
           }
         ]
-      }
+      },
+      devOptions: {
+        enabled: true,
+      },
     })
   ],
   server: {
