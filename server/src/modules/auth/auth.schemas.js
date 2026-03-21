@@ -48,7 +48,7 @@ const changePasswordSchema = [
 const syncUserSchema = [
   body('name').trim().isLength({ min: 2 }).withMessage('Name required'),
   body('email').isEmail().withMessage('Valid email required'),
-  body('mobile').isMobilePhone('en-IN').withMessage('Valid 10-digit Indian mobile number required'),
+  body('mobile').isMobilePhone('en-IN').withMessage('Valid Indian mobile number required (e.g. 9876543210)'),
   body('role').optional().isIn(['CUSTOMER', 'WORKER']).withMessage('Role must be CUSTOMER or WORKER'),
 ];
 

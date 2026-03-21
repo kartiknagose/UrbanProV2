@@ -18,7 +18,10 @@ export function ClerkBridge() {
     } else {
       auth._clearSession();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // auth._hydrateFromClerk and auth._clearSession are stable memoized callbacks
+    // (defined with useCallback in AuthProvider) so omitting them is intentional.
+    // Including them would cause an infinite loop because they reference dispatch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, isSignedIn, clerkUser?.id]);
 
   return null;
