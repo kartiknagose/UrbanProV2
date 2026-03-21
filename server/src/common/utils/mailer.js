@@ -92,6 +92,28 @@ const buildTransport = () => {
   return transporterSingleton;
 };
 
+async function verifySmtpConnection() {
+  const transporter = buildTransport();
+  if (!transporter) {
+    return {
+      ok: false,
+      reason: 'SMTP transport not configured',
+    };
+  }
+
+  try {
+    await transporter.verify();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      code: error.code,
+      message: error.message,
+      response: error.response,
+    };
+  }
+}
+
 const getFromAddress = () => {
   const fromEmail = process.env.SMTP_USER || process.env.FROM_EMAIL;
   const fromName = process.env.FROM_NAME || 'UrbanPro';
@@ -299,4 +321,5 @@ module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendBookingStatusEmail,
+  verifySmtpConnection,
 };

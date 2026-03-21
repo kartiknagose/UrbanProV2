@@ -48,6 +48,7 @@ const growthRoutes = require('./modules/business_growth/growth.routes'); // Refe
 const payoutRoutes = require('./modules/payouts/payout.routes');
 const invoiceRoutes = require('./modules/invoices/invoice.routes');
 const analyticsRoutes = require('./modules/analytics/analytics.routes');
+const { verifySmtpConnection } = require('./common/utils/mailer');
 
 // Create Express application instance
 const app = express();
@@ -140,6 +141,30 @@ app.get('/health', (req, res) => {
   });
 });
 
+// SMTP health probe (safe diagnostics for production)
+// Requires x-email-health-token header in production when EMAIL_HEALTH_TOKEN is set.
+app.get('/health/email', async (req, res) => {
+  const configuredToken = process.env.EMAIL_HEALTH_TOKEN;
+  const providedToken = req.get('x-email-health-token') || '';
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (isProduction && configuredToken && providedToken !== configuredToken) {
+    return res.status(403).json({ ok: false, message: 'Forbidden' });
+  }
+
+  const result = await verifySmtpConnection();
+  const status = result.ok ? 200 : 503;
+  return res.status(status).json({
+    ok: result.ok,
+    details: result.ok ? undefined : {
+      code: result.code,
+      message: result.message,
+      response: result.response,
+      reason: result.reason,
+    },
+  });
+});
+
 // METRICS ENDPOINT (Sprint 15 - For Grafana / Prometheus)
 app.get('/metrics', async (req, res) => {
   try {
@@ -216,6 +241,24 @@ if (require.main === module) {
   server.listen(PORT, () => {
     logger.info('Server listening on http://localhost:%d', PORT);
     logger.info('CORS origin: %s', CORS_ORIGIN);
+
+    // Proactive SMTP diagnostics on boot (so Render logs always show SMTP state)
+    verifySmtpConnection()
+      .then((smtp) => {
+        if (smtp.ok) {
+          logger.info('SMTP preflight: connected');
+        } else {
+          logger.error('SMTP preflight: failed', {
+            code: smtp.code,
+            message: smtp.message,
+            response: smtp.response,
+            reason: smtp.reason,
+          });
+        }
+      })
+      .catch((err) => {
+        logger.error('SMTP preflight: unexpected error', { message: err.message });
+      });
   });
 
   // Graceful shutdown — close HTTP server, disconnect Prisma, close Socket.IO
