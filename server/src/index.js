@@ -243,11 +243,18 @@ if (require.main === module) {
     logger.info('CORS origin: %s', CORS_ORIGIN);
 
     // Proactive SMTP diagnostics on boot (so Render logs always show SMTP state)
+    console.log('[SMTP] Preflight starting...');
     verifySmtpConnection()
+      .then(async (smtp) => {
+        // guard against any pending internal verify callback behavior
+        return smtp;
+      })
       .then((smtp) => {
         if (smtp.ok) {
+          console.log('[SMTP] Preflight connected');
           logger.info('SMTP preflight: connected');
         } else {
+          console.error('[SMTP] Preflight failed:', smtp);
           logger.error('SMTP preflight: failed', {
             code: smtp.code,
             message: smtp.message,
@@ -257,8 +264,14 @@ if (require.main === module) {
         }
       })
       .catch((err) => {
+        console.error('[SMTP] Preflight unexpected error:', err?.message || err);
         logger.error('SMTP preflight: unexpected error', { message: err.message });
       });
+
+    // Hard timeout log to catch any silent hangs.
+    setTimeout(() => {
+      console.log('[SMTP] Preflight timeout guard reached (if no result above, SMTP verify may be blocked).');
+    }, 12000);
   });
 
   // Graceful shutdown — close HTTP server, disconnect Prisma, close Socket.IO
