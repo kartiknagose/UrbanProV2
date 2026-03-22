@@ -1,0 +1,86 @@
+🔒 RENDER PRODUCTION ENV VARIABLES
+=====================================================
+Copy-paste these into Render dashboard (Settings > Environment Variables)
+Replace [YOUR-FRONTEND-DOMAIN] with your actual Vercel frontend URL (e.g., urbanpro.vercel.app)
+
+CORE / REQUIRED
+=====================================================
+NODE_ENV=production
+PORT=3000
+DATABASE_URL=postgresql://postgres.mmqqozfiqospythszeno:UrbanPro%400079@aws-1-ap-south-1.pooler.supabase.com:5432/postgres
+REDIS_URL=rediss://default:gQAAAAAAATjOAAIncDFjMDRjOTU5OTg2YzU0YmUzYjJiMjNlN2UyYjQxOTJlYXAxODAwNzg@settled-parakeet-80078.upstash.io:6379
+JWT_SECRET=oYm6ofLE+kiD3WWyyqeyqyVYjbBCi2JGoK3oSJBddypNdAzprajTSLA4hVA
+REQUIRE_EMAIL_VERIFICATION=true
+CORS_ORIGIN=https://[YOUR-FRONTEND-DOMAIN],http://localhost:5173
+FRONTEND_URL=https://[YOUR-FRONTEND-DOMAIN]
+
+SUPABASE
+=====================================================
+SUPABASE_URL=https://mmqqozfiqospythszeno.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tcXFvemZpcW9zcHl0aHN6ZW5vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMDMyOTYsImV4cCI6MjA4OTY3OTI5Nn0.oRcwHGEAJs82vEk5IITaXHnHYftmPZtql_TIdPzPRvI
+SUPABASE_SERVICE_ROLE_KEY=[COPY-FROM-SUPABASE-DASHBOARD-Settings->API]
+CACHE_RELAY_SECRET=[OPTIONAL-SET-YOUR-SECRET-OR-LEAVE-EMPTY]
+CACHE_RELAY_URL=[OPTIONAL-YOUR-CACHE-RELAY-ENDPOINT-OR-LEAVE-EMPTY]
+
+SMTP / EMAIL
+=====================================================
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=kartiknagose007@gmail.com
+SMTP_PASS=edel kdoi smvm cmia
+SMTP_SEND_TIMEOUT_MS=20000
+SMTP_CONNECTION_TIMEOUT_MS=10000
+SMTP_GREETING_TIMEOUT_MS=10000
+SMTP_SOCKET_TIMEOUT_MS=20000
+SMTP_VERIFY_TIMEOUT_MS=12000
+FROM_EMAIL=kartiknagose007@gmail.com
+FROM_NAME=UrbanPro
+EMAIL_HEALTH_TOKEN=[SET-A-SECRET-TOKEN-FOR-/health/email-ENDPOINT]
+
+CLOUDINARY
+=====================================================
+CLOUDINARY_CLOUD_NAME=dj34snccr
+CLOUDINARY_API_KEY=294943658483572
+CLOUDINARY_API_SECRET=CGUTxKRNFeKliEzCZh-j8Gle3lI
+
+RAZORPAY
+=====================================================
+RAZORPAY_KEY_ID=rzp_test_SONPmFWRDBm1DP
+RAZORPAY_KEY_SECRET=UtWIZCzCYJ39GlhMIOj8rIu6
+RAZORPAY_WEBHOOK_SECRET=fa868e49cca8405aa514e5d729ec3515dde2951efc1e410f89c76e9b1988dfb8921391c9e1d44c46
+RAZORPAY_PAYOUT_MODE=SIMULATED
+
+WEB PUSH / NOTIFICATIONS
+=====================================================
+VAPID_PUBLIC_KEY=BKCWcUK5EZrZMeXJ2ZVpIO_TumgkYPytOx_Bb4iIQnbUjRLNMnhPW5DDHOKVzepnX4Ya3Ngku9gAGYA77EgAkbI
+VAPID_PRIVATE_KEY=4WjXEeztdzOeRz6MG89loPLyqfyhGDDtZQ2IHnL4a4Q
+VAPID_SUBJECT=mailto:kartiknagose007@gmail.com
+
+GEOCODING
+=====================================================
+GOOGLE_GEOCODING_API_KEY=[OPTIONAL-ADD-IF-LOCATION-FEATURES-USED]
+
+OPTIONAL MONITORING
+=====================================================
+SENTRY_DSN=[OPTIONAL-ADD-YOUR-SENTRY-FOR-ERROR-TRACKING]
+SENTRY_ENVIRONMENT=production
+SENTRY_TRACES_SAMPLE_RATE=0.1
+
+=====================================================
+DEPLOYMENT STEPS:
+1. Go to Render dashboard → Web Service → Settings
+2. Scroll to "Environment Variables"
+3. Click "Add Environment Variable"
+4. Replace placeholders:
+   - [YOUR-FRONTEND-DOMAIN] → your Vercel URL
+   - [COPY-FROM-SUPABASE-DASHBOARD...] → get from Supabase Settings→API
+   - [SET-A-SECRET-TOKEN...] → create a random secret for email health probe
+5. Paste each line into the key=value format
+6. Click "Save Changes"
+7. Redeploy service
+
+VERIFICATION POST-DEPLOY:
+- Backend health: curl https://your-render-domain/health
+- Email check: curl -H "x-email-health-token: YOUR-TOKEN" https://your-render-domain/health/email
+- Test email send: curl -X POST -H "x-email-health-token: YOUR-TOKEN" https://your-render-domain/health/email/send-test?to=your-email

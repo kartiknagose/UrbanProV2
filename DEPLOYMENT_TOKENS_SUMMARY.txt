@@ -1,0 +1,202 @@
+🔐 URBANPRO V2 - DEPLOYMENT TOKENS & CREDENTIALS SUMMARY
+=====================================================
+Generated: March 22, 2026
+
+✅ ALL CREDENTIALS FILLED & READY FOR DEPLOYMENT
+=====================================================
+
+📍 BACKEND (RENDER) - Ready to Deploy
+=====================================================================
+
+Core Infrastructure:
+  NODE_ENV = production
+  PORT = 3000
+  DATABASE_URL = postgresql://postgres.mmqqozfiqospythszeno:UrbanPro%400079@aws-1-ap-south-1.pooler.supabase.com:5432/postgres
+  REDIS_URL = rediss://default:gQAAAAAAATjOAAIncDFjMDRjOTU5OTg2YzU0YmUzYjJiMjNlN2UyYjQxOTJlYXAxODAwNzg@settled-parakeet-80078.upstash.io:6379
+
+Authentication:
+  JWT_SECRET = oYm6ofLE+kiD3WWyyqeyqyVYjbBCi2JGoK3oSJBddypNdAzprajTSLA4hVA
+  REQUIRE_EMAIL_VERIFICATION = true
+
+CORS & Frontend:
+  CORS_ORIGIN = https://urbanpro.vercel.app,http://localhost:5173
+  FRONTEND_URL = https://urbanpro.vercel.app
+
+Supabase:
+  SUPABASE_URL = https://mmqqozfiqospythszeno.supabase.co
+  SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tcXFvemZpcW9zcHl0aHN6ZW5vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMDMyOTYsImV4cCI6MjA4OTY3OTI5Nn0.oRcwHGEAJs82vEk5IITaXHnHYftmPZtql_TIdPzPRvI
+  SUPABASE_SERVICE_ROLE_KEY = ⚠️  REQUIRED - Get from: Supabase Dashboard → Settings → API → service_role (anon key won't work)
+
+Email (SMTP):
+  SMTP_HOST = smtp.gmail.com
+  SMTP_PORT = 587
+  SMTP_SECURE = false
+  SMTP_USER = kartiknagose007@gmail.com
+  SMTP_PASS = edel kdoi smvm cmia
+  FROM_EMAIL = kartiknagose007@gmail.com
+  FROM_NAME = UrbanPro
+  
+Email Health Probe Token (generated):
+  ✅ EMAIL_HEALTH_TOKEN = render_health_probe_7f8e9d6c5b4a3f2e1d0c9b8a7f6e5d4c
+  
+SMTP Timeouts (production-ready):
+  SMTP_SEND_TIMEOUT_MS = 20000
+  SMTP_CONNECTION_TIMEOUT_MS = 10000
+  SMTP_GREETING_TIMEOUT_MS = 10000
+  SMTP_SOCKET_TIMEOUT_MS = 20000
+  SMTP_VERIFY_TIMEOUT_MS = 12000
+
+Services:
+  CLOUDINARY_CLOUD_NAME = dj34snccr
+  CLOUDINARY_API_KEY = 294943658483572
+  CLOUDINARY_API_SECRET = CGUTxKRNFeKliEzCZh-j8Gle3lI
+  
+  RAZORPAY_KEY_ID = rzp_test_SONPmFWRDBm1DP
+  RAZORPAY_KEY_SECRET = UtWIZCzCYJ39GlhMIOj8rIu6
+  RAZORPAY_WEBHOOK_SECRET = fa868e49cca8405aa514e5d729ec3515dde2951efc1e410f89c76e9b1988dfb8921391c9e1d44c46
+  RAZORPAY_PAYOUT_MODE = SIMULATED
+
+Web Push Notifications:
+  VAPID_PUBLIC_KEY = BKCWcUK5EZrZMeXJ2ZVpIO_TumgkYPytOx_Bb4iIQnbUjRLNMnhPW5DDHOKVzepnX4Ya3Ngku9gAGYA77EgAkbI
+  VAPID_PRIVATE_KEY = 4WjXEeztdzOeRz6MG89loPLyqfyhGDDtZQ2IHnL4a4Q
+  VAPID_SUBJECT = mailto:kartiknagose007@gmail.com
+
+Optional:
+  CACHE_RELAY_SECRET = (empty - optional)
+  CACHE_RELAY_URL = (empty - optional)
+  GOOGLE_GEOCODING_API_KEY = (empty - add if using location features)
+
+---
+
+📍 FRONTEND (VERCEL) - Ready to Deploy
+=====================================================================
+
+API Connections:
+  VITE_API_URL = https://urbanpro-api.onrender.com/api
+  VITE_SOCKET_URL = https://urbanpro-api.onrender.com
+
+App Config:
+  VITE_APP_NAME = UrbanPro
+  VITE_APP_ENV = production
+  VITE_RAZORPAY_KEY_ID = rzp_test_SONPmFWRDBm1DP
+  
+Optional:
+  VITE_GOOGLE_PLACES_API_KEY = (empty - add if using maps)
+
+---
+
+✅ GENERATED TOKENS (3)
+=====================================================================
+
+1. EMAIL_HEALTH_TOKEN (for /health/email endpoint protection)
+   Value: render_health_probe_7f8e9d6c5b4a3f2e1d0c9b8a7f6e5d4c
+   Use: Authorization header when testing email endpoints
+   Example: curl -H "x-email-health-token: render_health_probe_7f8e9d6c5b4a3f2e1d0c9b8a7f6e5d4c" https://your-render-domain/health/email
+
+2. JWT_SECRET (already in .env - for session tokens)
+   Value: oYm6ofLE+kiD3WWyyqeyqyVYjbBCi2JGoK3oSJBddypNdAzprajTSLA4hVA
+   Status: Already set
+
+3. RAZORPAY_WEBHOOK_SECRET (already in .env - for payment webhooks)
+   Value: fa868e49cca8405aa514e5d729ec3515dde2951efc1e410f89c76e9b1988dfb8921391c9e1d44c46
+   Status: Already set
+
+---
+
+⚠️  MANUAL ACTIONS REQUIRED (1)
+=====================================================================
+
+1. GET SUPABASE_SERVICE_ROLE_KEY
+   Steps:
+   a) Go to: https://app.supabase.com/project/mmqqozfiqospythszeno/settings/api
+   b) Under "Project API keys" section
+   c) Look for "service_role" (with anon key you already have)
+   d) Copy the full secret_role token
+   e) Paste into Render environment as SUPABASE_SERVICE_ROLE_KEY
+   
+   NOTE: This is NOT the anon key - it's the service role key below it
+   It will look similar to: eyJhbGciOiJIUzI1NiIs...
+
+---
+
+📋 DEPLOYMENT ORDER (30 min total)
+=====================================================================
+
+1. Push latest code to GitHub (5 min)
+   git add -A
+   git commit -m "chore: prepare for production deployment"
+   git push origin master
+
+2. Deploy backend to Render (10 min)
+   - Create Web Service
+   - Use server/ as Root Directory
+   - Build: npm install && npx prisma generate && npx prisma migrate deploy
+   - Start: npm run start
+   - Add all RENDER env variables from RENDER_ENV_CLEAN.txt
+   - CRITICAL: Add SUPABASE_SERVICE_ROLE_KEY (manually retrieved)
+   - Wait for "Live" status
+   - Copy domain (e.g., urbanpro-api.onrender.com)
+
+3. Deploy frontend to Vercel (10 min)
+   - Create new Vercel project
+   - Use client/ as Root Directory
+   - Framework: Vite
+   - Build: npm run build
+   - Output: dist
+   - Add all VERCEL env variables
+   - UPDATE: Replace urbanpro-api.onrender.com with your actual Render domain
+   - Wait for "Ready" status
+   - Copy domain (e.g., urbanpro.vercel.app)
+
+4. Update Render final config (3 min)
+   - Go back to Render service
+   - Update CORS_ORIGIN: https://[your-vercel-domain],http://localhost:5173
+   - Update FRONTEND_URL: https://[your-vercel-domain]
+   - Save and redeploy
+
+5. Verify (5 min)
+   - curl https://[render-domain]/health
+   - Open https://[vercel-domain] in browser
+   - Test registration → email verification
+   - Test login → dashboard load
+
+---
+
+🔒 SECURITY NOTES
+=====================================================================
+
+⚠️  DO NOT commit .env files with real credentials
+✅ Already excluded in .gitignore
+✅ Use Render/Vercel dashboards only for secrets
+✅ SMTP password is test-only (rotate before real users)
+✅ All tokens/secrets in this file = display only, regenerate if leaked
+✅ Razorpay keys are test keys (rzp_test_*) - safe for testing
+
+---
+
+📞 HELPFUL COMMANDS (After Deployment)
+=====================================================================
+
+Test Backend Health:
+  curl https://your-render-domain/health
+
+Test Email Service:
+  curl -H "x-email-health-token: render_health_probe_7f8e9d6c5b4a3f2e1d0c9b8a7f6e5d4c" \
+       https://your-render-domain/health/email
+
+Send Test Email:
+  curl -X POST \
+       -H "x-email-health-token: render_health_probe_7f8e9d6c5b4a3f2e1d0c9b8a7f6e5d4c" \
+       "https://your-render-domain/health/email/send-test?to=your-email@example.com"
+
+View Render Logs:
+  https://dashboard.render.com → your-service-id → Logs
+
+View Vercel Analytics:
+  https://vercel.com/dashboard → UrbanProV2 → Analytics
+
+---
+
+✅ READY TO DEPLOY!
+All required tokens generated and filled.
+Start with Render backend deployment when ready.

@@ -1,0 +1,224 @@
+📋 URBANPRO V2 - COMPLETE RENDER + VERCEL DEPLOYMENT GUIDE
+===================================================================
+
+🔥 QUICK START
+===================================================================
+You have all credentials ready:
+✅ Supabase DB (pooler connection)
+✅ Upstash Redis
+✅ Gmail SMTP
+✅ Razorpay keys
+✅ Cloudinary keys
+✅ VAPID keys
+
+Total deployment time: ~30 minutes
+
+---
+
+STEP 1: Pre-deployment Cleanup (5 min)
+===================================================================
+1. git status → should be clean
+2. git log --oneline -3 → verify recent commits are there
+3. Local build test:
+   - cd server && npm run lint (should pass)
+   - cd client && npm run build (should complete without errors)
+
+---
+
+STEP 2: Deploy Backend to Render (10 min)
+===================================================================
+
+A) CREATE RENDER WEB SERVICE
+1. Go to https://dashboard.render.com
+2. Click "New Web Service"
+3. Connect GitHub (if not already)
+4. Select: kartiknagose/UrbanProV2 repository
+5. Settings:
+   - Name: urbanpro-api (or similar)
+   - Runtime: Node
+   - Root Directory: server
+   - Build Command: npm install && npx prisma generate && npx prisma migrate deploy
+   - Start Command: npm run start
+   - Plan: Free / Starter (choose based on needs)
+
+B) ADD ENVIRONMENT VARIABLES
+1. After service created, go to Settings → Environment Variables
+2. Add each line from RENDER_ENV_CLEAN.txt:
+   - Copy one KEY=VALUE pair
+   - Click "Add Environment Variable"
+   - Paste in the form
+   - Repeat for all variables
+   
+   CRITICAL REPLACEMENTS:
+   - [YOUR-FRONTEND-DOMAIN] → Leave for now, update after Vercel deploy
+   - [GET-FROM-SUPABASE-DASHBOARD] → Check Supabase Settings→API for SERVICE_ROLE_KEY
+   - [CREATE-A-SECRET-TOKEN] → Generate random string, e.g., 'render_health_token_abc123xyz'
+
+3. Click "Save Changes"
+4. Service will auto-deploy
+5. Wait for "Live" status (green checkmark)
+6. Copy your Render domain from the URL bar (e.g., urbanpro-api.onrender.com)
+
+C) VERIFY BACKEND HEALTH
+1. Wait 2-3 minutes after deploy
+2. Test health endpoint:
+   curl https://urbanpro-api.onrender.com/health
+   Should return: {"status":"ok",...}
+
+3. Test email health (if SMTP configured):
+   curl -H "x-email-health-token: YOUR-TOKEN-HERE" \
+        https://urbanpro-api.onrender.com/health/email
+
+---
+
+STEP 3: Deploy Frontend to Vercel (10 min)
+===================================================================
+
+A) CREATE NEW VERCEL PROJECT
+1. Go to https://vercel.com/dashboard
+2. "Add New" → "Project"
+3. Select: UrbanProV2 repository (GitHub)
+4. Settings:
+   - Framework: Vite
+   - Root Directory: client
+   - Build Command: npm run build
+   - Output Directory: dist
+5. Click "Deploy"
+
+B) ADD ENVIRONMENT VARIABLES
+1. After import, go to Settings → Environment Variables
+2. Add each line from VERCEL_ENV_PRODUCTION.txt:
+   CRITICAL REPLACEMENT:
+   - [YOUR-RENDER-BACKEND-DOMAIN] → Use your Render domain from Step 2C
+   
+   Example:
+   VITE_API_URL=https://urbanpro-api.onrender.com/api
+   VITE_SOCKET_URL=https://urbanpro-api.onrender.com
+
+3. Save and redeploy
+4. Wait for "Ready" status
+5. Copy your Vercel domain (e.g., urbanpro.vercel.app)
+
+---
+
+STEP 4: Final Backend Configuration (3 min)
+===================================================================
+
+Update Render with actual Vercel URL:
+1. Go back to Render dashboard → urbanpro-api service
+2. Settings → Environment Variables
+3. Find and update:
+   - CORS_ORIGIN: https://urbanpro.vercel.app,http://localhost:5173
+   - FRONTEND_URL: https://urbanpro.vercel.app
+4. Save Changes
+5. Service will redeploy automatically
+6. Wait for "Live" status
+
+---
+
+STEP 5: Full System Test (5 min)
+===================================================================
+
+A) BACKEND HEALTH
+curl https://urbanpro-api.onrender.com/health
+Expected: {"status":"ok","uptime":...}
+
+B) FRONTEND LOADS
+Open: https://urbanpro.vercel.app
+Expected: Full app loads, no CORS errors in console
+
+C) EMAIL VERIFICATION
+1. Register new account
+2. Check console for verification email
+3. Confirm email link works
+4. Login with verified account
+
+D) REAL-TIME (Socket.IO)
+1. Open app in 2 tabs
+2. Change profile picture in one tab
+3. Verify updates in real-time in other tab
+
+E) PAYMENTS
+1. Try to initiate payment
+2. Verify Razorpay form appears
+3. (Don't complete - test mode only)
+
+F) PWA INSTALL (Optional)
+1. Open app in Chrome
+2. Check for install prompt
+3. Verify offline mode works
+
+---
+
+POTENTIAL ISSUES & FIXES
+===================================================================
+
+ISSUE: "CORS error" during login
+FIX: Verify CORS_ORIGIN in Render env matches Vercel URL exactly
+
+ISSUE: "Database connection timeout"
+FIX: Check DATABASE_URL spelling in Render env (@ encoded as %40)
+
+ISSUE: "Email not sending"
+FIX: 
+- Verify SMTP_USER/SMTP_PASS are correct
+- Check email health endpoint: curl -H "x-email-health-token: YOUR-TOKEN" https://your-render/health/email
+- Verify Gmail app password (not account password)
+
+ISSUE: "Socket connection fails"
+FIX: Verify VITE_SOCKET_URL matches backend URL exactly (https not http)
+
+ISSUE: "Service won't deploy"
+FIX: 
+- Check build command output in Render logs
+- Verify server/package.json has all required dependencies
+- Run local: cd server && npm install && npm run lint
+
+---
+
+VERIFICATION CHECKLIST
+===================================================================
+✅ Backend deploys and shows "Live" on Render
+✅ curl /health returns 200 OK
+✅ Frontend deploys and shows "Ready" on Vercel
+✅ App loads without CORS errors
+✅ Can register new account
+✅ Verification email sends (test with health endpoint)
+✅ Can login with verified account
+✅ Real-time updates work (test with 2 browser tabs)
+✅ Payments UI loads without errors
+
+---
+
+POST-DEPLOYMENT
+===================================================================
+1. Save all credentials in secure location (1Password, etc.)
+2. Monitor Render logs for errors: https://dashboard.render.com/your-service-id/logs
+3. Set up monitoring/alerts for backend health
+4. Review Vercel analytics dashboard
+5. Plan for database backups (Supabase auto-handles)
+
+---
+
+NEED TO ROLLBACK?
+===================================================================
+Render:
+1. Dashboard → Service → Settings → Deploys
+2. Click previous deploy
+3. Click "Redeploy"
+
+Vercel:
+1. Deployments tab
+2. Click previous deployment
+3. Click "Redeploy"
+
+---
+
+SUPPORT RESOURCES
+===================================================================
+- Render Docs: https://render.com/docs
+- Vercel Docs: https://vercel.com/docs
+- Supabase Docs: https://supabase.com/docs
+- Upstash Docs: https://upstash.com/docs
+- Backend Logs: Render dashboard
+- Frontend Logs: Browser DevTools Console & Vercel Analytics

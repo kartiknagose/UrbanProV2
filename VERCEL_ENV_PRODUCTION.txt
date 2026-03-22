@@ -1,0 +1,7 @@
+VITE_API_URL=https://expertshub.onrender.com/api
+VITE_SOCKET_URL=https://expertshub.onrender.com
+VITE_APP_NAME=ExpertsHub
+VITE_RAZORPAY_KEY_ID=rzp_test_SONPmFWRDBm1DP
+VITE_GOOGLE_PLACES_API_KEY=
+VITE_APP_ENV=production
+
