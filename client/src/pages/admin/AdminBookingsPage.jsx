@@ -15,6 +15,15 @@ import { usePageTitle } from '../../hooks/usePageTitle';
 
 const statusFilters = ['ALL', 'PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
+const formatScheduledDateTime = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Schedule not set';
+  return date.toLocaleString();
+};
+
+const optimizePhotoUrl = (value, transform = 'f_auto,q_auto') =>
+  String(value || '').replace('/upload/', `/upload/${transform}/`);
+
 export function AdminBookingsPage() {
   usePageTitle('Manage Bookings');
   const [filter, setFilter] = useState('ALL');
@@ -122,7 +131,10 @@ export function AdminBookingsPage() {
               role="radio"
               aria-checked={filter === status}
               variant={filter === status ? 'primary' : 'outline'}
-              onClick={() => setFilter(status)}
+              onClick={() => {
+                setFilter(status);
+                setPage(1);
+              }}
             >
               {status}
             </Button>
@@ -145,7 +157,7 @@ export function AdminBookingsPage() {
                     <div>
                       <CardTitle>Booking #{booking.id}</CardTitle>
                       <CardDescription>
-                        {new Date(booking.scheduledAt || booking.scheduledDate).toLocaleString()}
+                        {formatScheduledDateTime(booking.scheduledAt || booking.scheduledDate)}
                       </CardDescription>
                     </div>
                     <BookingStatusBadge status={booking.status} />
@@ -171,9 +183,9 @@ export function AdminBookingsPage() {
                         Visual Proof of Work
                       </h4>
                       <div className="flex gap-3 overflow-x-auto pb-2">
-                        {booking.photos.map(photo => (
+                        {booking.photos.filter((photo) => photo?.url).map((photo) => (
                           <button key={photo.id} className="relative w-20 h-20 rounded-lg shrink-0 overflow-hidden border focus:outline-none focus:ring-2 focus:ring-brand-500" onClick={() => setPhotoModal(photo)}>
-                            <img src={photo.url.replace('/upload/', '/upload/f_auto,q_auto,w_200/')} alt={photo.type} className="w-full h-full object-cover" />
+                            <img src={optimizePhotoUrl(photo.url, 'f_auto,q_auto,w_200')} alt={photo.type} className="w-full h-full object-cover" />
                             <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[9px] font-bold text-center py-0.5">
                               {photo.type}
                             </div>
@@ -232,7 +244,7 @@ export function AdminBookingsPage() {
                 </button>
               </div>
               <div className="bg-gray-100 dark:bg-dark-950/50 flex items-center justify-center p-6" style={{ minHeight: '50vh' }}>
-                <img src={photoModal.url.replace('/upload/', '/upload/f_auto,q_auto/')} alt={photoModal.type} className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm" />
+                <img src={optimizePhotoUrl(photoModal.url)} alt={photoModal.type} className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm" />
               </div>
             </div>
           </div>

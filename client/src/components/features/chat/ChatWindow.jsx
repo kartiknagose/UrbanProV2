@@ -99,6 +99,12 @@ export function ChatWindow({ bookingId, onClose }) {
         mutation.mutate({ conversationId: conversation.id, content, type: 'TEXT' });
     };
 
+    const formatMessageTime = (value) => {
+        if (!value) return 'N/A';
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
     const handleFileUpload = async (e) => {
         const file = e.target.files?.[0] || e; // Support both event and direct file (from voice)
         if (!file) return;
@@ -300,7 +306,7 @@ export function ChatWindow({ bookingId, onClose }) {
                                             </div>
                                         )}
                                         <div className={`flex items-center gap-1 mt-1 font-bold uppercase tracking-tighter text-[9px] ${isMe ? 'justify-end text-white/60' : 'justify-start opacity-40'}`}>
-                                            {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {formatMessageTime(m.createdAt)}
                                             {isMe && <Check size={10} />}
                                         </div>
                                     </div>

@@ -1,115 +1,103 @@
 const asyncHandler = require('../../common/utils/asyncHandler');
 const AppError = require('../../common/errors/AppError');
+const parseId = require('../../common/utils/parseId');
 const locationService = require('./location.service');
-const { getIo } = require('../../socket');
+
+let getIo;
+try {
+    ({ getIo } = require('../../socket'));
+} catch (_err) {
+    getIo = null;
+}
 
 const updateLocation = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { latitude, longitude, isOnline } = req.body;
 
-    if (latitude === undefined || longitude === undefined) {
-        throw new AppError(400, 'Latitude and longitude are required');
-    }
-
-    const parsedLatitude = Number(latitude);
-    const parsedLongitude = Number(longitude);
-
-    if (!Number.isFinite(parsedLatitude) || !Number.isFinite(parsedLongitude)) {
-        throw new AppError(400, 'Latitude and longitude must be valid numbers');
-    }
-
-    if (parsedLatitude < -90 || parsedLatitude > 90 || parsedLongitude < -180 || parsedLongitude > 180) {
-        throw new AppError(400, 'Latitude/longitude out of valid range');
-    }
-
-    let parsedIsOnline;
-    if (typeof isOnline === 'string') {
-        parsedIsOnline = isOnline.toLowerCase() === 'true';
-    } else if (typeof isOnline === 'boolean') {
-        parsedIsOnline = isOnline;
-    } else if (isOnline === undefined || isOnline === null) {
-        parsedIsOnline = undefined;
-    } else {
-        parsedIsOnline = Boolean(isOnline);
-    }
-
     const location = await locationService.updateLocation(userId, {
-        latitude: parsedLatitude,
-        longitude: parsedLongitude,
-        isOnline: parsedIsOnline
+        latitude,
+        longitude,
+        isOnline
     });
 
-    // Broadcast update to anyone listening for this worker
-    const io = getIo();
-    io.to(`worker_tracking:${location.workerProfileId}`).emit('worker:location_updated', {
-        workerProfileId: location.workerProfileId,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        isOnline: location.isOnline,
-        lastUpdated: location.lastUpdated
-    });
+    try {
+        const io = getIo ? getIo() : null;
+        if (io) {
+            // Broadcast update to anyone listening for this worker
+            io.to(`worker_tracking:${location.workerProfileId}`).emit('worker:location_updated', {
+                workerProfileId: location.workerProfileId,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                isOnline: location.isOnline,
+                lastUpdated: location.lastUpdated
+            });
 
-    // Also broadcast to all active customer booking rooms for live tracking
-    // Find all active bookings for this worker
-    const prisma = require('../../config/prisma');
-    const activeBookings = await prisma.booking.findMany({
-        where: {
-            workerProfileId: location.workerProfileId,
-            status: { in: ['IN_PROGRESS', 'CONFIRMED'] }
-        },
-        select: { id: true }
-    });
-    activeBookings.forEach((booking) => {
-        io.to(`booking:${booking.id}`).emit('worker:location_updated', {
-            workerProfileId: location.workerProfileId,
-            latitude: location.latitude,
-            longitude: location.longitude,
-            isOnline: location.isOnline,
-            lastUpdated: location.lastUpdated
-        });
-    });
+            // Also broadcast to active booking rooms for live tracking
+            const prisma = require('../../config/prisma');
+            const activeBookings = await prisma.booking.findMany({
+                where: {
+                    workerProfileId: location.workerProfileId,
+                    status: { in: ['IN_PROGRESS', 'CONFIRMED'] }
+                },
+                select: { id: true }
+            });
 
-    // Optionally broadcast to admin room if it's a critical update or for health monitoring
-    if (isOnline === false) {
-        io.to('admin').emit('worker:offline', { workerId: userId });
+            activeBookings.forEach((booking) => {
+                io.to(`booking:${booking.id}`).emit('worker:location_updated', {
+                    workerProfileId: location.workerProfileId,
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    isOnline: location.isOnline,
+                    lastUpdated: location.lastUpdated
+                });
+            });
+
+            // Optionally broadcast to admin room if it's a critical update or for health monitoring
+            if (location.isOnline === false) {
+                io.to('admin').emit('worker:offline', { workerId: userId });
+            }
+        }
+    } catch (socketError) {
+        console.warn('Location socket broadcast failed:', socketError.message);
     }
 
     res.json({ success: true, location });
 });
 
 const getWorkerLocation = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const location = await locationService.getWorkerLocation(parseInt(id));
+    const workerProfileId = parseId(req.params.id, 'Worker ID');
+    const location = await locationService.getWorkerLocation(workerProfileId);
 
     res.json({ location: location || null });
 });
 
 const getNearbyWorkers = asyncHandler(async (req, res) => {
-    const { lat, lng, radius } = req.query;
-    if (!lat || !lng) {
-        throw new AppError(400, 'Latitude and longitude are required');
-    }
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+    const radius = req.query.radius ? Number(req.query.radius) : 10;
+    const limit = req.query.limit ? Number(req.query.limit) : 50;
 
-    const parsedLat = Number(lat);
-    const parsedLng = Number(lng);
-    const parsedRadius = radius ? Number(radius) : 10;
-
-    if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         throw new AppError(400, 'Latitude and longitude must be valid numbers');
     }
 
-    if (parsedLat < -90 || parsedLat > 90 || parsedLng < -180 || parsedLng > 180) {
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
         throw new AppError(400, 'Latitude/longitude out of valid range');
     }
 
-    if (!Number.isFinite(parsedRadius) || parsedRadius <= 0 || parsedRadius > 100) {
+    if (!Number.isFinite(radius) || radius <= 0 || radius > 100) {
         throw new AppError(400, 'Radius must be a number between 1 and 100 km');
     }
 
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+        throw new AppError(400, 'Limit must be between 1 and 100');
+    }
+
     const workers = await locationService.getNearbyWorkers(
-        parsedLat,
-        parsedLng,
-        Math.round(parsedRadius)
+        lat,
+        lng,
+        radius,
+        limit
     );
 
     res.json({ workers });

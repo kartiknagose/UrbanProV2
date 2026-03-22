@@ -9,12 +9,24 @@ const GrowthService = require('../business_growth/business_growth.service');
 const isProduction = process.env.NODE_ENV === 'production';
 const requireEmailVerification = String(process.env.REQUIRE_EMAIL_VERIFICATION || '').toLowerCase() === 'true';
 const smtpSendTimeoutMs = Number(process.env.SMTP_SEND_TIMEOUT_MS || 20000);
+const cookieDomain = process.env.COOKIE_DOMAIN;
+const cookieMaxAgeMs = Number(process.env.AUTH_COOKIE_MAX_AGE_MS || 24 * 60 * 60 * 1000);
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
   sameSite: isProduction ? 'none' : 'lax',
   secure: isProduction,
-  maxAge: 24 * 60 * 60 * 1000,
+  maxAge: cookieMaxAgeMs,
+  path: '/',
+  ...(cookieDomain ? { domain: cookieDomain } : {}),
+};
+
+const CLEAR_COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: COOKIE_OPTIONS.sameSite,
+  secure: COOKIE_OPTIONS.secure,
+  path: COOKIE_OPTIONS.path,
+  ...(COOKIE_OPTIONS.domain ? { domain: COOKIE_OPTIONS.domain } : {}),
 };
 
 exports.register = asyncHandler(async (req, res) => {
@@ -149,7 +161,7 @@ exports.login = asyncHandler(async (req, res) => {
 });
 
 exports.logout = asyncHandler(async (_req, res) => {
-  res.clearCookie('token', COOKIE_OPTIONS);
+  res.clearCookie('token', CLEAR_COOKIE_OPTIONS);
   res.json({ message: 'Logged out' });
 });
 
@@ -200,7 +212,7 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
   // If there's a reset link, send the email
   if (result.resetLink) {
     try {
-      await sendPasswordResetEmail({ to: email, link: result.resetLink });
+      await sendPasswordResetEmail({ to: result.recipientEmail, link: result.resetLink });
     } catch (error) {
       console.error('Password reset email failed:', error);
       // We still return success to avoid leaking email existence

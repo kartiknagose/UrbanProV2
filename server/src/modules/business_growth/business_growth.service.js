@@ -30,30 +30,48 @@ async function initializeWallet(userId, tx = prisma) {
  */
 async function generateReferralCode(userId, tx = prisma) {
     const user = await tx.user.findUnique({ where: { id: userId }, select: { name: true, referralCode: true } });
+    if (!user) throw new AppError(404, 'User not found.');
     if (user.referralCode) return user.referralCode;
 
     // Format: NAME + 4 random chars
-    const namePart = user.name.split(' ')[0].replace(/[^a-zA-Z]/g, '').toUpperCase().substring(0, 4);
-    const randomPart = randomBytes(2).toString('hex').toUpperCase();
-    const code = `${namePart}${randomPart}`;
+    const normalizedName = String(user.name || '').trim();
+    const namePart = (normalizedName.split(' ')[0] || 'USER').replace(/[^a-zA-Z]/g, '').toUpperCase().substring(0, 4) || 'USER';
 
-    await tx.user.update({
-        where: { id: userId },
-        data: { referralCode: code }
-    });
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+        const randomPart = randomBytes(2).toString('hex').toUpperCase();
+        const code = `${namePart}${randomPart}`;
 
-    return code;
+        try {
+            await tx.user.update({
+                where: { id: userId },
+                data: { referralCode: code }
+            });
+            return code;
+        } catch (error) {
+            if (error.code !== 'P2002') {
+                throw error;
+            }
+        }
+    }
+
+    throw new AppError(500, 'Unable to generate referral code. Please try again.');
 }
 
 /**
  * Apply a referral code during registration or later
  */
 async function applyReferral(userId, code) {
-    const referrer = await prisma.user.findUnique({ where: { referralCode: code } });
+    const normalizedCode = String(code || '').trim().toUpperCase();
+    if (!normalizedCode) {
+        throw new AppError(400, 'Referral code is required.');
+    }
+
+    const referrer = await prisma.user.findUnique({ where: { referralCode: normalizedCode } });
     if (!referrer) throw new AppError(404, 'Invalid referral code.');
     if (referrer.id === userId) throw new AppError(400, 'You cannot refer yourself.');
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new AppError(404, 'User not found.');
     if (user.referredById) throw new AppError(400, 'Referral already applied to this account.');
 
     return prisma.user.update({
@@ -66,28 +84,43 @@ async function applyReferral(userId, code) {
  * Process a Wallet Transaction
  */
 async function processWalletTransaction({ userId, amount, type, description, referenceId }, tx = prisma) {
-    const wallet = await tx.wallet.findUnique({ where: { userId } });
-    if (!wallet) throw new AppError(404, 'User wallet not found.');
-
-    const newBalance = Number(wallet.balance) + Number(amount);
-    if (newBalance < 0 && amount < 0) {
-        throw new AppError(400, 'Insufficient wallet balance.');
+    const normalizedAmount = Number(amount);
+    if (!Number.isFinite(normalizedAmount) || normalizedAmount === 0) {
+        throw new AppError(400, 'Transaction amount must be a non-zero number.');
     }
 
-    // 1. Update Wallet Balance
-    await tx.wallet.update({
-        where: { id: wallet.id },
-        data: { balance: newBalance }
-    });
+    const wallet = await tx.wallet.findUnique({ where: { userId }, select: { id: true } });
+    if (!wallet) throw new AppError(404, 'User wallet not found.');
+
+    if (normalizedAmount < 0) {
+        const updated = await tx.wallet.updateMany({
+            where: {
+                id: wallet.id,
+                balance: { gte: Math.abs(normalizedAmount) },
+            },
+            data: {
+                balance: { increment: normalizedAmount },
+            },
+        });
+
+        if (updated.count !== 1) {
+            throw new AppError(400, 'Insufficient wallet balance.');
+        }
+    } else {
+        await tx.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: { increment: normalizedAmount } },
+        });
+    }
 
     // 2. Create Transaction History
     return tx.walletTransaction.create({
         data: {
             userId,
-            amount,
+            amount: normalizedAmount,
             type,
-            description,
-            referenceId: String(referenceId),
+            description: description || null,
+            referenceId: referenceId === undefined || referenceId === null ? null : String(referenceId),
             status: 'COMPLETED'
         }
     });
@@ -97,7 +130,19 @@ async function processWalletTransaction({ userId, amount, type, description, ref
  * Validate Coupon code
  */
 async function validateCoupon(code, userId, { bookingAmount, serviceCategory } = {}) {
-    const coupon = await prisma.coupon.findUnique({ where: { code: code.toUpperCase() } });
+    const normalizedCode = String(code || '').trim().toUpperCase();
+    if (!normalizedCode) {
+        throw new AppError(400, 'Coupon code is required.');
+    }
+
+    const normalizedBookingAmount = Number(bookingAmount);
+    if (!Number.isFinite(normalizedBookingAmount) || normalizedBookingAmount < 0) {
+        throw new AppError(400, 'Booking amount must be a valid non-negative number.');
+    }
+
+    const normalizedServiceCategory = typeof serviceCategory === 'string' ? serviceCategory.trim().toUpperCase() : null;
+
+    const coupon = await prisma.coupon.findUnique({ where: { code: normalizedCode } });
 
     if (!coupon || !coupon.isActive) throw new AppError(404, 'Coupon not found or inactive.');
 
@@ -109,11 +154,12 @@ async function validateCoupon(code, userId, { bookingAmount, serviceCategory } =
         throw new AppError(400, 'Coupon usage limit reached.');
     }
 
-    if (coupon.minOrderValue && bookingAmount < Number(coupon.minOrderValue)) {
+    if (coupon.minOrderValue && normalizedBookingAmount < Number(coupon.minOrderValue)) {
         throw new AppError(400, `Minimum order value of ₹${coupon.minOrderValue} required.`);
     }
 
-    if (coupon.applicableTo && coupon.applicableTo !== 'ALL' && coupon.applicableTo !== serviceCategory) {
+    const couponApplicableTo = typeof coupon.applicableTo === 'string' ? coupon.applicableTo.trim().toUpperCase() : null;
+    if (couponApplicableTo && couponApplicableTo !== 'ALL' && couponApplicableTo !== normalizedServiceCategory) {
         throw new AppError(400, `Coupon is only valid for ${coupon.applicableTo} services.`);
     }
 
@@ -134,7 +180,7 @@ async function validateCoupon(code, userId, { bookingAmount, serviceCategory } =
     // Calculate Discount
     let discountAmount;
     if (coupon.discountType === 'PERCENTAGE') {
-        discountAmount = (bookingAmount * Number(coupon.discountValue)) / 100;
+        discountAmount = (normalizedBookingAmount * Number(coupon.discountValue)) / 100;
         if (coupon.maxDiscount && discountAmount > Number(coupon.maxDiscount)) {
             discountAmount = Number(coupon.maxDiscount);
         }
@@ -144,7 +190,7 @@ async function validateCoupon(code, userId, { bookingAmount, serviceCategory } =
 
     return {
         couponId: coupon.id,
-        discountAmount: Math.min(discountAmount, bookingAmount), // Can't be more than price
+        discountAmount: Math.min(discountAmount, normalizedBookingAmount), // Can't be more than price
         code: coupon.code
     };
 }
@@ -193,10 +239,15 @@ async function awardReferralBonus(bookingId, tx = prisma) {
  * Add credits to a user's wallet
  */
 async function depositCredits(userId, amount, description = 'Wallet Deposit', referenceId = 'manual', tx = prisma) {
+    const normalizedAmount = Number(amount);
+    if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+        throw new AppError(400, 'Deposit amount must be greater than zero.');
+    }
+
     await initializeWallet(userId, tx);
     return processWalletTransaction({
         userId,
-        amount: Number(amount),
+        amount: normalizedAmount,
         type: 'DEPOSIT',
         description,
         referenceId

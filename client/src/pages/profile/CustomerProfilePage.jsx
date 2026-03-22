@@ -43,17 +43,27 @@ export function CustomerProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
 
+  const formatWalletTransactionDate = (value) => {
+    if (!value) return 'N/A';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
+  };
+
   // Growth & Rewards Data
   const { data: walletData } = useQuery({ queryKey: ['customer', 'wallet'], queryFn: getWallet, enabled: activeTab === 'wallet' });
   const { data: loyaltyData } = useQuery({ queryKey: ['customer', 'loyalty'], queryFn: getLoyaltySummary, enabled: activeTab === 'wallet' });
   const { data: referralData } = useQuery({ queryKey: ['customer', 'referrals'], queryFn: getReferralInfo, enabled: activeTab === 'account' });
 
   const [copiedRef, setCopiedRef] = useState(false);
-  const handleCopyRef = (code) => {
-    navigator.clipboard.writeText(code);
-    setCopiedRef(true);
-    toast.success(t('Code copied!'));
-    setTimeout(() => setCopiedRef(false), 2000);
+  const handleCopyRef = async (code) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedRef(true);
+      toast.success(t('Code copied!'));
+      setTimeout(() => setCopiedRef(false), 2000);
+    } catch {
+      toast.error(t('Unable to copy code. Please copy it manually.'));
+    }
   };
 
   // Emergency Contacts State
@@ -239,13 +249,15 @@ export function CustomerProfilePage() {
         const state = addr.state || '';
         const postalCode = addr.postcode || '';
 
+        const hasShegaon = (value) => String(value || '').toLowerCase().includes('shegaon');
+
         // Specific enhancement for Shegaon, Buldhana
         const isShegaon = 
-          addr.village?.toLowerCase().includes('shegaon') || 
-          addr.town?.toLowerCase().includes('shegaon') || 
-          addr.suburb?.toLowerCase().includes('shegaon') ||
-          addr.neighbourhood?.toLowerCase().includes('shegaon') ||
-          data.display_name?.toLowerCase().includes('shegaon');
+          hasShegaon(addr.village) || 
+          hasShegaon(addr.town) || 
+          hasShegaon(addr.suburb) ||
+          hasShegaon(addr.neighbourhood) ||
+          hasShegaon(data.display_name);
 
         if (isShegaon) {
            toast.success(t('Shegaon (Buldhana) detected! Syncing high-precision coordinates.'));
@@ -845,7 +857,7 @@ export function CustomerProfilePage() {
                            <div key={tx.id} className="py-4 flex justify-between items-center">
                              <div>
                                <p className="text-sm font-bold text-gray-900 dark:text-white">{tx.description}</p>
-                               <p className="text-xs text-gray-500 uppercase tracking-widest">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                               <p className="text-xs text-gray-500 uppercase tracking-widest">{formatWalletTransactionDate(tx.createdAt)}</p>
                              </div>
                              <span className={`text-sm font-bold ${parseFloat(tx.amount) > 0 ? 'text-success-600' : 'text-gray-900 dark:text-white'}`}>
                                {parseFloat(tx.amount) > 0 ? '+' : ''}₹{Math.abs(tx.amount)}

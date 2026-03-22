@@ -58,7 +58,7 @@ function requireRole(...allowedRoles) {
     if (!allowedRoles.includes(userRole)) {
       // User's role is not allowed to access this endpoint
       return res.status(403).json({ 
-        error: `Access denied. This endpoint requires one of the following roles: ${allowedRoles.join(', ')}. Your role: ${userRole}.`,
+        error: 'Forbidden',
         statusCode: 403
       });
       // Status 403 = Forbidden (logged in, but not authorized)

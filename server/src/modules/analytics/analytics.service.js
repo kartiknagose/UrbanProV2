@@ -9,6 +9,9 @@ const prisma = require('../../config/prisma');
  * - Average Worker Response Time (Booking created to accepted) - Mock for now
  */
 async function getAdminKPIs() {
+    const activeSince = new Date();
+    activeSince.setDate(activeSince.getDate() - 30);
+
     const [gmvData, revenueData, usersCount, workersCount, bookingsCount] = await Promise.all([
         // GMV: Sum of total price of COMPLETED/PAID bookings
         prisma.booking.aggregate({
@@ -20,22 +23,35 @@ async function getAdminKPIs() {
             _sum: { platformCommission: true },
             where: { status: 'COMPLETED', paymentStatus: 'PAID' }
         }),
-        // Users: Number of non-deleted users
-        prisma.user.count({ where: { isActive: true } }),
-        // Workers: Number of verified workers
-        prisma.workerProfile.count({ where: { isVerified: true } }),
+        // Users active in last 30 days
+        prisma.user.count({
+            where: {
+                isActive: true,
+                lastActiveAt: { gte: activeSince },
+            },
+        }),
+        // Workers active + verified
+        prisma.workerProfile.count({
+            where: {
+                isVerified: true,
+                user: { isActive: true },
+            },
+        }),
         // Total Bookings
         prisma.booking.count(),
     ]);
 
+    const gmv = Number(gmvData._sum.totalPrice || 0);
+    const revenue = Number(revenueData._sum.platformCommission || 0);
+
     return {
-        gmv: Number(gmvData._sum.totalPrice || 0),
-        revenue: Number(revenueData._sum.platformCommission || 0),
+        gmv,
+        revenue,
         activeUsers: usersCount,
         activeWorkers: workersCount,
         totalBookings: bookingsCount,
-        avgResponseTimeMinutes: 12.5, // Mock data for now
-        growthMoM: 18.2, // Mock growth percentage
+        avgResponseTimeMinutes: null,
+        growthMoM: null,
     };
 }
 
@@ -44,16 +60,27 @@ async function getAdminKPIs() {
  */
 async function getMonthlyPerformance() {
     const results = await prisma.$queryRaw`
-        SELECT 
-            TO_CHAR(DATE_TRUNC('month', "createdAt"), 'MMMM') as month,
-            SUM("totalPrice") as gmv,
-            SUM("platformCommission") as revenue,
-            COUNT("id") as bookings
-        FROM "Booking"
-        WHERE "paymentStatus" = 'PAID'
-        GROUP BY DATE_TRUNC('month', "createdAt")
-        ORDER BY DATE_TRUNC('month', "createdAt") ASC
-        LIMIT 6;
+        WITH monthly AS (
+            SELECT
+                DATE_TRUNC('month', "paidAt") AS month_date,
+                SUM("totalPrice") AS gmv,
+                SUM("platformCommission") AS revenue,
+                COUNT("id") AS bookings
+            FROM "Booking"
+            WHERE "paymentStatus" = 'PAID'
+              AND "status" = 'COMPLETED'
+              AND "paidAt" IS NOT NULL
+            GROUP BY DATE_TRUNC('month', "paidAt")
+            ORDER BY month_date DESC
+            LIMIT 6
+        )
+        SELECT
+            TO_CHAR(month_date, 'Mon YYYY') AS month,
+            gmv,
+            revenue,
+            bookings
+        FROM monthly
+        ORDER BY month_date ASC;
     `;
 
     return results.map(r => ({
@@ -76,6 +103,7 @@ async function getCategoryBreakdown() {
         FROM "Booking" b
         JOIN "Service" s ON b."serviceId" = s.id
         WHERE b."status" = 'COMPLETED'
+          AND b."paymentStatus" = 'PAID'
         GROUP BY s.category
         ORDER BY value DESC;
     `;
@@ -91,22 +119,31 @@ async function getCategoryBreakdown() {
  * Worker Performance Metrics
  */
 async function getWorkerMetrics() {
-    const topEarners = await prisma.workerProfile.findMany({
-        take: 5,
-        orderBy: { walletBalance: 'desc' },
-        include: { user: { select: { name: true } } }
-    });
+    const topEarners = await prisma.$queryRaw`
+        SELECT
+            u.name AS name,
+            COALESCE(SUM(b."workerPayoutAmount"), 0) AS earnings
+        FROM "WorkerProfile" wp
+        JOIN "User" u ON wp."userId" = u.id
+        LEFT JOIN "Booking" b ON b."workerProfileId" = wp.id
+            AND b."status" = 'COMPLETED'
+            AND b."paymentStatus" = 'PAID'
+        WHERE u."isActive" = true
+        GROUP BY u.name, wp.id
+        ORDER BY earnings DESC
+        LIMIT 5;
+    `;
 
     const averageRating = await prisma.review.aggregate({
         _avg: { rating: true }
     });
 
     return {
-        topEarners: topEarners.map(w => ({
-            name: w.user.name,
-            earnings: Number(w.walletBalance || 0)
+        topEarners: topEarners.map((w) => ({
+            name: w.name,
+            earnings: Number(w.earnings || 0)
         })),
-        overallRating: Number(averageRating._avg.rating || 0).toFixed(1)
+        overallRating: Math.round(Number(averageRating._avg.rating || 0) * 10) / 10
     };
 }
 

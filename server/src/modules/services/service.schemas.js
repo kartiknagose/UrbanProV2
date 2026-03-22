@@ -10,7 +10,7 @@
  * - Protects database integrity
  */
 
-const { body } = require('express-validator');
+const { body, param, query } = require('express-validator');
 
 /**
  * VALIDATION RULES FOR CREATING A SERVICE
@@ -68,6 +68,67 @@ const createServiceSchema = [
     // This custom validator ensures price is not negative
 ];
 
+const serviceIdParamSchema = [
+  param('id')
+    .isInt({ min: 1 }).withMessage('Service ID must be a positive integer'),
+];
+
+const listServicesQuerySchema = [
+  query('category')
+    .optional()
+    .isString().withMessage('Category must be text')
+    .trim()
+    .isLength({ min: 2, max: 50 }).withMessage('Category must be between 2 and 50 characters'),
+
+  query('search')
+    .optional()
+    .isString().withMessage('Search must be text')
+    .trim()
+    .isLength({ min: 1, max: 100 }).withMessage('Search must be between 1 and 100 characters'),
+
+  query('page')
+    .optional()
+    .isInt({ min: 1, max: 100000 }).withMessage('Page must be a positive integer'),
+
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+];
+
+const updateServiceSchema = [
+  ...serviceIdParamSchema,
+
+  body('name')
+    .optional()
+    .isString().withMessage('Service name must be text')
+    .trim()
+    .isLength({ min: 3, max: 100 }).withMessage('Service name must be between 3 and 100 characters')
+    .matches(/^[a-zA-Z0-9\s\-&]+$/).withMessage('Service name can only contain letters, numbers, spaces, hyphens, and ampersands'),
+
+  body('description')
+    .optional({ nullable: true })
+    .isString().withMessage('Description must be text')
+    .trim()
+    .isLength({ min: 10, max: 500 }).withMessage('Description must be between 10 and 500 characters'),
+
+  body('category')
+    .optional({ nullable: true })
+    .isString().withMessage('Category must be text')
+    .trim()
+    .isLength({ min: 2, max: 50 }).withMessage('Category must be between 2 and 50 characters')
+    .matches(/^[a-zA-Z0-9\s\-&]+$/).withMessage('Category can only contain letters, numbers, spaces, hyphens, and ampersands'),
+
+  body('basePrice')
+    .optional({ nullable: true })
+    .isDecimal({ decimal_digits: '0,2' }).withMessage('Base price must be a valid number with up to 2 decimal places')
+    .custom((value) => {
+      if (parseFloat(value) < 0) {
+        throw new Error('Base price cannot be negative');
+      }
+      return true;
+    }),
+];
+
 /**
  * FUTURE: You can add more validation schemas here
  * 
@@ -80,4 +141,7 @@ const createServiceSchema = [
 // Export the validation schema so routes can use it
 module.exports = {
   createServiceSchema,
+  serviceIdParamSchema,
+  listServicesQuerySchema,
+  updateServiceSchema,
 };

@@ -26,19 +26,27 @@ export function SocialShare({
                 if (err.name !== 'AbortError') console.error('Share failed:', err);
             }
         } else {
-            handleCopyLink();
+            await handleCopyLink();
         }
     };
 
-    const handleCopyLink = () => {
-        navigator.clipboard.writeText(url);
-        toast.success('Link copied to clipboard!');
+    const handleCopyLink = async () => {
+        try {
+            await navigator.clipboard.writeText(url);
+            toast.success('Link copied to clipboard!');
+        } catch {
+            toast.error('Unable to copy link. Please copy it manually.');
+        }
     };
 
     const shareLinks = {
         whatsapp: `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`,
         facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
         twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
+    };
+
+    const openShareLink = (shareUrl) => {
+        window.open(shareUrl, '_blank', 'noopener,noreferrer');
     };
 
     if (variant === 'minimal') {
@@ -59,7 +67,7 @@ export function SocialShare({
                 variant="outline" 
                 size="sm" 
                 icon={MessageCircle} 
-                onClick={() => window.open(shareLinks.whatsapp, '_blank')}
+                onClick={() => openShareLink(shareLinks.whatsapp)}
                 className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
             >
                 WhatsApp
@@ -68,7 +76,7 @@ export function SocialShare({
                 variant="outline" 
                 size="sm" 
                 icon={Facebook} 
-                onClick={() => window.open(shareLinks.facebook, '_blank')}
+                onClick={() => openShareLink(shareLinks.facebook)}
                 className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
             >
                 Facebook
@@ -77,7 +85,7 @@ export function SocialShare({
                 variant="outline" 
                 size="sm" 
                 icon={Twitter} 
-                onClick={() => window.open(shareLinks.twitter, '_blank')}
+                onClick={() => openShareLink(shareLinks.twitter)}
                 className="bg-sky-50 text-sky-600 border-sky-200 hover:bg-sky-100"
             >
                 Twitter

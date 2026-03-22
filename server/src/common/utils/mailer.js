@@ -136,7 +136,7 @@ async function verifySmtpConnection() {
 }
 
 const getFromAddress = () => {
-  const fromEmail = process.env.SMTP_USER || process.env.FROM_EMAIL;
+  const fromEmail = process.env.FROM_EMAIL || process.env.SMTP_USER;
   const fromName = process.env.FROM_NAME || 'UrbanPro';
   return `${fromName} <${fromEmail}>`;
 };
@@ -418,28 +418,15 @@ async function sendBookingStatusEmail(booking) {
     bookingId: booking.id,
   };
 
-  let transporter;
-  try {
-    transporter = buildTransport();
-  } catch (err) {
-    logger.warn('SMTP not configured, skipping booking email:', err.message);
-    return;
-  }
-
-  if (!transporter) {
-    logger.warn('SMTP not configured, skipping booking email: transport unavailable');
-    return;
-  }
-
-  const from = getFromAddress();
   const sends = [];
 
   if (customerEmail) {
     sends.push(
-      transporter.sendMail({
-        from,
+      sendEmail({
         to: customerEmail,
+        logContext: `Booking ${status} Customer`,
         subject: config.customerSubject,
+        text: config.customerBody(vars).replace(/<[^>]+>/g, ''),
         html: buildEmailHtml(config.customerHeading, config.customerBody(vars), booking.id),
       })
     );
@@ -447,10 +434,11 @@ async function sendBookingStatusEmail(booking) {
 
   if (workerEmail) {
     sends.push(
-      transporter.sendMail({
-        from,
+      sendEmail({
         to: workerEmail,
+        logContext: `Booking ${status} Worker`,
         subject: config.workerSubject,
+        text: config.workerBody(vars).replace(/<[^>]+>/g, ''),
         html: buildEmailHtml(config.workerHeading, config.workerBody(vars), booking.id),
       })
     );
@@ -464,6 +452,7 @@ async function sendBookingStatusEmail(booking) {
 }
 
 module.exports = {
+  sendEmail,
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendBookingStatusEmail,

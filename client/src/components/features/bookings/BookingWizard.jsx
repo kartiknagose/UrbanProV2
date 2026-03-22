@@ -71,6 +71,12 @@ export function BookingWizard({ onSuccess, initialService = null, initialWorker 
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [pricingData, setPricingData] = useState(null);
 
+  const formatScheduledDateTime = (value) => {
+    if (!value) return 'N/A';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleString();
+  };
+
   const {
     register,
     handleSubmit,
@@ -492,7 +498,7 @@ export function BookingWizard({ onSuccess, initialService = null, initialWorker 
             <div>
               <p className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">{t('Date & Time')}</p>
               <p className="text-sm font-bold text-neutral-900 dark:text-white mt-1">
-                {new Date(watchScheduledDate).toLocaleString()} ({frequency})
+                {formatScheduledDateTime(watchScheduledDate)} ({frequency})
               </p>
             </div>
             {selectedLocation?.address && (

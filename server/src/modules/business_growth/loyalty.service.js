@@ -62,7 +62,9 @@ async function awardPoints(userId, bookingAmount, bookingId, tx = prisma) {
  * Returns the discount amount in rupees
  */
 async function redeemPoints(userId, pointsToRedeem) {
-  if (pointsToRedeem <= 0) throw new AppError(400, 'Invalid point amount.');
+  if (!Number.isInteger(pointsToRedeem) || pointsToRedeem <= 0) {
+    throw new AppError(400, 'Invalid point amount.');
+  }
 
   const loyalty = await prisma.loyaltyPoints.findUnique({ where: { userId } });
   if (!loyalty) throw new AppError(404, 'Loyalty account not found.');
@@ -72,20 +74,28 @@ async function redeemPoints(userId, pointsToRedeem) {
 
   const discountAmount = (pointsToRedeem / REDEMPTION_VALUE).toFixed(2);
 
-  // Deduct points
-  await prisma.loyaltyPoints.update({
-    where: { userId },
-    data: { balance: { decrement: pointsToRedeem } }
-  });
+  await prisma.$transaction(async (tx) => {
+    // Conditional decrement prevents double-spend under concurrent redeem requests.
+    const updated = await tx.loyaltyPoints.updateMany({
+      where: {
+        userId,
+        balance: { gte: pointsToRedeem },
+      },
+      data: { balance: { decrement: pointsToRedeem } },
+    });
 
-  // Record redemption
-  await prisma.loyaltyTransaction.create({
-    data: {
-      userId,
-      points: -pointsToRedeem,
-      type: 'REDEEMED',
-      description: `Redeemed ${pointsToRedeem} points for ₹${discountAmount} discount`
+    if (updated.count !== 1) {
+      throw new AppError(400, 'Insufficient points. Please refresh and try again.');
     }
+
+    await tx.loyaltyTransaction.create({
+      data: {
+        userId,
+        points: -pointsToRedeem,
+        type: 'REDEEMED',
+        description: `Redeemed ${pointsToRedeem} points for ₹${discountAmount} discount`
+      }
+    });
   });
 
   return { pointsRedeemed: pointsToRedeem, discountAmount: Number(discountAmount) };

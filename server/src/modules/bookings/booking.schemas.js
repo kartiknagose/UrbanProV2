@@ -13,6 +13,32 @@
 
 const { body, param } = require('express-validator');
 
+const previewPriceSchema = [
+  body('serviceId')
+    .notEmpty().withMessage('Service ID is required')
+    .isInt({ min: 1 }).withMessage('Service ID must be a valid number'),
+
+  body('workerProfileId')
+    .optional({ nullable: true })
+    .isInt({ min: 1 }).withMessage('Worker profile ID must be a valid number'),
+
+  body('scheduledDate')
+    .optional()
+    .isISO8601().withMessage('Scheduled date must be a valid date format'),
+
+  body('latitude')
+    .optional({ nullable: true })
+    .isFloat({ min: -90, max: 90 }).withMessage('Latitude must be between -90 and 90'),
+
+  body('longitude')
+    .optional({ nullable: true })
+    .isFloat({ min: -180, max: 180 }).withMessage('Longitude must be between -180 and 180'),
+
+  body('estimatedPrice')
+    .optional({ nullable: true })
+    .isDecimal({ decimal_digits: '0,2' }).withMessage('Estimated price must be a valid number with up to 2 decimal places'),
+];
+
 /**
  * VALIDATION RULES FOR CREATING A BOOKING
  * 
@@ -180,11 +206,69 @@ const refreshOtpSchema = [
     .withMessage('otpType must be either START or COMPLETE'),
 ];
 
+const bookingOtpSchema = [
+  param('id')
+    .isInt({ min: 1 }).withMessage('Booking ID must be a valid number'),
+
+  body('otp')
+    .trim()
+    .matches(/^\d{4}$/).withMessage('OTP must be a 4-digit code'),
+
+  body('latitude')
+    .optional({ nullable: true })
+    .isFloat({ min: -90, max: 90 }).withMessage('Latitude must be between -90 and 90'),
+
+  body('longitude')
+    .optional({ nullable: true })
+    .isFloat({ min: -180, max: 180 }).withMessage('Longitude must be between -180 and 180'),
+];
+
+const createSessionSchema = [
+  param('id')
+    .isInt({ min: 1 }).withMessage('Booking ID must be a valid number'),
+
+  body('sessionDate')
+    .notEmpty().withMessage('Session date is required')
+    .isISO8601().withMessage('Session date must be a valid date format'),
+
+  body('notes')
+    .optional({ nullable: true })
+    .isString().withMessage('Notes must be text')
+    .trim()
+    .isLength({ max: 1000 }).withMessage('Notes cannot exceed 1000 characters'),
+];
+
+const startSessionSchema = [
+  param('id')
+    .isInt({ min: 1 }).withMessage('Booking ID must be a valid number'),
+
+  param('sessionId')
+    .isInt({ min: 1 }).withMessage('Session ID must be a valid number'),
+
+  body('otp')
+    .trim()
+    .matches(/^\d{4}$/).withMessage('OTP must be a 4-digit code'),
+];
+
+const rescheduleBookingSchema = [
+  param('id')
+    .isInt({ min: 1 }).withMessage('Booking ID must be a valid number'),
+
+  body('newScheduledDate')
+    .notEmpty().withMessage('New scheduled date is required')
+    .isISO8601().withMessage('New scheduled date must be a valid date format'),
+];
+
 // Export these validation schemas so other files can use them
 module.exports = {
+  previewPriceSchema,
   createBookingSchema,
   updateBookingStatusSchema,
   cancelBookingSchema,
   payBookingSchema,
+  bookingOtpSchema,
+  createSessionSchema,
+  startSessionSchema,
+  rescheduleBookingSchema,
   refreshOtpSchema,
 };

@@ -9,7 +9,8 @@ const { captureException } = require('../config/monitoring');
 
 module.exports = (err, _req, res, _next) => {
   // Determine HTTP status code
-  const status = err.statusCode || err.status || 500;
+  const rawStatus = Number(err.statusCode || err.status || 500);
+  const status = Number.isInteger(rawStatus) && rawStatus >= 400 && rawStatus <= 599 ? rawStatus : 500;
   const isDevelopment = process.env.NODE_ENV === 'development';
 
   // Do not expose unknown 5xx details in production responses.
@@ -39,6 +40,7 @@ module.exports = (err, _req, res, _next) => {
   res.status(status).json({
     error: message,
     statusCode: status,
+    requestId: _req.id,
     ...(isDevelopment && { stack: err.stack }),
   });
 };

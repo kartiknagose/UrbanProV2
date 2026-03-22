@@ -14,6 +14,21 @@ const formatInrAmount = (value) => {
 
 export function BookingAssignmentDetails({ booking, onOpenMaps }) {
     const { t, i18n } = useTranslation();
+    const latitude = Number(booking.latitude);
+    const longitude = Number(booking.longitude);
+    const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
+
+    const formatScheduledDate = (value) => {
+        if (!value) return 'N/A';
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString(i18n.language, { weekday: 'short', month: 'short', day: 'numeric' });
+    };
+
+    const formatScheduledTime = (value) => {
+        if (!value) return 'N/A';
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
+    };
     return (
         <Card className="overflow-hidden border-none ring-1 ring-black/5 dark:ring-white/10 shadow-lg">
             <div className="p-6 space-y-6">
@@ -25,11 +40,11 @@ export function BookingAssignmentDetails({ booking, onOpenMaps }) {
                         <div>
                             <span className="block text-2xs font-black text-gray-400 uppercase tracking-widest mb-0.5">{t('Appointment')}</span>
                             <div className="text-sm font-bold text-gray-900 dark:text-white">
-                                {new Date(booking.scheduledAt || booking.scheduledDate).toLocaleDateString(i18n.language, { weekday: 'short', month: 'short', day: 'numeric' })}
+                                {formatScheduledDate(booking.scheduledAt || booking.scheduledDate)}
                             </div>
                             <div className="flex items-center gap-1 text-2xs font-bold text-blue-500">
                                 <Clock size={12} />
-                                {new Date(booking.scheduledAt || booking.scheduledDate).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}
+                                {formatScheduledTime(booking.scheduledAt || booking.scheduledDate)}
                             </div>
                         </div>
                     </div>
@@ -53,9 +68,9 @@ export function BookingAssignmentDetails({ booking, onOpenMaps }) {
                             </Button>
                         </div>
                     </div>
-                    {booking.latitude && booking.longitude && (
+                    {hasCoordinates && (
                         <div className="md:col-span-2 lg:col-span-3">
-                            <MiniMap lat={booking.latitude} lng={booking.longitude} height="180px" />
+                            <MiniMap lat={latitude} lng={longitude} height="180px" />
                         </div>
                     )}
 

@@ -40,6 +40,30 @@ export function ForgotPasswordPage() {
     }
   };
 
+  const openResetLink = () => {
+    if (!resetLink) return;
+
+    // Allow internal app paths directly.
+    if (resetLink.startsWith('/')) {
+      navigate(resetLink);
+      return;
+    }
+
+    // For absolute URLs, allow only same-origin http(s) links.
+    try {
+      const url = new URL(resetLink, window.location.origin);
+      const isHttp = url.protocol === 'http:' || url.protocol === 'https:';
+      if (isHttp && url.origin === window.location.origin) {
+        window.location.assign(url.toString());
+        return;
+      }
+    } catch {
+      // Fall through to user-facing error.
+    }
+
+    setServerError('Invalid reset link. Please request a new one.');
+  };
+
   return (
     <AuthLayout
       title="Reset your password"
@@ -97,7 +121,7 @@ export function ForgotPasswordPage() {
             <p className="font-bold text-neutral-600 dark:text-neutral-400 mb-1">Dev: Reset link</p>
             <button
               type="button"
-              onClick={() => resetLink.startsWith('http') ? (window.location.href = resetLink) : navigate(resetLink)}
+              onClick={openResetLink}
               className="text-brand-500 hover:text-brand-600 font-semibold flex items-center gap-1 uppercase tracking-widest text-[10px]"
             >
               Open reset link <ExternalLink size={11} />

@@ -1,18 +1,14 @@
 const asyncHandler = require('../../common/utils/asyncHandler');
 const parseId = require('../../common/utils/parseId');
 const parsePagination = require('../../common/utils/parsePagination');
-const AppError = require('../../common/errors/AppError');
 const safetyService = require('./safety.service');
 
 const triggerSOS = asyncHandler(async (req, res) => {
     const { bookingId, location } = req.body;
     const userId = req.user.id;
 
-    if (!bookingId) {
-        throw new AppError(400, 'Booking ID is required to trigger SOS.');
-    }
-
-    const result = await safetyService.triggerSOS(userId, parseInt(bookingId), location);
+    const parsedBookingId = parseId(bookingId, 'Booking ID');
+    const result = await safetyService.triggerSOS(userId, parsedBookingId, location);
     res.status(201).json(result);
 });
 
@@ -46,9 +42,6 @@ const getActiveSosAlerts = asyncHandler(async (req, res) => {
 const updateSosAlertStatus = asyncHandler(async (req, res) => {
     const alertId = parseId(req.params.id, 'Alert ID');
     const { status } = req.body; // 'ACKNOWLEDGED' or 'RESOLVED'
-    if (!['ACKNOWLEDGED', 'RESOLVED'].includes(status)) {
-        throw new AppError(400, 'Status must be ACKNOWLEDGED or RESOLVED.');
-    }
     const alert = await safetyService.updateSosAlertStatus(alertId, status);
     res.status(200).json({ alert });
 });

@@ -144,6 +144,9 @@ export function WorkerSelectionPanel({
                 ) : displayWorkers.length > 0 ? (
                   displayWorkers.map((worker) => {
                     const isSelected = String(worker.id) === String(selectedWorkerId);
+                    const verificationLevelLabel = worker.verificationLevel
+                      ? `${String(worker.verificationLevel).charAt(0)}${String(worker.verificationLevel).slice(1).toLowerCase()}`
+                      : '';
 
                     return (
                       <div
@@ -162,7 +165,7 @@ export function WorkerSelectionPanel({
                               <div className="absolute -bottom-2 -right-2">
                                 <Badge variant={getVerificationLevelVariant(worker.verificationLevel)} size="xs" className="shadow-sm border border-white dark:border-dark-900">
                                   <ShieldCheck size={10} strokeWidth={3} className="mr-0.5" />
-                                  {worker.verificationLevel.charAt(0) + worker.verificationLevel.slice(1).toLowerCase()}
+                                  {verificationLevelLabel}
                                 </Badge>
                               </div>
                             )}

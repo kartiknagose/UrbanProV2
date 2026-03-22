@@ -7,10 +7,15 @@ const notificationService = require('../notifications/notification.service');
  * Get or create a conversation for a booking
  */
 async function getOrCreateConversation(bookingId, userId, role) {
+    const parsedBookingId = Number(bookingId);
+    if (!Number.isInteger(parsedBookingId) || parsedBookingId < 1) {
+        throw new AppError(400, 'Invalid booking ID');
+    }
+
     const booking = await prisma.booking.findUnique({
-        where: { id: Number(bookingId) },
+        where: { id: parsedBookingId },
         include: {
-            workerProfile: true
+            workerProfile: { select: { id: true, userId: true } }
         }
     });
 
@@ -23,15 +28,16 @@ async function getOrCreateConversation(bookingId, userId, role) {
     // Check if user is part of this booking
     if (role === 'CUSTOMER' && userId !== customerId) throw new AppError(403, 'Unauthorized');
     if (role === 'WORKER' && userId !== workerUserId) throw new AppError(403, 'Unauthorized');
+    if (!['CUSTOMER', 'WORKER', 'ADMIN'].includes(role)) throw new AppError(403, 'Unauthorized');
 
     let conversation = await prisma.conversation.findUnique({
-        where: { bookingId: Number(bookingId) }
+        where: { bookingId: parsedBookingId }
     });
 
     if (!conversation) {
         conversation = await prisma.conversation.create({
             data: {
-                bookingId: Number(bookingId),
+                bookingId: parsedBookingId,
                 customerId,
                 workerUserId
             }
@@ -45,8 +51,18 @@ async function getOrCreateConversation(bookingId, userId, role) {
  * Send a message
  */
 async function sendMessage(conversationId, senderId, { content, type = 'TEXT', mediaUrl, fileName, fileSize }) {
+    const parsedConversationId = Number(conversationId);
+    if (!Number.isInteger(parsedConversationId) || parsedConversationId < 1) {
+        throw new AppError(400, 'Invalid conversation ID');
+    }
+
+    const normalizedContent = typeof content === 'string' ? content.trim() : '';
+    const normalizedMediaUrl = typeof mediaUrl === 'string' ? mediaUrl.trim() : '';
+    const normalizedFileName = typeof fileName === 'string' ? fileName.trim() : '';
+    const normalizedFileSize = fileSize !== undefined && fileSize !== null ? Number(fileSize) : undefined;
+
     const conversation = await prisma.conversation.findUnique({
-        where: { id: Number(conversationId) }
+        where: { id: parsedConversationId }
     });
 
     if (!conversation) throw new AppError(404, 'Conversation not found');
@@ -55,16 +71,16 @@ async function sendMessage(conversationId, senderId, { content, type = 'TEXT', m
     }
 
     const messageData = {
-        conversationId: Number(conversationId),
+        conversationId: parsedConversationId,
         senderId,
         type
     };
 
-    if (content) {
-        messageData.content = content;
+    if (normalizedContent) {
+        messageData.content = normalizedContent;
         
         // FRAUD DETECTION: Off-platform sharing (Sprint 17 - #226)
-        const lowerContent = content.toLowerCase();
+        const lowerContent = normalizedContent.toLowerCase();
         const contactPatterns = [
             /[0-9]{10}/, // Phone numbers
             /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/, // Emails
@@ -73,13 +89,14 @@ async function sendMessage(conversationId, senderId, { content, type = 'TEXT', m
         
         const isSuspicious = contactPatterns.some(p => p.test(lowerContent));
         if (isSuspicious) {
-            messageData.metadata = { flagged: true, reason: 'POTENTIAL_OFFPLATFORM_SHARING' };
-            messageData.type = 'SUSPICIOUS'; // Can be used to highlight for admin
+            throw new AppError(400, 'Message contains prohibited contact or payment details.');
         }
     }
-    if (mediaUrl) messageData.mediaUrl = mediaUrl;
-    if (fileName) messageData.fileName = fileName;
-    if (fileSize) messageData.fileSize = fileSize;
+    if (normalizedMediaUrl) messageData.mediaUrl = normalizedMediaUrl;
+    if (normalizedFileName) messageData.fileName = normalizedFileName;
+    if (normalizedFileSize !== undefined && Number.isInteger(normalizedFileSize) && normalizedFileSize > 0) {
+        messageData.fileSize = normalizedFileSize;
+    }
 
     const message = await prisma.message.create({
         data: messageData,
@@ -105,11 +122,15 @@ async function sendMessage(conversationId, senderId, { content, type = 'TEXT', m
 
     // Create persistent notification for the recipient (non-blocking)
     const recipientId = conversation.customerId === senderId ? conversation.workerUserId : conversation.customerId;
+    const notificationPreview = normalizedContent
+        ? (normalizedContent.length > 50 ? normalizedContent.substring(0, 47) + '...' : normalizedContent)
+        : (type === 'IMAGE' ? 'Sent an image' : type === 'DOCUMENT' ? 'Sent a document' : type === 'VOICE' ? 'Sent a voice message' : 'New message');
+
     notificationService.createNotification({
         userId: recipientId,
-        type: 'CHAT_MESSAGE',
+        type: 'CHAT',
         title: `New message from ${message.sender.name}`,
-        message: content.length > 50 ? content.substring(0, 47) + '...' : content,
+        message: notificationPreview,
         data: { conversationId: conversation.id, bookingId: conversation.bookingId }
     }).catch((err) => console.error('Failed to create chat notification:', err.message));
 
@@ -120,8 +141,13 @@ async function sendMessage(conversationId, senderId, { content, type = 'TEXT', m
  * Get messages for a conversation
  */
 async function getMessages(conversationId, userId, { skip = 0, limit = 50 } = {}) {
+    const parsedConversationId = Number(conversationId);
+    if (!Number.isInteger(parsedConversationId) || parsedConversationId < 1) {
+        throw new AppError(400, 'Invalid conversation ID');
+    }
+
     const conversation = await prisma.conversation.findUnique({
-        where: { id: Number(conversationId) }
+        where: { id: parsedConversationId }
     });
 
     if (!conversation) throw new AppError(404, 'Conversation not found');
@@ -129,7 +155,7 @@ async function getMessages(conversationId, userId, { skip = 0, limit = 50 } = {}
         throw new AppError(403, 'Unauthorized');
     }
 
-    const where = { conversationId: Number(conversationId) };
+    const where = { conversationId: parsedConversationId };
     const [data, total] = await Promise.all([
         prisma.message.findMany({
             where,

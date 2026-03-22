@@ -6,6 +6,28 @@ import { ChatToggle } from '../../../components/features/chat/ChatWindow';
 
 export function WorkerContactSidebar({ booking, isOnline, toggleOnline, isUpdating }) {
     const { t } = useTranslation();
+    const rawMobile = String(booking.customer?.mobile || '');
+    const sanitizedMobile = rawMobile
+        .replace(/[^\d+]/g, '')
+        .replace(/(?!^)\+/g, '');
+    const rawEmail = String(booking.customer?.email || '').trim();
+    const hasValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail);
+
+    const openTel = () => {
+        if (!sanitizedMobile) return;
+        window.location.assign(`tel:${sanitizedMobile}`);
+    };
+
+    const openSms = () => {
+        if (!sanitizedMobile) return;
+        window.location.assign(`sms:${sanitizedMobile}`);
+    };
+
+    const openMail = () => {
+        if (!hasValidEmail) return;
+        window.location.assign(`mailto:${rawEmail}`);
+    };
+
     return (
         <Card className="border-none ring-1 ring-black/5 dark:ring-white/10 shadow-xl overflow-hidden sticky top-8">
             <div className="p-4 border-b bg-gray-50 border-gray-100 dark:bg-dark-900/50 dark:border-dark-700">
@@ -88,7 +110,8 @@ export function WorkerContactSidebar({ booking, isOnline, toggleOnline, isUpdati
                                 variant="primary"
                                 icon={Phone}
                                 className="rounded-xl font-bold h-10"
-                                onClick={() => window.location.href = `tel:${booking.customer.mobile}`}
+                                onClick={openTel}
+                                disabled={!sanitizedMobile}
                             >
                                 {t('Call')}
                             </Button>
@@ -97,7 +120,8 @@ export function WorkerContactSidebar({ booking, isOnline, toggleOnline, isUpdati
                                 variant="outline"
                                 icon={MessageCircle}
                                 className="rounded-xl font-bold h-10"
-                                onClick={() => window.location.href = `sms:${booking.customer.mobile}`}
+                                onClick={openSms}
+                                disabled={!sanitizedMobile}
                             >
                                 {t('SMS')}
                             </Button>
@@ -108,7 +132,8 @@ export function WorkerContactSidebar({ booking, isOnline, toggleOnline, isUpdati
                             size="sm"
                             icon={Mail}
                             className="h-10 rounded-xl font-bold text-gray-500"
-                            onClick={() => window.location.href = `mailto:${booking.customer.email}`}
+                            onClick={openMail}
+                            disabled={!hasValidEmail}
                         >
                             {t('Email Client')}
                         </Button>

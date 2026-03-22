@@ -36,26 +36,37 @@ exports.razorpayWebhook = asyncHandler(async (req, res) => {
   }
 
   const expectedSignature = crypto.createHmac('sha256', secret).update(bodyString).digest('hex');
+  const normalizedSignature = String(signature || '');
+
+  const isSignatureValid =
+    normalizedSignature.length === expectedSignature.length
+    && crypto.timingSafeEqual(Buffer.from(expectedSignature, 'utf8'), Buffer.from(normalizedSignature, 'utf8'));
 
   // To prevent the webhook from crashing if the signature mismatch, we simply log and return 400
-  if (expectedSignature !== signature) {
-    console.warn('Razorpay Webhook: Invalid signature', { expectedSignature, signature });
+  if (!isSignatureValid) {
+    console.warn('Razorpay Webhook: Invalid signature');
     return res.status(400).send('Invalid signature');
   }
 
-  const event = typeof req.body === 'object' ? req.body : JSON.parse(bodyString);
+  let event;
+  try {
+    event = typeof req.body === 'object' ? req.body : JSON.parse(bodyString);
+  } catch (_err) {
+    return res.status(400).send('Invalid payload');
+  }
+
   if (event.event === 'order.paid' || event.event === 'payment.captured') {
     const paymentEntity = event?.payload?.payment?.entity;
     if (!paymentEntity) {
       return res.status(200).send('Ignored');
     }
 
-    const bookingId = paymentEntity.notes?.bookingId;
+    const bookingId = Number(paymentEntity.notes?.bookingId);
 
-    if (bookingId) {
+    if (Number.isInteger(bookingId) && bookingId > 0) {
       try {
         await bookingService.payBooking(
-          Number(bookingId),
+          bookingId,
           null, // Webhook has no user ID
           'WEBHOOK',
           {
@@ -66,7 +77,7 @@ exports.razorpayWebhook = asyncHandler(async (req, res) => {
           }
         );
       } catch (err) {
-        if (!err.message.includes('already paid')) {
+        if (!(err && err.statusCode === 400 && String(err.message).toLowerCase().includes('already paid'))) {
           console.error('Razorpay Webhook payBooking error:', err.message);
         }
       }

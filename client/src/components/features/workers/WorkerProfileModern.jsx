@@ -68,6 +68,12 @@ export function WorkerProfileModern({ workerId, onClose, onAction }) {
     const services = data?.services || [];
     const reviews = profile?.user?.reviewsReceived || [];
 
+    const formatReviewDate = (value) => {
+        if (!value) return 'N/A';
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
+    };
+
     const activeBooking = useMemo(() => {
         if (!bookingsData?.bookings || !profile) return null;
         return bookingsData.bookings.find(b =>
@@ -259,7 +265,7 @@ export function WorkerProfileModern({ workerId, onClose, onAction }) {
                                         </div>
 
                                         {/* Location Service Area Card */}
-                                        {profile.baseLatitude && (
+                                        {Number.isFinite(Number(profile.baseLatitude)) && Number.isFinite(Number(profile.baseLongitude)) && (
                                             <div className="md:col-span-2 p-6 rounded-3xl border bg-white border-black/5 dark:bg-white/5 dark:border-white/5">
                                                 <div className="flex items-center justify-between mb-4">
                                                     <h4 className="font-bold flex items-center gap-2"><MapPin size={18} className="text-brand-500" /> Service Coverage</h4>
@@ -324,7 +330,7 @@ export function WorkerProfileModern({ workerId, onClose, onAction }) {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <span className="text-[10px] opacity-40 uppercase font-bold">{new Date(review.createdAt).toLocaleDateString()}</span>
+                                                <span className="text-[10px] opacity-40 uppercase font-bold">{formatReviewDate(review.createdAt)}</span>
                                             </div>
                                             <p className="text-sm italic opacity-80 leading-relaxed">"{review.comment}"</p>
                                         </div>

@@ -572,11 +572,11 @@ export function WorkerProfilePage() {
                       <h3 className="mb-2 text-sm font-bold text-neutral-800 dark:text-neutral-200">
                         {t('Base Location & Service Radius')}
                       </h3>
-                      {profileData?.baseLatitude && profileData?.baseLongitude ? (
+                      {Number.isFinite(Number(profileData?.baseLatitude)) && Number.isFinite(Number(profileData?.baseLongitude)) ? (
                         <div className="overflow-hidden rounded-lg border border-neutral-200 dark:border-dark-700">
                           <MiniMap
-                            lat={profileData.baseLatitude}
-                            lng={profileData.baseLongitude}
+                            lat={Number(profileData.baseLatitude)}
+                            lng={Number(profileData.baseLongitude)}
                             radius={profileData.serviceRadius || 10}
                             height="220px"
                           />
@@ -791,8 +791,8 @@ export function WorkerProfilePage() {
                             setValue('baseLongitude', loc.lng, { shouldDirty: true });
                           }}
                           initialLocation={
-                            profileData?.baseLatitude && profileData?.baseLongitude
-                              ? { lat: profileData.baseLatitude, lng: profileData.baseLongitude }
+                            Number.isFinite(Number(profileData?.baseLatitude)) && Number.isFinite(Number(profileData?.baseLongitude))
+                              ? { lat: Number(profileData.baseLatitude), lng: Number(profileData.baseLongitude) }
                               : null
                           }
                         />

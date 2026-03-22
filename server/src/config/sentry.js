@@ -8,6 +8,8 @@ const toNumber = (value, fallback) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
 function initServerMonitoring() {
   if (initialized || !SENTRY_DSN) {
     return Sentry;
@@ -16,7 +18,7 @@ function initServerMonitoring() {
   Sentry.init({
     dsn: SENTRY_DSN,
     environment: SENTRY_ENVIRONMENT,
-    tracesSampleRate: toNumber(SENTRY_TRACES_SAMPLE_RATE, 0.1),
+    tracesSampleRate: clamp(toNumber(SENTRY_TRACES_SAMPLE_RATE, 0.1), 0, 1),
   });
 
   initialized = true;

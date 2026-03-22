@@ -29,30 +29,27 @@ const matchesAllowedOrigin = (origin, allowedOrigins) => {
   });
 };
 
+const configuredOrigins = CORS_ORIGIN
+  ? CORS_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean)
+  : [];
+
+const allowedOriginsSet = new Set(configuredOrigins);
+
+if (FRONTEND_URL) {
+  allowedOriginsSet.add(FRONTEND_URL);
+}
+
+if (NODE_ENV !== 'production') {
+  // Preview wildcard is limited to non-production to avoid over-broad credentialed CORS in prod.
+  allowedOriginsSet.add('https://*.vercel.app');
+  allowedOriginsSet.add('http://localhost:5173');
+  allowedOriginsSet.add('http://localhost:5174');
+}
+
+const allowedOrigins = Array.from(allowedOriginsSet);
+
 const corsOptions = {
   origin: function (origin, callback) {
-    // Split comma-separated CORS_ORIGIN into individual origins.
-    // e.g. "https://app.vercel.app,http://localhost:5173" → ["https://app.vercel.app", "http://localhost:5173"]
-    const allowedOrigins = CORS_ORIGIN
-      ? CORS_ORIGIN.split(',').map(s => s.trim()).filter(Boolean)
-      : [];
-
-    // Also allow the explicit FRONTEND_URL if configured
-    if (FRONTEND_URL && !allowedOrigins.includes(FRONTEND_URL)) {
-      allowedOrigins.push(FRONTEND_URL);
-    }
-
-    // Allow Vercel subdomains to support production + preview deployments.
-    if (!allowedOrigins.includes('https://*.vercel.app')) {
-      allowedOrigins.push('https://*.vercel.app');
-    }
-
-    // Only allow localhost origins in development
-    if (NODE_ENV !== 'production') {
-      if (!allowedOrigins.includes('http://localhost:5173')) allowedOrigins.push('http://localhost:5173');
-      if (!allowedOrigins.includes('http://localhost:5174')) allowedOrigins.push('http://localhost:5174');
-    }
-
     if (matchesAllowedOrigin(origin, allowedOrigins)) {
       callback(null, true);
     } else {

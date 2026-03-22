@@ -17,6 +17,30 @@ export function BookingSessionsTimeline({ bookingId }) {
 
     const sessions = data?.sessions;
 
+    const toValidDate = (value) => {
+        if (!value) return null;
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date;
+    };
+
+    const formatSessionDate = (value) => {
+        const date = toValidDate(value);
+        return date ? date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : 'N/A';
+    };
+
+    const formatSessionTime = (value) => {
+        const date = toValidDate(value);
+        return date ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A';
+    };
+
+    const formatDurationMins = (start, end) => {
+        const startDate = toValidDate(start);
+        const endDate = toValidDate(end);
+        if (!startDate || !endDate) return null;
+        const durationMins = Math.round((endDate - startDate) / 60000);
+        return Number.isFinite(durationMins) && durationMins >= 0 ? durationMins : null;
+    };
+
     if (isLoading) {
         return (
             <Card className="p-5 border-none ring-1 ring-black/5 dark:ring-white/10 shadow-sm">
@@ -52,7 +76,7 @@ export function BookingSessionsTimeline({ bookingId }) {
                 <div className="px-4 py-3 bg-green-50 dark:bg-green-900/10 border-b border-green-100 dark:border-green-900/20 flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                     <span className="text-xs font-black text-green-700 dark:text-green-400">
-                        Session in progress since {new Date(activeSession.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        Session in progress since {formatSessionTime(activeSession.startTime)}
                     </span>
                 </div>
             )}
@@ -90,7 +114,7 @@ export function BookingSessionsTimeline({ bookingId }) {
                                     Visit {idx + 1}
                                 </span>
                                 <span className="text-2xs font-bold text-gray-400">
-                                    {new Date(session.sessionDate).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+                                    {formatSessionDate(session.sessionDate)}
                                 </span>
                                 {session.isActive && (
                                     <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-2xs font-black">
@@ -107,17 +131,17 @@ export function BookingSessionsTimeline({ bookingId }) {
                             <div className="flex items-center gap-3 text-2xs text-gray-500 font-medium">
                                 {session.startTime && (
                                     <span className="flex items-center gap-1">
-                                        <Play size={10} /> {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        <Play size={10} /> {formatSessionTime(session.startTime)}
                                     </span>
                                 )}
                                 {session.endTime && (
                                     <span className="flex items-center gap-1">
-                                        <Square size={10} /> {new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        <Square size={10} /> {formatSessionTime(session.endTime)}
                                     </span>
                                 )}
-                                {session.startTime && session.endTime && (
+                                {session.startTime && session.endTime && formatDurationMins(session.startTime, session.endTime) !== null && (
                                     <span className="text-brand-500 font-bold">
-                                        {Math.round((new Date(session.endTime) - new Date(session.startTime)) / 60000)} min
+                                        {formatDurationMins(session.startTime, session.endTime)} min
                                     </span>
                                 )}
                             </div>

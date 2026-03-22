@@ -2,8 +2,16 @@ const cron = require('node-cron');
 const { processDailyCronPayouts } = require('./modules/payouts/payout.service');
 const { initReminderCron } = require('./modules/bookings/reminder.cron');
 
+let isInitialized = false;
+
 // Initialize all background crons
 function initCronJobs() {
+    if (isInitialized) {
+        console.log('[CRON] initCronJobs called again; skipping duplicate registration.');
+        return;
+    }
+
+    isInitialized = true;
     console.log('[CRON] Initializing background jobs...');
     initReminderCron();
 

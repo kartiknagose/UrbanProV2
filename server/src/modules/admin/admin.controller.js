@@ -1,6 +1,7 @@
 const asyncHandler = require('../../common/utils/asyncHandler');
 const parseId = require('../../common/utils/parseId');
 const parsePagination = require('../../common/utils/parsePagination');
+const AppError = require('../../common/errors/AppError');
 const {
   getDashboardStats, listUsers, listWorkers, updateUserStatus, deleteUser, getFraudAlerts,
   createCoupon, listCoupons, toggleCoupon, deleteCoupon
@@ -44,6 +45,11 @@ exports.getWorkers = asyncHandler(async (req, res) => {
 exports.updateUser = asyncHandler(async (req, res) => {
   const id = parseId(req.params.id, 'User ID');
   const { isActive } = req.body;
+
+  if (req.user.id === id && isActive === false) {
+    throw new AppError(400, 'You cannot deactivate your own admin account.');
+  }
+
   const user = await updateUserStatus(id, isActive);
   res.json({ user });
 
@@ -63,6 +69,11 @@ exports.updateUser = asyncHandler(async (req, res) => {
 
 exports.removeUser = asyncHandler(async (req, res) => {
   const id = parseId(req.params.id, 'User ID');
+
+  if (req.user.id === id) {
+    throw new AppError(400, 'You cannot delete your own admin account.');
+  }
+
   await deleteUser(id);
   res.json({ message: 'User deleted successfully' });
 
@@ -82,7 +93,21 @@ exports.getCoupons = asyncHandler(async (req, res) => {
 });
 
 exports.createCoupon = asyncHandler(async (req, res) => {
-  const coupon = await createCoupon(req.body);
+  const payload = {
+    code: String(req.body.code || '').trim().toUpperCase(),
+    discountType: req.body.discountType,
+    discountValue: Number(req.body.discountValue),
+    minOrderValue: req.body.minOrderValue ?? null,
+    maxDiscount: req.body.maxDiscount ?? null,
+    usageLimit: req.body.usageLimit ?? null,
+    applicableTo: req.body.applicableTo ? String(req.body.applicableTo).trim().toUpperCase() : 'ALL',
+    firstTimeOnly: req.body.firstTimeOnly ?? false,
+    isActive: req.body.isActive ?? true,
+    startDate: req.body.startDate ? new Date(req.body.startDate) : null,
+    endDate: req.body.endDate ? new Date(req.body.endDate) : null,
+  };
+
+  const coupon = await createCoupon(payload);
   res.status(201).json({ coupon });
   emitAdminDataChanged('admin:coupons_updated', { action: 'create' });
 });

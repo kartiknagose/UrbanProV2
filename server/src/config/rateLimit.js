@@ -16,6 +16,39 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const registerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many registration attempts. Please try again later.' },
+});
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
+});
+
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many password reset requests. Please try again later.' },
+});
+
+const paymentWebhookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many webhook requests. Please try again later.' },
+});
+
 // Rate limiter for booking creation (stricter)
 const bookingLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
@@ -23,9 +56,8 @@ const bookingLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req, _res) => {
-    // Use user ID if authenticated, otherwise fall back to IP
-    // Return undefined to use default IP handling (which handles IPv6 properly)
-    return req.user?.id ? `user:${req.user.id}` : undefined;
+    // Keep anonymous users isolated per IP instead of collapsing to a shared bucket.
+    return req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`;
   },
   skip: (req, _res) => {
     // Skip rate limiting for admins
@@ -46,7 +78,7 @@ const otpLimiter = rateLimit({
   keyGenerator: (req, _res) => {
     // Key by user ID + booking ID + action to keep START and COMPLETE
     // counters independent and avoid accidental lockouts across steps.
-    const userId = req.user?.id || 'anon';
+    const actorId = req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`;
     const bookingId = req.params.id || 'unknown';
     const action = req.path.includes('/complete')
       ? 'complete'
@@ -54,11 +86,20 @@ const otpLimiter = rateLimit({
         ? 'start'
         : 'otp';
 
-    return `otp:${userId}:${bookingId}:${action}`;
+    return `otp:${actorId}:${bookingId}:${action}`;
   },
   message: {
     error: 'Too many OTP attempts. Please wait 15 minutes before trying again.',
   },
 });
 
-module.exports = { globalLimiter, authLimiter, bookingLimiter, otpLimiter };
+module.exports = {
+  globalLimiter,
+  authLimiter,
+  registerLimiter,
+  loginLimiter,
+  passwordResetLimiter,
+  paymentWebhookLimiter,
+  bookingLimiter,
+  otpLimiter,
+};

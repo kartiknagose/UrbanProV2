@@ -27,6 +27,12 @@ export function WorkerEarningsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
+  const formatPaymentDate = (value) => {
+    if (!value) return 'N/A';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString(i18n.language);
+  };
+
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.worker.payments(),
     queryFn: getMyPayments,
@@ -69,12 +75,12 @@ export function WorkerEarningsPage() {
     const pending = payments
       .filter(p => p.status === 'PENDING')
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    const completed = payments
-      .filter(p => p.status === 'COMPLETED')
+    const paid = payments
+      .filter(p => p.status === 'PAID')
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
     return {
-      total, pending, completed,
+      total, pending, paid,
       walletBalance: bankData?.walletBalance || 0,
       count: payments.length
     };
@@ -82,9 +88,11 @@ export function WorkerEarningsPage() {
 
   const filteredPayments = useMemo(() => {
     return payments.filter(p => {
+      const serviceName = p.booking?.service?.name || '';
+      const paymentIdText = String(p.id || '');
       const matchesSearch =
-        p.booking?.service?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.id.toString().includes(searchTerm);
+        serviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        paymentIdText.includes(searchTerm);
       const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
@@ -100,7 +108,7 @@ export function WorkerEarningsPage() {
     return last7Days.map(date => {
       const dateStr = date.toISOString().split('T')[0];
       const dailyTotal = payments
-        .filter(p => p.createdAt?.startsWith(dateStr) && p.status === 'COMPLETED')
+        .filter(p => p.createdAt?.startsWith(dateStr) && p.status === 'PAID')
         .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
       return {
@@ -283,9 +291,10 @@ export function WorkerEarningsPage() {
                     className="w-full md:w-48 h-12 rounded-2xl font-bold text-xs uppercase tracking-widest"
                     options={[
                       { value: 'ALL', label: t('All Status') },
-                      { value: 'COMPLETED', label: t('Completed') },
+                      { value: 'PAID', label: t('Paid') },
                       { value: 'PENDING', label: t('Pending') },
                       { value: 'FAILED', label: t('Failed') },
+                      { value: 'REFUNDED', label: t('Refunded') },
                     ]}
                   />
                 </div>
@@ -307,11 +316,11 @@ export function WorkerEarningsPage() {
                         <td className="px-8 py-6">
                           <div className="flex items-center gap-5">
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-110
-                              ${p.status === 'COMPLETED'
+                              ${p.status === 'PAID'
                                 ? 'bg-success-100 text-success-600 dark:bg-success-500/20 dark:text-success-400 shadow-success-500/10'
                                 : 'bg-warning-100 text-warning-600 dark:bg-warning-500/20 dark:text-warning-400 shadow-warning-500/10'
                               }`}>
-                              {p.status === 'COMPLETED' ? <ArrowDownLeft size={24} strokeWidth={2.5} /> : <Clock size={24} strokeWidth={2.5} />}
+                              {p.status === 'PAID' ? <ArrowDownLeft size={24} strokeWidth={2.5} /> : <Clock size={24} strokeWidth={2.5} />}
                             </div>
                             <div>
                               <p className="text-base font-bold text-neutral-900 dark:text-white leading-tight uppercase tracking-tight">
@@ -322,14 +331,14 @@ export function WorkerEarningsPage() {
                           </div>
                         </td>
                         <td className="px-8 py-6">
-                          <Badge variant={p.status === 'COMPLETED' ? 'success' : 'warning'} size="sm" className="font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm">
+                          <Badge variant={p.status === 'PAID' ? 'success' : 'warning'} size="sm" className="font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm">
                             {t(p.status)}
                           </Badge>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2 text-xs font-bold text-neutral-500 dark:text-neutral-400">
                             <Calendar size={14} />
-                            {new Date(p.createdAt).toLocaleDateString(i18n.language)}
+                            {formatPaymentDate(p.createdAt)}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right">

@@ -122,7 +122,7 @@ export function WorkerBookingDetailPage() {
     const handleReviewSubmit = () => {
         if (!activeReview.rating) return toast.error(t('Please provide a star rating'));
         reviewMutation.mutate({
-            bookingId: parseInt(id),
+            bookingId: parseInt(id, 10),
             rating: activeReview.rating,
             comment: activeReview.comment,
             type: 'CUSTOMER' // Explicitly stating this is a review for the customer
@@ -145,10 +145,10 @@ export function WorkerBookingDetailPage() {
         const lng = booking.longitude;
         const address = booking.address || booking.addressDetails;
 
-        if (lat && lng) {
-            window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank', 'noopener,noreferrer');
         } else if (address) {
-            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank', 'noopener,noreferrer');
         }
     };
 
@@ -156,8 +156,11 @@ export function WorkerBookingDetailPage() {
         if (!user?.id || !id) return;
 
         const eventBookingId = payload?.id || payload?.bookingId;
-        const workerUserId = payload?.workerProfile?.userId || payload?.workerProfile?.user?.id;
-        const isForMe = String(eventBookingId) === String(id) && String(workerUserId) === String(user.id);
+        const workerUserId = payload?.workerUserId || payload?.workerProfile?.userId || payload?.workerProfile?.user?.id;
+        const workerProfileId = payload?.workerProfileId || payload?.workerId || payload?.workerProfile?.id;
+        const isForMe =
+            String(eventBookingId) === String(id) &&
+            (String(workerUserId) === String(user.id) || String(workerProfileId) === String(booking?.workerProfileId));
         if (!isForMe) return;
 
         const statusMessage = (status) => {
@@ -172,8 +175,9 @@ export function WorkerBookingDetailPage() {
 
         queryClient.invalidateQueries({ queryKey: queryKeys.bookings.detail(id) });
         queryClient.invalidateQueries({ queryKey: queryKeys.bookings.worker() });
+        queryClient.invalidateQueries({ queryKey: queryKeys.bookings.open() });
         toast.info(statusMessage(payload?.status));
-    }, [id, user?.id, t]);
+    }, [id, user?.id, booking?.workerProfileId, t]);
 
     return (
         <MainLayout>
@@ -303,16 +307,16 @@ export function WorkerBookingDetailPage() {
                 onClose={() => setIsOtpModalOpen(false)}
                 otpAction={otpAction}
                 bookingId={id}
-                invalidateKeys={[queryKeys.bookings.detail(id)]}
+                invalidateKeys={[queryKeys.bookings.detail(id), queryKeys.bookings.worker(), queryKeys.bookings.open()]}
             />
 
             {/* Cancellation Modal */}
             <CancellationModal
                 isOpen={isCancelModalOpen}
                 onClose={() => setIsCancelModalOpen(false)}
-                bookingId={parseInt(id)}
+                bookingId={parseInt(id, 10)}
                 role="WORKER"
-                invalidateKeys={[queryKeys.bookings.detail(id)]}
+                invalidateKeys={[queryKeys.bookings.detail(id), queryKeys.bookings.worker(), queryKeys.bookings.open()]}
             />
         </MainLayout>
     );

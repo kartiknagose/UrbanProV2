@@ -14,6 +14,14 @@ export function WorkerVerificationPage() {
   const { t, i18n } = useTranslation();
   usePageTitle(t('Verification'));
 
+  const formatSubmittedAt = (value) => {
+    if (!value) return 'N/A';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleString(i18n.language);
+  };
+
+  const formatDocumentType = (value) => String(value || '').replace(/_/g, ' ').trim() || t('Unknown');
+
   const verificationQuery = useQuery({
     queryKey: queryKeys.verification.my(),
     queryFn: getMyVerification,
@@ -85,7 +93,7 @@ export function WorkerVerificationPage() {
 
                 {application?.submittedAt && (
                   <div className="text-gray-500 text-xs dark:text-gray-400">
-                    {t('Submitted on')} {new Date(application.submittedAt).toLocaleString(i18n.language)}
+                    {t('Submitted on')} {formatSubmittedAt(application.submittedAt)}
                   </div>
                 )}
 
@@ -97,7 +105,7 @@ export function WorkerVerificationPage() {
                       {application.documents.map((doc) => (
                         <div key={doc.id} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                           <CheckCircle2 size={14} className="text-success-500 shrink-0" />
-                          <span>{doc.type.replace('_', ' ')}</span>
+                          <span>{formatDocumentType(doc.type)}</span>
                         </div>
                       ))}
                     </div>

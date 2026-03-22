@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const auth = require('../../middleware/auth');
 const { requireRole, requireAdmin } = require('../../middleware/requireRole');
+const { paymentWebhookLimiter } = require('../../config/rateLimit');
 const { listMine, listAll, razorpayWebhook } = require('./payment.controller');
 
 const router = Router();
@@ -12,6 +13,6 @@ router.get('/me', auth, requireRole('CUSTOMER', 'WORKER'), listMine);
 router.get('/admin', auth, requireAdmin, listAll);
 
 // Razorpay Webhook (public endpoint)
-router.post('/webhook', razorpayWebhook);
+router.post('/webhook', paymentWebhookLimiter, razorpayWebhook);
 
 module.exports = router;

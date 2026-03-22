@@ -6,8 +6,15 @@
 const dotenv = require('dotenv');
 dotenv.config();
 
+const toNumber = (value, fallback) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
 const NODE_ENV = process.env.NODE_ENV || 'development';
-const PORT = process.env.PORT || 3000;
+const PORT = clamp(Math.trunc(toNumber(process.env.PORT, 3000)), 1, 65535);
 
 // SECURITY: `JWT_SECRET` must be set via an environment variable in production.
 // A dev-only fallback is provided for local development convenience. If you
@@ -39,7 +46,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const CACHE_RELAY_SECRET = process.env.CACHE_RELAY_SECRET || '';
 const SENTRY_DSN = process.env.SENTRY_DSN || '';
 const SENTRY_ENVIRONMENT = process.env.SENTRY_ENVIRONMENT || NODE_ENV;
-const SENTRY_TRACES_SAMPLE_RATE = process.env.SENTRY_TRACES_SAMPLE_RATE || '0.1';
+const SENTRY_TRACES_SAMPLE_RATE = String(clamp(toNumber(process.env.SENTRY_TRACES_SAMPLE_RATE, 0.1), 0, 1));
 
 module.exports = {
     PORT,

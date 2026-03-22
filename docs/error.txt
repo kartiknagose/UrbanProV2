@@ -1,0 +1,150 @@
+Message: Error in Prisma Client request: 
+
+
+Invalid `p=e.match(B2t)?.[1]??"",g=e.match(U2t)?.[1]??null,v=e.match(G2t)?.[1]??null,{getPrismaClient:x,PrismaClientKnownRequestError:E,PrismaClientRustPanicError:D,PrismaClientInitializationError:P,PrismaClientValidationError:R}=require(`${u.prismaClient}/runtime/${c}`),k=e,F=(0,Mj.createHash)("sha256").update()` invocation in
+D:\mini_project\UrbanPro V2\server\node_modules\prisma\build\index.js:1935:10404
+
+  1932       }
+  1933     }
+  1934   }
+→ 1935 `}});return Xe.resourceList(a.workspaces)}};var P2e=require("@prisma/engines");var sDe=require("buffer");function aDe(e,r,n,i){Object.defineProperty(e,r,{get:n,set:i,enumerable:!0,configurable:!0})}var oDe={};aDe(oDe,"serializeRPCMessage",()=>tq);aDe(oDe,"deserializeRPCMessage",()=>rq);var Z5="PrismaBigInt::",eq="PrismaBytes::";function tq(e){return JSON.stringify(e,(r,n)=>typeof n=="bigint"?Z5+n:n?.type==="Buffer"&&Array.isArray(n?.data)?eq+sDe.Buffer.from(n.data).toString("base64"):n)}function rq(e){return JSON.parse(e,(r,n)=>typeof n=="string"&&n.startsWith(Z5)?BigInt(n.substr(Z5.length)):typeof n=="string"&&n.startsWith(eq)?n.substr(eq.length):n)}var b2e=B(hDe()),xT=B(a2e()),x2e=B(require("http")),w2e=B(u2e()),_2e=require("zlib");var To=require("path");var Mj=require("crypto"),m2e=B(kj());function Lj(e,r,n,i){Object.defineProperty(e,r,{get:n,set:i,enumerable:!0,configurable:!0})}var g2e=globalThis,Fj={},bT={},Dp=g2e.parcelRequire1308;Dp==null&&(Dp=function(e){if(e in Fj)return Fj[e].exports;if(e in bT){var r=bT[e];delete bT[e];var n={id:e,exports:{}};return Fj[e]=n,r.call(n.exports,n,n.exports),n.exports}var i=new Error("Cannot find module '"+e+"'");throw i.code="MODULE_NOT_FOUND",i},Dp.register=function(r,n){bT[r]=n},g2e.parcelRequire1308=Dp);var v2e=Dp.register;v2e("9lTzd",function(module,exports){Lj(module.exports,"guessEnginePaths",()=>guessEnginePaths),Lj(module.exports,"guessPrismaClientPath",()=>guessPrismaClientPath);var $5COlq=Dp("5COlq");async function guessEnginePaths({forceBinary,forceLibrary,resolveOverrides}){let queryEngineName,queryEngineType;if(forceLibrary?(queryEngineName=await(0,$5COlq.prismaEngineName)("query-engine","library"),queryEngineType="library"):forceBinary?(queryEngineName=await(0,$5COlq.prismaEngineName)("query-engine","binary"),queryEngineType="binary"):(queryEngineName=void 0,queryEngineType=void 0),!queryEngineName||!queryEngineType)return{queryEngine:void 0};let queryEnginePath;if(resolveOverrides[".prisma/client"])queryEnginePath=(0,To.resolve)(resolveOverrides[".prisma/client"],`../${queryEngineName}`);else if(resolveOverrides["@prisma/engines"])queryEnginePath=(0,To.resolve)(resolveOverrides["@prisma/engines"],`../../${queryEngineName}`);else{let atPrismaEnginesPath;try{atPrismaEnginesPath=eval("require.resolve('@prisma/engines')")}catch(e){throw new Error("Unable to resolve Prisma engine paths. This is a bug.")}queryEnginePath=(0,To.resolve)(atPrismaEnginesPath`../../${queryEngineName}`)}return{queryEngine:{type:queryEngineType,path:queryEnginePath}}}function guessPrismaClientPath({resolveOverrides}){let prismaClientPath=resolveOverrides["@prisma/client"]||eval("require.resolve('@prisma/client')");return(0,To.resolve)(prismaClientPath,"../")}});v2e("5COlq",function(e,r){Lj(e.exports,"prismaEngineName",()=>n);async function n(i,a){let o=await Hr(),c=o==="windows"?".exe":"";if(a==="library")return qa(o,"fs");if(a==="binary")return`${i}-${o}${c}`;throw new Error(`Unknown engine type: ${a}`)}});function j2t(e){return{models:$j(e.models),enums:$j(e.enums),types:$j(e.types)}}function $j(e){let r={};for(let{name:n,...i}of e)r[n]=i;return r}var ox=(0,m2e.debug)("prisma:studio-pcw"),B2t=/^\s*datasource\s+([^\s]+)\s*{/m,U2t=/url *= *env\("(.*)"\)/,G2t=/url *= *"(.*)"/;async function W2t({schema:e,schemaPath:r,dmmf:n,datasourceProvider:i,previewFeatures:a,datasources:o,engineType:c,paths:u,directUrl:l,versions:f}){let p=e.match(B2t)?.[1]??"",g=e.match(U2t)?.[1]??null,v=e.match(G2t)?.[1]??null,{getPrismaClient:x,PrismaClientKnownRequestError:E,PrismaClientRustPanicError:D,PrismaClientInitializationError:P,PrismaClientValidationError:R}=require(`${u.prismaClient}/runtime/${c}`),k=e,F=(0,Mj.createHash)("sha256").update(
+Authentication failed against database server at `localhost`, the provided database credentials for `postgres` are not valid.
+
+Please make sure to provide valid database credentials for the database server at `localhost`.
+  
+Query:
+{
+  "modelName": "User",
+  "operation": "findMany",
+  "args": {
+    "take": 100,
+    "skip": 0,
+    "select": {
+      "id": true,
+      "name": true,
+      "email": true,
+      "mobile": true,
+      "passwordHash": true,
+      "role": true,
+      "emailVerified": true,
+      "emailVerifiedAt": true,
+      "profilePhotoUrl": true,
+      "isProfileComplete": true,
+      "isActive": true,
+      "lastActiveAt": true,
+      "createdAt": true,
+      "updatedAt": true,
+      "addresses": {
+        "select": {
+          "id": true
+        }
+      },
+      "workerProfile": true,
+      "bookingsCustomer": {
+        "select": {
+          "id": true
+        }
+      },
+      "rating": true,
+      "totalReviews": true,
+      "reviewsWritten": {
+        "select": {
+          "id": true
+        }
+      },
+      "reviewsReceived": {
+        "select": {
+          "id": true
+        }
+      },
+      "emailVerifications": {
+        "select": {
+          "id": true
+        }
+      },
+      "passwordResetTokens": {
+        "select": {
+          "id": true
+        }
+      },
+      "workerVerificationApplications": {
+        "select": {
+          "id": true
+        }
+      },
+      "payments": {
+        "select": {
+          "id": true
+        }
+      },
+      "emergencyContacts": {
+        "select": {
+          "id": true
+        }
+      },
+      "notifications": {
+        "select": {
+          "id": true
+        }
+      },
+      "pushSubscriptions": {
+        "select": {
+          "id": true
+        }
+      },
+      "notificationPreference": true,
+      "sosAlerts": {
+        "select": {
+          "id": true
+        }
+      },
+      "customerConversations": {
+        "select": {
+          "id": true
+        }
+      },
+      "workerConversations": {
+        "select": {
+          "id": true
+        }
+      },
+      "messages": {
+        "select": {
+          "id": true
+        }
+      },
+      "statusChanges": {
+        "select": {
+          "id": true
+        }
+      },
+      "referralCode": true,
+      "referredById": true,
+      "referredBy": true,
+      "referrals": {
+        "select": {
+          "id": true
+        }
+      },
+      "wallet": true,
+      "transactions": {
+        "select": {
+          "id": true
+        }
+      },
+      "favoriteWorkers": {
+        "select": {
+          "id": true
+        }
+      },
+      "loyaltyPoints": true,
+      "loyaltyTransactions": {
+        "select": {
+          "id": true
+        }
+      },
+      "proPlusSubscription": true
+    }
+  }
+}
+  

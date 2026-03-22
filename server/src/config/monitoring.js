@@ -13,6 +13,18 @@ initServerMonitoring();
  */
 const register = new promClient.Registry();
 
+function normalizeRouteLabel(req) {
+    if (req.route?.path) {
+        return req.baseUrl ? `${req.baseUrl}${req.route.path}` : req.route.path;
+    }
+
+    const source = String(req.path || req.originalUrl || '/').split('?')[0];
+    return source
+        .replace(/\b\d+\b/g, ':id')
+        .replace(/[0-9a-f]{8}-[0-9a-f-]{27,36}/gi, ':id')
+        .slice(0, 120);
+}
+
 // Standard default metrics (CPU, RAM, GC etc)
 promClient.collectDefaultMetrics({ register });
 
@@ -45,8 +57,8 @@ const metricsMiddleware = (req, res, next) => {
         const [seconds, nanoseconds] = process.hrtime(start);
         const duration = seconds + nanoseconds / 1e9;
 
-        // Use normalized route (strip IDs)
-        const path = req.route ? req.route.path : req.path;
+        // Use normalized route label to avoid high-cardinality metrics.
+        const path = normalizeRouteLabel(req);
 
         httpRequestDurationMicroseconds
             .labels(req.method, path, res.statusCode)

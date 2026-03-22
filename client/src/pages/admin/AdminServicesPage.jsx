@@ -59,10 +59,12 @@ export function AdminServicesPage() {
 
   const services = servicesQuery.data?.services || servicesQuery.data || [];
 
-  const filteredServices = services.filter(service =>
-    service.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (service.category && service.category.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const normalizedSearch = searchTerm.toLowerCase();
+  const filteredServices = services.filter((service) => {
+    const serviceName = String(service.name || '').toLowerCase();
+    const serviceCategory = String(service.category || '').toLowerCase();
+    return serviceName.includes(normalizedSearch) || serviceCategory.includes(normalizedSearch);
+  });
 
 
   const resetForm = () => {

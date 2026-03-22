@@ -14,6 +14,12 @@ import { getRatingLabel } from '../../utils/rating';
 import { getPageLayout } from '../../constants/layout';
 import { usePageTitle } from '../../hooks/usePageTitle';
 
+const formatReviewDate = (value, locale) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 export function WorkerReviewsPage() {
   const { t } = useTranslation();
   usePageTitle(t('Reviews'));
@@ -142,7 +148,7 @@ export function WorkerReviewsPage() {
                                   <p className="text-sm font-medium text-brand-500 mt-1 flex items-center gap-2">
                                     <span className="opacity-60">{review.booking?.service?.name || t('Service Job')}</span>
                                     <span className="w-1 h-1 rounded-full bg-neutral-300" />
-                                    <span className="text-neutral-400 font-bold uppercase tracking-widest text-[10px]">{new Date(review.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                    <span className="text-neutral-400 font-bold uppercase tracking-widest text-[10px]">{formatReviewDate(review.createdAt)}</span>
                                   </p>
                                 </div>
                               </div>
@@ -261,7 +267,7 @@ export function WorkerReviewsPage() {
                                    {t('You rated')} {review.reviewee?.name || t('Customer')}
                                  </p>
                                 <p className="text-xs font-bold uppercase tracking-widest text-neutral-400 mt-1">
-                                  {review.booking?.service?.name} • {new Date(review.createdAt).toLocaleDateString()}
+                                  {review.booking?.service?.name} • {formatReviewDate(review.createdAt, undefined)}
                                 </p>
                                </div>
                              </div>

@@ -15,6 +15,7 @@
 const asyncHandler = require('../../common/utils/asyncHandler');
 const AppError = require('../../common/errors/AppError');
 const parsePagination = require('../../common/utils/parsePagination');
+const parseId = require('../../common/utils/parseId');
 const { createService, listServices, getServiceById, getServiceWorkers, updateService, deleteService } = require('./service.service');
 
 /**
@@ -103,14 +104,7 @@ exports.list = asyncHandler(async (req, res) => {
  * }
  */
 exports.getOne = asyncHandler(async (req, res) => {
-  // Extract service ID from URL parameter
-  // If URL is /api/services/5, then req.params.id = '5' (string)
-  const id = Number(req.params.id); // Convert string to number
-
-  // Check if conversion was successful
-  if (Number.isNaN(id)) {
-    throw new AppError(400, 'Invalid service id');
-  }
+  const id = parseId(req.params.id, 'Service ID');
 
   // Call service function to fetch the specific service
   const service = await getServiceById(id);
@@ -136,11 +130,7 @@ exports.getOne = asyncHandler(async (req, res) => {
  * }
  */
 exports.getWorkers = asyncHandler(async (req, res) => {
-  const id = Number(req.params.id);
-
-  if (Number.isNaN(id)) {
-    throw new AppError(400, 'Invalid service id');
-  }
+  const id = parseId(req.params.id, 'Service ID');
 
   const { page, limit, skip } = parsePagination(req.query);
   const { data: workers, total } = await getServiceWorkers(id, { skip, limit });
@@ -148,15 +138,24 @@ exports.getWorkers = asyncHandler(async (req, res) => {
 });
 
 exports.update = asyncHandler(async (req, res) => {
-  const id = Number(req.params.id);
-  if (Number.isNaN(id)) throw new AppError(400, 'Invalid ID');
-  const updated = await updateService(id, req.body);
+  const id = parseId(req.params.id, 'Service ID');
+  const payload = {
+    ...(req.body.name !== undefined ? { name: req.body.name } : {}),
+    ...(req.body.description !== undefined ? { description: req.body.description } : {}),
+    ...(req.body.category !== undefined ? { category: req.body.category } : {}),
+    ...(req.body.basePrice !== undefined ? { basePrice: req.body.basePrice } : {}),
+  };
+
+  if (Object.keys(payload).length === 0) {
+    throw new AppError(400, 'No valid fields provided for update.');
+  }
+
+  const updated = await updateService(id, payload);
   res.json({ service: updated });
 });
 
 exports.remove = asyncHandler(async (req, res) => {
-  const id = Number(req.params.id);
-  if (Number.isNaN(id)) throw new AppError(400, 'Invalid ID');
+  const id = parseId(req.params.id, 'Service ID');
   await deleteService(id);
   res.json({ message: 'Service deleted' });
 });

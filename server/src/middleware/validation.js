@@ -7,12 +7,18 @@ const { validationResult } = require('express-validator');
 module.exports = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    const sanitized = errors.array().map((item) => ({
+      message: item.msg,
+      field: item.path,
+      location: item.location,
+    }));
+
     // Return the first message as `message` for quick client display and
     // include the full array under `errors` for richer client-side handling.
     return res.status(400).json({
-      error: errors.array()[0].msg,
+      error: sanitized[0].message,
       statusCode: 400,
-      errors: errors.array()
+      errors: sanitized,
     });
   }
   next();

@@ -73,8 +73,6 @@ async function getWorkerProfileById(profileId) {
         select: {
           id: true,
           name: true,
-          email: true,
-          mobile: true,
           role: true,
           profilePhotoUrl: true,
           rating: true,

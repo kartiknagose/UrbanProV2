@@ -1,4 +1,5 @@
 const prisma = require('../../config/prisma');
+const AppError = require('../../common/errors/AppError');
 
 async function getDashboardStats() {
   const [users, workers, services, bookings, pendingBookings, pendingVerifications] = await Promise.all([
@@ -74,16 +75,30 @@ async function listWorkers({ skip = 0, limit = 20 } = {}) {
 }
 
 async function updateUserStatus(userId, isActive) {
-  return prisma.user.update({
-    where: { id: userId },
-    data: { isActive },
-  });
+  try {
+    return await prisma.user.update({
+      where: { id: userId },
+      data: { isActive },
+    });
+  } catch (error) {
+    if (error.code === 'P2025') {
+      throw new AppError(404, 'User not found.');
+    }
+    throw error;
+  }
 }
 
 async function deleteUser(userId) {
-  return prisma.user.delete({
-    where: { id: userId },
-  });
+  try {
+    return await prisma.user.delete({
+      where: { id: userId },
+    });
+  } catch (error) {
+    if (error.code === 'P2025') {
+      throw new AppError(404, 'User not found.');
+    }
+    throw error;
+  }
 }
 
 /**
@@ -157,12 +172,42 @@ async function getFraudAlerts() {
  * Coupon Management (Sprint 17)
  */
 async function createCoupon(data) {
-  return prisma.coupon.create({
-    data: {
-      ...data,
-      code: String(data.code).toUpperCase(),
+  const discountType = String(data.discountType || '').toUpperCase();
+  if (!['PERCENTAGE', 'FIXED'].includes(discountType)) {
+    throw new AppError(400, 'Invalid discount type.');
+  }
+
+  const discountValue = Number(data.discountValue);
+  if (!Number.isFinite(discountValue) || discountValue <= 0) {
+    throw new AppError(400, 'discountValue must be greater than zero.');
+  }
+
+  if (discountType === 'PERCENTAGE' && discountValue > 100) {
+    throw new AppError(400, 'Percentage discount cannot exceed 100.');
+  }
+
+  const payload = {
+    code: String(data.code || '').trim().toUpperCase(),
+    discountType,
+    discountValue,
+    minOrderValue: data.minOrderValue == null ? null : Number(data.minOrderValue),
+    maxDiscount: data.maxDiscount == null ? null : Number(data.maxDiscount),
+    usageLimit: data.usageLimit == null ? null : Number(data.usageLimit),
+    applicableTo: data.applicableTo == null ? null : String(data.applicableTo).trim().toUpperCase(),
+    firstTimeOnly: Boolean(data.firstTimeOnly),
+    isActive: data.isActive == null ? true : Boolean(data.isActive),
+    startDate: data.startDate || null,
+    endDate: data.endDate || null,
+  };
+
+  try {
+    return await prisma.coupon.create({ data: payload });
+  } catch (error) {
+    if (error.code === 'P2002') {
+      throw new AppError(409, 'Coupon code already exists.');
     }
-  });
+    throw error;
+  }
 }
 
 async function listCoupons() {
@@ -172,16 +217,30 @@ async function listCoupons() {
 }
 
 async function toggleCoupon(id, isActive) {
-  return prisma.coupon.update({
-    where: { id },
-    data: { isActive }
-  });
+  try {
+    return await prisma.coupon.update({
+      where: { id },
+      data: { isActive }
+    });
+  } catch (error) {
+    if (error.code === 'P2025') {
+      throw new AppError(404, 'Coupon not found.');
+    }
+    throw error;
+  }
 }
 
 async function deleteCoupon(id) {
-  return prisma.coupon.delete({
-    where: { id }
-  });
+  try {
+    return await prisma.coupon.delete({
+      where: { id }
+    });
+  } catch (error) {
+    if (error.code === 'P2025') {
+      throw new AppError(404, 'Coupon not found.');
+    }
+    throw error;
+  }
 }
 
 module.exports = {

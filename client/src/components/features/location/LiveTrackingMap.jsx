@@ -162,6 +162,10 @@ export function LiveTrackingMap({
         if (!workerPos || !customerLocation) return null;
         return calculateDistance(workerPos.lat, workerPos.lng, customerLocation.lat, customerLocation.lng);
     }, [workerPos, customerLocation]);
+    const formattedLastUpdated = useMemo(() => {
+        if (!lastUpdated || Number.isNaN(lastUpdated.getTime())) return 'N/A';
+        return lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }, [lastUpdated]);
     const etaMins = eta;
     const hasArrived = distance !== null && distance < 0.05; // 50 meters
 
@@ -340,7 +344,7 @@ export function LiveTrackingMap({
                 <div className="flex items-center justify-between px-6 mt-3">
                     <div className="flex items-center gap-1.5 opacity-30">
                         <Clock size={10} />
-                        <span className="text-[8px] font-bold uppercase tracking-widest">Feed Update: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                        <span className="text-[8px] font-bold uppercase tracking-widest">Feed Update: {formattedLastUpdated}</span>
                     </div>
                     <div className="flex items-center gap-1 opacity-40">
                         <Zap size={9} className="text-brand-500" />

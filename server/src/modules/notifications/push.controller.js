@@ -44,12 +44,12 @@ const subscribe = asyncHandler(async (req, res) => {
  * Body: { endpoint }
  */
 const unsubscribe = asyncHandler(async (req, res) => {
-  const { endpoint } = req.body;
+  const endpoint = String(req.body?.endpoint || '').trim();
   if (!endpoint) {
     return res.status(400).json({ error: 'Endpoint is required.' });
   }
 
-  await pushService.removeSubscription(endpoint);
+  await pushService.removeSubscription(req.user.id, endpoint);
   res.json({ success: true });
 });
 

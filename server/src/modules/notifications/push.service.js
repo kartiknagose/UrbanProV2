@@ -31,8 +31,13 @@ async function saveSubscription(userId, { endpoint, keys, userAgent }) {
 /**
  * Remove a push subscription (user unsubscribed or endpoint expired).
  */
-async function removeSubscription(endpoint) {
-  return prisma.pushSubscription.deleteMany({ where: { endpoint } });
+async function removeSubscription(userId, endpoint) {
+  return prisma.pushSubscription.deleteMany({
+    where: {
+      endpoint,
+      userId,
+    },
+  });
 }
 
 /**

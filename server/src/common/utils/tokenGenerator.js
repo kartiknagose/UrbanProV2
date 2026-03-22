@@ -14,9 +14,13 @@ function generateVerificationToken() {
  * @returns {object} { token, expiresAt }
  */
 function generateEmailVerificationToken(expiryHours = 24) {
+  const safeExpiryHours = Number.isFinite(Number(expiryHours))
+    ? Math.min(24 * 30, Math.max(1, Number(expiryHours)))
+    : 24;
+
   const token = generateVerificationToken();
   const expiresAt = new Date();
-  expiresAt.setHours(expiresAt.getHours() + expiryHours);
+  expiresAt.setHours(expiresAt.getHours() + safeExpiryHours);
   return { token, expiresAt };
 }
 
@@ -26,9 +30,13 @@ function generateEmailVerificationToken(expiryHours = 24) {
  * @returns {object} { token, expiresAt }
  */
 function generatePasswordResetToken(expiryHours = 2) {
+  const safeExpiryHours = Number.isFinite(Number(expiryHours))
+    ? Math.min(24 * 7, Math.max(1, Number(expiryHours)))
+    : 2;
+
   const token = generateVerificationToken();
   const expiresAt = new Date();
-  expiresAt.setHours(expiresAt.getHours() + expiryHours);
+  expiresAt.setHours(expiresAt.getHours() + safeExpiryHours);
   return { token, expiresAt };
 }
 

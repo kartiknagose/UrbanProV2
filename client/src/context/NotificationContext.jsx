@@ -18,21 +18,22 @@ export function NotificationProvider({ children }) {
    * Add a notification using sonner toast
    */
   const addNotification = useCallback((message, type = 'info', duration = 4000) => {
-    const id = Date.now();
+    const text = typeof message === 'string' ? message : String(message || '');
+    const id = `${type}:${text.trim().toLowerCase()}`;
 
     switch (type) {
       case 'error':
-        toast.error(message, { id, duration });
+        toast.error(message, { id, duration, dedupeWindowMs: 3000 });
         break;
       case 'success':
-        toast.success(message, { id, duration });
+        toast.success(message, { id, duration, dedupeWindowMs: 3000 });
         break;
       case 'warning':
-        toast.warning(message, { id, duration });
+        toast.warning(message, { id, duration, dedupeWindowMs: 3000 });
         break;
       case 'info':
       default:
-        toast.info(message, { id, duration });
+        toast.info(message, { id, duration, dedupeWindowMs: 3000 });
         break;
     }
 

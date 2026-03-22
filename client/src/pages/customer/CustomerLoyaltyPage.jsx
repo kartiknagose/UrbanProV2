@@ -11,6 +11,9 @@ import { getLoyaltySummary, redeemLoyaltyPoints } from '../../api/growth';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { getPageLayout } from '../../constants/layout';
 
+const LOYALTY_QUERY_KEY = ['customer', 'loyalty'];
+const WALLET_QUERY_KEY = ['customer', 'wallet'];
+
 export function CustomerLoyaltyPage() {
   const { t } = useTranslation();
   usePageTitle(t('Loyalty Points'));
@@ -18,15 +21,15 @@ export function CustomerLoyaltyPage() {
   const [redeemAmount, setRedeemAmount] = useState('');
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['loyalty'],
+    queryKey: LOYALTY_QUERY_KEY,
     queryFn: getLoyaltySummary,
   });
 
   const redeemMutation = useMutation({
     mutationFn: (points) => redeemLoyaltyPoints(points),
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['loyalty'] });
-      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: LOYALTY_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: WALLET_QUERY_KEY });
       toast.success(`${t('Redeemed')} ${result.pointsRedeemed} ${t('points for')} ₹${result.discountAmount} ${t('wallet credit!')}`);
       setRedeemAmount('');
     },
@@ -40,6 +43,12 @@ export function CustomerLoyaltyPage() {
       return;
     }
     redeemMutation.mutate(pts);
+  };
+
+  const formatTransactionDate = (value) => {
+    if (!value) return 'N/A';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   // Tier calculation
@@ -189,7 +198,7 @@ export function CustomerLoyaltyPage() {
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900 dark:text-white">{txn.description}</p>
-                            <p className="text-xs text-gray-500">{new Date(txn.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                            <p className="text-xs text-gray-500">{formatTransactionDate(txn.createdAt)}</p>
                           </div>
                         </div>
                         <span className={`font-bold text-sm ${txn.points > 0 ? 'text-success-600' : 'text-red-600'}`}>

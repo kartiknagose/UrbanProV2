@@ -11,7 +11,8 @@ const GrowthService = require('./business_growth.service');
  * Purchase a gift card
  */
 async function purchaseGiftCard({ senderName, recipientEmail, message, amount }) {
-    if (amount < 100 || amount > 10000) {
+    const normalizedAmount = Number(amount);
+    if (!Number.isFinite(normalizedAmount) || normalizedAmount < 100 || normalizedAmount > 10000) {
         throw new AppError(400, 'Gift card amount must be between ₹100 and ₹10,000.');
     }
 
@@ -24,11 +25,11 @@ async function purchaseGiftCard({ senderName, recipientEmail, message, amount })
     const giftCard = await prisma.giftCard.create({
         data: {
             code,
-            initialValue: amount,
-            balance: amount,
-            senderName,
-            recipientEmail,
-            message,
+            initialValue: normalizedAmount,
+            balance: normalizedAmount,
+            senderName: senderName || null,
+            recipientEmail: String(recipientEmail || '').trim().toLowerCase(),
+            message: message || null,
             expiryDate
         }
     });
@@ -43,7 +44,8 @@ async function purchaseGiftCard({ senderName, recipientEmail, message, amount })
  * Redeem a gift card into user's wallet
  */
 async function redeemGiftCard(userId, code) {
-    const giftCard = await prisma.giftCard.findUnique({ where: { code: code.toUpperCase() } });
+    const normalizedCode = String(code || '').trim().toUpperCase();
+    const giftCard = await prisma.giftCard.findUnique({ where: { code: normalizedCode } });
 
     if (!giftCard) throw new AppError(404, 'Invalid gift card code.');
     if (giftCard.isRedeemed || Number(giftCard.balance) <= 0) {
@@ -58,15 +60,23 @@ async function redeemGiftCard(userId, code) {
     const amount = Number(giftCard.balance);
 
     return prisma.$transaction(async (tx) => {
-        // 1. Mark as redeemed
-        await tx.giftCard.update({
-            where: { id: giftCard.id },
+        const marked = await tx.giftCard.updateMany({
+            where: {
+                id: giftCard.id,
+                isRedeemed: false,
+                balance: { gt: 0 },
+                expiryDate: { gte: now },
+            },
             data: {
                 isRedeemed: true,
                 redeemedBy: userId,
                 balance: 0
             }
         });
+
+        if (marked.count !== 1) {
+            throw new AppError(409, 'This gift card has already been redeemed or expired.');
+        }
 
         // 2. Add to user wallet
         await GrowthService.depositCredits(
@@ -85,7 +95,8 @@ async function redeemGiftCard(userId, code) {
  * Check gift card balance
  */
 async function checkGiftCard(code) {
-    const giftCard = await prisma.giftCard.findUnique({ where: { code: code.toUpperCase() } });
+    const normalizedCode = String(code || '').trim().toUpperCase();
+    const giftCard = await prisma.giftCard.findUnique({ where: { code: normalizedCode } });
     if (!giftCard) throw new AppError(404, 'Invalid gift card code.');
 
     const now = new Date();

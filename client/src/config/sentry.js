@@ -8,6 +8,8 @@ const toNumber = (value, fallback) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
 export async function initClientMonitoring() {
   if (initialized || !clientEnv.sentryDsn) {
     return null;
@@ -19,7 +21,7 @@ export async function initClientMonitoring() {
         dsn: clientEnv.sentryDsn,
         environment: clientEnv.appEnv,
         integrations: [Sentry.browserTracingIntegration()],
-        tracesSampleRate: toNumber(clientEnv.sentryTracesSampleRate, 0.1),
+        tracesSampleRate: clamp(toNumber(clientEnv.sentryTracesSampleRate, 0.1), 0, 1),
         tracePropagationTargets: [clientEnv.apiUrl.replace(/\/$/, '')],
       });
 

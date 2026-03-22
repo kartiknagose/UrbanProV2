@@ -22,6 +22,13 @@ export function MessagesPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeChatBookingId, setActiveChatBookingId] = useState(null);
 
+    const formatConversationDate = (value) => {
+        if (!value) return t('N/A');
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return t('N/A');
+        return date.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' });
+    };
+
     const { data: conversations = [], isLoading, isError, error, refetch } = useQuery({
         queryKey: queryKeys.chat.conversations(),
         queryFn: () => getUserConversations().then(d => d.conversations),
@@ -116,7 +123,7 @@ export function MessagesPage() {
                                                         {otherUser?.name || t('User')}
                                                     </h3>
                                                     <span className="text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">
-                                                        {new Date(conv.lastMessageAt).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' })}
+                                                        {formatConversationDate(conv.lastMessageAt)}
                                                     </span>
                                                 </div>
 

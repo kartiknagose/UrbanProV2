@@ -27,6 +27,18 @@ export function AdminDashboardPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const formatDateTime = (value) => {
+    if (!value) return 'N/A';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleString();
+  };
+
+  const formatDate = (value) => {
+    if (!value) return 'N/A';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
+  };
+
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.admin.dashboard(),
     queryFn: getAdminDashboard,
@@ -188,7 +200,7 @@ export function AdminDashboardPage() {
                                 {booking.service?.name || `Booking #${booking.id}`}
                               </p>
                               <p className="text-xs text-neutral-400">
-                                {new Date(booking.scheduledAt || booking.scheduledDate).toLocaleString()}
+                                {formatDateTime(booking.scheduledAt || booking.scheduledDate)}
                               </p>
                             </div>
                             <BookingStatusBadge status={booking.status} />
@@ -257,7 +269,7 @@ export function AdminDashboardPage() {
                           <div key={app.id} className="flex items-center justify-between py-2 border-b border-neutral-50 dark:border-dark-800 last:border-0">
                             <div>
                               <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{app.user?.name || 'Worker'}</p>
-                              <p className="text-xs text-neutral-400">Applied: {new Date(app.submittedAt).toLocaleDateString()}</p>
+                              <p className="text-xs text-neutral-400">Applied: {formatDate(app.submittedAt)}</p>
                             </div>
                             <Badge variant="warning" size="xs">Pending</Badge>
                           </div>

@@ -1,5 +1,6 @@
 const prisma = require('../../config/prisma');
 const AppError = require('../../common/errors/AppError');
+const { sendEmail } = require('../../common/utils/mailer');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Email-to-SMS Gateway map (free, no API key needed)
@@ -22,48 +23,19 @@ const SMS_GATEWAYS = {
 const DEFAULT_GATEWAY = '@jiomail.com';
 
 /**
- * Get nodemailer transporter (lazy init, uses Gmail free SMTP or configured SMTP)
- * Uses existing SMTP_USER/SMTP_PASS from .env
- */
-function getMailTransporter() {
-    const nodemailer = require('nodemailer');
-    // detailed logging for debugging
-    console.log('[SOS] Initializing transporter with user:', process.env.SMTP_USER ? 'set' : 'missing');
-
-    // Use environment variables directly consistent with mailer.js
-    return nodemailer.createTransport({
-        service: 'gmail', // simplify for Gmail if using that, or fallback to host/port
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: Number(process.env.SMTP_PORT) || 587,
-        secure: String(process.env.SMTP_SECURE) === 'true',
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-        },
-    });
-}
-
-/**
  * Send SMS via Email-to-SMS gateway (free)
  * Falls back silently if email credentials not configured
  */
 async function sendSMSViaEmail(phone, message, carrier = 'default') {
-    const smtpUser = process.env.SMTP_USER;
-    if (!smtpUser || !process.env.SMTP_PASS) {
-        console.warn('[SOS] SMTP credentials not set. SMS skipped.');
-        return { sent: false, reason: 'no_credentials' };
-    }
-
     // Clean phone number — strip spaces, dashes, +91 prefix
     const cleanPhone = phone.replace(/[\s\-+]/g, '').replace(/^91/, '').slice(-10);
     const gateway = SMS_GATEWAYS[carrier] || DEFAULT_GATEWAY;
     const smsEmail = `${cleanPhone}${gateway}`;
 
     try {
-        const transporter = getMailTransporter();
-        await transporter.sendMail({
-            from: `"${process.env.FROM_NAME || 'UrbanPro SOS'}" <${smtpUser}>`,
+        await sendEmail({
             to: smsEmail,
+            logContext: 'SOS SMS Gateway',
             subject: '🚨 SOS ALERT — UrbanPro Emergency',
             text: message, // SMS gateways use the plain text body as the SMS
         });
@@ -79,13 +51,10 @@ async function sendSMSViaEmail(phone, message, carrier = 'default') {
  * Send email alert to emergency contact (free Gmail)
  */
 async function sendEmailAlert(to, subject, body) {
-    const smtpUser = process.env.SMTP_USER;
-    if (!smtpUser || !process.env.SMTP_PASS) return;
     try {
-        const transporter = getMailTransporter();
-        await transporter.sendMail({
-            from: `"${process.env.FROM_NAME || 'UrbanPro SOS'}" <${smtpUser}>`,
+        await sendEmail({
             to,
+            logContext: 'SOS Email Alert',
             subject,
             text: body
         });
@@ -119,14 +88,34 @@ async function triggerSOS(userId, bookingId, location) {
         throw new AppError(404, 'Booking not found or you are not authorized to trigger SOS for this job.');
     }
 
+    if (!['CONFIRMED', 'IN_PROGRESS'].includes(booking.status)) {
+        throw new AppError(400, 'SOS can only be triggered for active bookings.');
+    }
+
+    let normalizedLocation = null;
+    if (location && typeof location === 'object') {
+        const latitude = Number(location.latitude);
+        const longitude = Number(location.longitude);
+
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+            throw new AppError(400, 'Location latitude/longitude must be valid numbers.');
+        }
+
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+            throw new AppError(400, 'Location latitude/longitude out of range.');
+        }
+
+        normalizedLocation = { latitude, longitude };
+    }
+
     // 2. Get triggering user's info
     const triggeringUser = booking.customerId === userId
         ? booking.customer
         : booking.workerProfile?.user;
 
     const role = booking.customerId === userId ? 'Customer' : 'Worker';
-    const locationStr = location
-        ? `GPS: ${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}\nhttps://maps.google.com/?q=${location.latitude},${location.longitude}`
+    const locationStr = normalizedLocation
+        ? `GPS: ${normalizedLocation.latitude.toFixed(5)}, ${normalizedLocation.longitude.toFixed(5)}\nhttps://maps.google.com/?q=${normalizedLocation.latitude},${normalizedLocation.longitude}`
         : 'Location not shared';
 
     // 3. Create SOS Alert in DB
@@ -134,14 +123,14 @@ async function triggerSOS(userId, bookingId, location) {
         data: {
             bookingId,
             triggeredBy: userId,
-            latitude: location?.latitude,
-            longitude: location?.longitude,
+            latitude: normalizedLocation?.latitude,
+            longitude: normalizedLocation?.longitude,
             status: 'ACTIVE'
         }
     });
 
     // 4. Fetch emergency contacts
-    const contacts = await prisma.emergencyContact.findMany({ where: { userId } });
+    const contacts = await prisma.emergencyContact.findMany({ where: { userId }, take: 5 });
 
     // 5. Build alert message
     const smsMessage =
@@ -189,7 +178,7 @@ async function triggerSOS(userId, bookingId, location) {
                     name: triggeringUser?.name,
                     role,
                 },
-                location,
+                location: normalizedLocation,
                 service: booking.service?.name,
                 timestamp: sosAlert.createdAt,
                 status: 'ACTIVE',
@@ -228,12 +217,31 @@ async function triggerSOS(userId, bookingId, location) {
 // EMERGENCY CONTACTS CRUD
 // ─────────────────────────────────────────────────────────────────────────────
 async function addEmergencyContact(userId, contactData) {
+    const existingCount = await prisma.emergencyContact.count({ where: { userId } });
+    if (existingCount >= 5) {
+        throw new AppError(400, 'You can add up to 5 emergency contacts only.');
+    }
+
+    const normalizedPhone = String(contactData.phone || '').replace(/\s+/g, '');
+
+    const existingContact = await prisma.emergencyContact.findFirst({
+        where: {
+            userId,
+            phone: normalizedPhone,
+        },
+        select: { id: true },
+    });
+
+    if (existingContact) {
+        throw new AppError(409, 'This phone number is already saved as an emergency contact.');
+    }
+
     return await prisma.emergencyContact.create({
         data: {
             userId,
-            name: contactData.name,
-            phone: contactData.phone,
-            relation: contactData.relation
+            name: String(contactData.name || '').trim(),
+            phone: normalizedPhone,
+            relation: String(contactData.relation || '').trim()
         }
     });
 }

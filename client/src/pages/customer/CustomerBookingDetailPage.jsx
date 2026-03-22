@@ -44,6 +44,8 @@ const formatInrAmount = (value) => {
     });
 };
 
+const optimizePhotoUrl = (value) => String(value || '').replace('/upload/', '/upload/f_auto,q_auto/');
+
 export function CustomerBookingDetailPage() {
     const { t } = useTranslation();
     usePageTitle(t('Booking Details'));
@@ -283,7 +285,7 @@ export function CustomerBookingDetailPage() {
         if (!user?.id || !bookingId) return;
 
         const eventBookingId = payload?.id || payload?.bookingId;
-        const eventCustomerId = payload?.customer?.id || payload?.customerId;
+        const eventCustomerId = payload?.customerId || payload?.customer?.id || booking?.customerId;
         const isForMe = String(eventBookingId) === String(bookingId) && String(eventCustomerId) === String(user.id);
         if (!isForMe) return;
 
@@ -299,8 +301,10 @@ export function CustomerBookingDetailPage() {
 
         queryClient.invalidateQueries({ queryKey: queryKeys.bookings.detail(bookingId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.bookings.customer() });
-        toast.info(getStatusMessage(payload?.status));
-    }, [bookingId, user?.id]);
+        toast.info(getStatusMessage(payload?.status), {
+            id: `booking-status:${eventBookingId}:${payload?.status}`,
+        });
+    }, [bookingId, booking?.customerId, user?.id, t]);
 
     useSocketEvent('booking:otp_refreshed', (payload) => {
         if (!user?.id || !bookingId) return;
@@ -335,10 +339,10 @@ export function CustomerBookingDetailPage() {
         const lng = booking.longitude;
         const address = booking.address || booking.addressDetails;
 
-        if (lat && lng) {
-            window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank', 'noopener,noreferrer');
         } else if (address) {
-            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank', 'noopener,noreferrer');
         }
     };
 
@@ -347,8 +351,8 @@ export function CustomerBookingDetailPage() {
     if (!booking) return <MainLayout><div className={`${getPageLayout('narrow')} py-10`}><AsyncState isEmpty={true} emptyTitle={t("Booking not found")} /></div></MainLayout>;
 
     // Helper: Filter booking photos
-    const beforePhotos = booking?.photos?.filter(p => p.type === 'BEFORE') || [];
-    const afterPhotos = booking?.photos?.filter(p => p.type === 'AFTER') || [];
+    const beforePhotos = booking?.photos?.filter((p) => p.type === 'BEFORE' && p.url) || [];
+    const afterPhotos = booking?.photos?.filter((p) => p.type === 'AFTER' && p.url) || [];
 
     return (
         <MainLayout>
@@ -462,7 +466,7 @@ export function CustomerBookingDetailPage() {
                         </div>
 
                         {/* Live Tracking Feature - More prominent in main column */}
-                        {['CONFIRMED', 'IN_PROGRESS'].includes(booking.status) && booking.latitude && booking.longitude && (
+                        {['CONFIRMED', 'IN_PROGRESS'].includes(booking.status) && Number.isFinite(booking.latitude) && Number.isFinite(booking.longitude) && (
                             <section className="animate-in fade-in slide-in-from-bottom-4 duration-700 mb-8">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-2">
@@ -499,7 +503,7 @@ export function CustomerBookingDetailPage() {
                                         <div className="flex gap-3">
                                             {beforePhotos.map(photo => (
                                                 <button key={photo.id} className="w-32 h-32 rounded-lg border overflow-hidden bg-gray-50 dark:bg-dark-800 focus:outline-none" onClick={() => setPhotoModal(photo)}>
-                                                    <img src={photo.url.replace('/upload/', '/upload/f_auto,q_auto/')} alt="Before" className="w-full h-full object-cover" loading="lazy" srcSet={`${photo.url.replace('/upload/', '/upload/f_auto,q_auto/')} 1x, ${photo.url.replace('/upload/', '/upload/f_auto,q_auto/')} 2x`} />
+                                                    <img src={optimizePhotoUrl(photo.url)} alt="Before" className="w-full h-full object-cover" loading="lazy" srcSet={`${optimizePhotoUrl(photo.url)} 1x, ${optimizePhotoUrl(photo.url)} 2x`} />
                                                 </button>
                                             ))}
                                         </div>
@@ -509,7 +513,7 @@ export function CustomerBookingDetailPage() {
                                         <div className="flex gap-3">
                                             {afterPhotos.map(photo => (
                                                 <button key={photo.id} className="w-32 h-32 rounded-lg border overflow-hidden bg-gray-50 dark:bg-dark-800 focus:outline-none" onClick={() => setPhotoModal(photo)}>
-                                                    <img src={photo.url.replace('/upload/', '/upload/f_auto,q_auto/')} alt="After" className="w-full h-full object-cover" loading="lazy" srcSet={`${photo.url.replace('/upload/', '/upload/f_auto,q_auto/')} 1x, ${photo.url.replace('/upload/', '/upload/f_auto,q_auto/')} 2x`} />
+                                                    <img src={optimizePhotoUrl(photo.url)} alt="After" className="w-full h-full object-cover" loading="lazy" srcSet={`${optimizePhotoUrl(photo.url)} 1x, ${optimizePhotoUrl(photo.url)} 2x`} />
                                                 </button>
                                             ))}
                                         </div>
@@ -529,7 +533,7 @@ export function CustomerBookingDetailPage() {
                                     >
                                         <span style={{ fontSize: 24 }}>&times;</span>
                                     </button>
-                                    <img src={photoModal.url.replace('/upload/', '/upload/f_auto,q_auto/')} alt={photoModal.type} className="w-full max-h-96 object-contain rounded" style={{ minHeight: 400 }} loading="lazy" srcSet={`${photoModal.url.replace('/upload/', '/upload/f_auto,q_auto/')} 1x, ${photoModal.url.replace('/upload/', '/upload/f_auto,q_auto/')} 2x`} />
+                                    <img src={optimizePhotoUrl(photoModal.url)} alt={photoModal.type} className="w-full max-h-96 object-contain rounded" style={{ minHeight: 400 }} loading="lazy" srcSet={`${optimizePhotoUrl(photoModal.url)} 1x, ${optimizePhotoUrl(photoModal.url)} 2x`} />
                                     <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">{photoModal.type === 'BEFORE' ? t('Before Work') : t('After Work')}</div>
                                 </div>
                             </div>
@@ -587,7 +591,7 @@ export function CustomerBookingDetailPage() {
             <CancellationModal
                 isOpen={isCancelModalOpen}
                 onClose={() => setIsCancelModalOpen(false)}
-                bookingId={parseInt(bookingId)}
+                bookingId={parseInt(bookingId, 10)}
                 role="CUSTOMER"
                 invalidateKeys={[queryKeys.bookings.detail(bookingId), queryKeys.bookings.customer()]}
             />

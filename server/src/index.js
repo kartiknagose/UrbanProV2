@@ -131,14 +131,19 @@ app.use('/uploads/chat-attachments', authenticate, express.static(path.resolve(_
 // Health check
 // Simple healthcheck used by monitoring or manual smoke tests.
 app.get('/health', (req, res) => {
-  res.json({
+  const payload = {
     status: 'ok',
     timestamp: new Date().toISOString(),
     id: req.id,
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    node: process.version
-  });
+  };
+
+  if (process.env.NODE_ENV !== 'production') {
+    payload.uptime = process.uptime();
+    payload.memory = process.memoryUsage();
+    payload.node = process.version;
+  }
+
+  res.json(payload);
 });
 
 // SMTP health probe (safe diagnostics for production)
@@ -186,10 +191,10 @@ app.post('/health/email/send-test', async (req, res) => {
   const normalizeToken = (value) => String(value || '').trim().replace(/^"|"$/g, '').replace(/^'|'$/g, '');
   const configuredToken = normalizeToken(process.env.EMAIL_HEALTH_TOKEN);
   const providedToken = normalizeToken(req.get('x-email-health-token') || req.query.token || '');
-  const publicProbeEnabled = String(process.env.EMAIL_HEALTH_PROBE_PUBLIC || '').toLowerCase() === 'true';
   const isProduction = process.env.NODE_ENV === 'production';
 
-  if (isProduction && !publicProbeEnabled && configuredToken && providedToken !== configuredToken) {
+  // Never allow unauthenticated send-test access in production.
+  if (isProduction && (!configuredToken || providedToken !== configuredToken)) {
     return res.status(403).json({ ok: false, message: 'Forbidden' });
   }
 

@@ -11,12 +11,14 @@ import { getReferralInfo, applyReferralCode } from '../../api/growth';
 import { toast } from 'sonner';
 import { motion as Motion } from 'framer-motion';
 
+const REFERRALS_QUERY_KEY = ['customer', 'referrals'];
+
 export function CustomerReferralsPage() {
     const queryClient = useQueryClient();
     const [copied, setCopied] = useState(false);
 
     const { data, isLoading } = useQuery({
-        queryKey: ['customer', 'referrals'],
+        queryKey: REFERRALS_QUERY_KEY,
         queryFn: getReferralInfo
     });
 
@@ -24,26 +26,36 @@ export function CustomerReferralsPage() {
         mutationFn: (code) => applyReferralCode(code),
         onSuccess: () => {
             toast.success('Referral code applied!');
-            queryClient.invalidateQueries(['customer', 'referrals']);
+            queryClient.invalidateQueries({ queryKey: REFERRALS_QUERY_KEY });
         },
         onError: (err) => {
             toast.error(err.response?.data?.error || 'Invalid referral code');
         }
     });
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(data?.referralCode || '');
-        setCopied(true);
-        toast.success('Referral code copied!');
-        setTimeout(() => setCopied(false), 2000);
+    const handleCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(data?.referralCode || '');
+            setCopied(true);
+            toast.success('Referral code copied!');
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            toast.error('Unable to copy referral code. Please copy it manually.');
+        }
     };
 
-    const handleShare = () => {
+    const handleShare = async () => {
         const text = `Join UrbanPro v2 for professional home services! Use my code ${data?.referralCode} to get ₹50 credits. Download: https://urbanpro.v2.app`;
         if (navigator.share) {
-            navigator.share({ title: 'UrbanPro Refer & Earn', text, url: 'https://urbanpro.v2.app' });
+            try {
+                await navigator.share({ title: 'UrbanPro Refer & Earn', text, url: 'https://urbanpro.v2.app' });
+                return;
+            } catch (err) {
+                if (err?.name === 'AbortError') return;
+            }
+            await handleCopy();
         } else {
-            handleCopy();
+            await handleCopy();
         }
     };
 

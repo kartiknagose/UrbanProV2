@@ -272,7 +272,10 @@ export function CustomerDashboardPage() {
   useSocketEvent('booking:status_updated', (payload) => {
     const customerId = payload?.customerId || payload?.customer?.id;
     if (String(customerId) === String(user?.id)) {
-      toast.success(t('Booking status: {{status}}', { status: t(payload.status) }));
+      const bookingId = payload?.id || payload?.bookingId;
+      toast.success(t('Booking status: {{status}}', { status: t(payload.status) }), {
+        id: `booking-status:${bookingId}:${payload?.status}`,
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings.customer() });
     }
   });
@@ -418,11 +421,23 @@ export function CustomerDashboardPage() {
                 <h3 className="text-2xl font-bold mb-4 leading-tight">{t('Share UrbanPro with Friends')}</h3>
                 <p className="text-brand-100 text-sm font-medium mb-6 opacity-80">{t('Know someone who needs quality home services? Spread the word!')}</p>
                 <Button onClick={() => {
+                  const fallbackCopy = async () => {
+                    try {
+                      await navigator.clipboard.writeText(window.location.origin);
+                      toast.success(t('Link copied to clipboard!'));
+                    } catch {
+                      toast.error(t('Unable to copy link. Please copy it manually.'));
+                    }
+                  };
+
                   if (navigator.share) {
-                    navigator.share({ title: 'UrbanPro', text: t('Check out UrbanPro for professional home services!'), url: window.location.origin });
+                    navigator.share({ title: 'UrbanPro', text: t('Check out UrbanPro for professional home services!'), url: window.location.origin })
+                      .catch((err) => {
+                        if (err?.name === 'AbortError') return;
+                        fallbackCopy();
+                      });
                   } else {
-                    navigator.clipboard.writeText(window.location.origin);
-                    toast.success(t('Link copied to clipboard!'));
+                    fallbackCopy();
                   }
                 }} className="w-full h-14 bg-white text-brand-600 rounded-2xl font-bold uppercase text-[10px] tracking-widest hover:bg-brand-50 hover:scale-[1.02] transition-all">
                   {t('Share Now')}

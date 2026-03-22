@@ -40,6 +40,7 @@ export const BookingCard = memo(function BookingCard({
 
     const formattedDate = useMemo(() => {
         const d = new Date(booking.scheduledAt || booking.scheduledDate);
+        if (Number.isNaN(d.getTime())) return { date: 'N/A', time: 'N/A' };
         const locale = i18n.language === 'en' ? 'en-IN' : i18n.language;
         return {
             date: d.toLocaleDateString(locale, { day: '2-digit', month: 'short' }),

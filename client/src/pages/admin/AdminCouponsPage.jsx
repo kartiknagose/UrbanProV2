@@ -10,12 +10,14 @@ import { getPageLayout } from '../../constants/layout';
 import axiosInstance from '../../api/axios';
 import { toast } from 'sonner';
 
+const COUPONS_QUERY_KEY = ['admin', 'coupons'];
+
 export function AdminCouponsPage() {
     const queryClient = useQueryClient();
     const [isAdding, setIsAdding] = useState(false);
 
     const { data, isLoading, isError, error, refetch } = useQuery({
-        queryKey: ['admin', 'coupons'],
+        queryKey: COUPONS_QUERY_KEY,
         queryFn: async () => {
             const res = await axiosInstance.get('/admin/coupons');
             return res.data.coupons;
@@ -29,7 +31,7 @@ export function AdminCouponsPage() {
         },
         onSuccess: () => {
             toast.success('Coupon created successfully!');
-            queryClient.invalidateQueries(['admin', 'coupons']);
+            queryClient.invalidateQueries({ queryKey: COUPONS_QUERY_KEY });
             setIsAdding(false);
         }
     });
@@ -40,7 +42,7 @@ export function AdminCouponsPage() {
         },
         onSuccess: () => {
             toast.success('Coupon status updated');
-            queryClient.invalidateQueries(['admin', 'coupons']);
+            queryClient.invalidateQueries({ queryKey: COUPONS_QUERY_KEY });
         }
     });
 
@@ -50,7 +52,7 @@ export function AdminCouponsPage() {
         },
         onSuccess: () => {
             toast.success('Coupon deleted');
-            queryClient.invalidateQueries(['admin', 'coupons']);
+            queryClient.invalidateQueries({ queryKey: COUPONS_QUERY_KEY });
         }
     });
 
@@ -64,7 +66,7 @@ export function AdminCouponsPage() {
             discountValue: parseFloat(data.discountValue),
             minOrderValue: data.minOrderValue ? parseFloat(data.minOrderValue) : null,
             maxDiscount: data.maxDiscount ? parseFloat(data.maxDiscount) : null,
-            usageLimit: data.usageLimit ? parseInt(data.usageLimit) : null,
+            usageLimit: data.usageLimit ? parseInt(data.usageLimit, 10) : null,
             firstTimeOnly: data.firstTimeOnly === 'on'
         });
     };

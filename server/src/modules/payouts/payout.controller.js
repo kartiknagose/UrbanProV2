@@ -20,8 +20,8 @@ exports.requestInstantPayout = asyncHandler(async (req, res) => {
 exports.getPayoutHistory = asyncHandler(async (req, res) => {
     const { skip, limit } = req.query;
     const history = await payoutService.getWorkerPayoutHistory(req.user.id, {
-        skip: parseInt(skip) || 0,
-        limit: parseInt(limit) || 20
+        skip: Number.isInteger(skip) ? skip : Number(skip) || 0,
+        limit: Number.isInteger(limit) ? limit : Number(limit) || 20
     });
     res.json(history);
 });

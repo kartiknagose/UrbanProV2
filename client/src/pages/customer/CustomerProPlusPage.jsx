@@ -9,6 +9,12 @@ import { getProPlusSubscription, subscribeProPlus, cancelProPlus } from '../../a
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { getPageLayout } from '../../constants/layout';
 
+const formatSubscriptionDate = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' });
+};
+
 export function CustomerProPlusPage() {
   usePageTitle('UrbanPro Plus');
   const queryClient = useQueryClient();
@@ -84,7 +90,7 @@ export function CustomerProPlusPage() {
                       {isCancelled ? 'Expires On' : 'Renews On'}
                     </p>
                     <p className="text-xl font-black">
-                      {new Date(sub.endDate).toLocaleDateString('en-US', { day: 'inherit', month: 'long', year: 'numeric' })}
+                      {formatSubscriptionDate(sub.endDate)}
                     </p>
                     {isCancelled && (
                       <p className="text-xs text-red-300 mt-2 font-medium bg-red-500/20 py-1 rounded-md">Auto-renew is off</p>
@@ -106,7 +112,7 @@ export function CustomerProPlusPage() {
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-neutral-100 dark:border-dark-700">
                     <span className="text-sm text-neutral-500">Started On</span>
-                    <span className="font-bold">{new Date(sub.startDate).toLocaleDateString()}</span>
+                    <span className="font-bold">{formatSubscriptionDate(sub.startDate)}</span>
                   </div>
                   <div className="flex justify-between items-center py-3">
                     <span className="text-sm text-neutral-500">Status</span>

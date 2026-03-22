@@ -7,6 +7,7 @@ const asyncHandler = require('../../common/utils/asyncHandler');
 const prisma = require('../../config/prisma');
 const { isConfigured: cloudinaryEnabled, uploadToCloudinary } = require('../../config/cloudinary');
 const { optimizeImage } = require('./imageOptimization');
+const AppError = require('../../common/errors/AppError');
 
 const router = Router();
 
@@ -81,13 +82,16 @@ const chatAttachmentStorage = cloudinaryEnabled
 // JavaScript in any visitor's browser (Stored XSS). We reject SVGs AND
 // validate by extension (MIME types can be spoofed by the client).
 const SAFE_IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff']);
+const SAFE_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff']);
+const SAFE_DOC_EXTENSIONS = new Set(['.pdf', ...SAFE_IMAGE_EXTENSIONS]);
 
 // Only allow safe raster image uploads (NO SVG)
 const imageFileFilter = (_req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();
+  const mime = String(file.mimetype || '').toLowerCase();
 
-  // Check 1: MIME type must be image/* but NOT svg
-  if (!file.mimetype || !file.mimetype.startsWith('image/') || file.mimetype.includes('svg')) {
+  // Check 1: MIME type must be explicitly allowed image type
+  if (!SAFE_IMAGE_MIME_TYPES.has(mime)) {
     return cb(new Error('Only image files (JPG, PNG, GIF, WebP) are allowed. SVG is not permitted.'), false);
   }
 
@@ -102,18 +106,18 @@ const imageFileFilter = (_req, file, cb) => {
 // Allow safe images and PDF uploads (NO SVG)
 const docFileFilter = (_req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();
+  const mime = String(file.mimetype || '').toLowerCase();
 
   // PDFs are allowed for verification documents
-  if (file.mimetype === 'application/pdf' && ext === '.pdf') {
+  if (mime === 'application/pdf' && ext === '.pdf') {
     return cb(null, true);
   }
 
-  // Same safe image check as above
-  if (!file.mimetype || !file.mimetype.startsWith('image/') || file.mimetype.includes('svg')) {
+  if (!SAFE_IMAGE_MIME_TYPES.has(mime)) {
     return cb(new Error('Only image files (JPG, PNG, GIF, WebP) or PDF are allowed. SVG is not permitted.'), false);
   }
 
-  if (!SAFE_IMAGE_EXTENSIONS.has(ext)) {
+  if (!SAFE_DOC_EXTENSIONS.has(ext)) {
     return cb(new Error(`File extension "${ext}" is not allowed. Use JPG, PNG, GIF, WebP, or PDF.`), false);
   }
 
@@ -237,12 +241,49 @@ router.post(
 
     // Optionally link to booking if details provided
     const { bookingId, type } = req.body;
+    if ((bookingId && !type) || (!bookingId && type)) {
+      throw new AppError(400, 'bookingId and type are required together.');
+    }
+
     if (bookingId && type) {
+      const parsedBookingId = Number(bookingId);
+      const normalizedType = String(type).trim().toUpperCase();
+
+      if (!Number.isInteger(parsedBookingId) || parsedBookingId <= 0) {
+        throw new AppError(400, 'Booking ID must be a positive integer.');
+      }
+
+      if (!['BEFORE', 'AFTER'].includes(normalizedType)) {
+        throw new AppError(400, 'Photo type must be BEFORE or AFTER.');
+      }
+
+      const booking = await prisma.booking.findUnique({
+        where: { id: parsedBookingId },
+        select: {
+          id: true,
+          customerId: true,
+          workerProfile: { select: { userId: true } },
+        },
+      });
+
+      if (!booking) {
+        throw new AppError(404, 'Booking not found.');
+      }
+
+      const canAttachPhoto =
+        req.user.role === 'ADMIN'
+        || booking.customerId === req.user.id
+        || booking.workerProfile?.userId === req.user.id;
+
+      if (!canAttachPhoto) {
+        throw new AppError(403, 'You are not authorized to upload photos for this booking.');
+      }
+
       await prisma.bookingPhoto.create({
         data: {
-          bookingId: parseInt(bookingId),
+          bookingId: parsedBookingId,
           url: photoUrl,
-          type: type // 'BEFORE' or 'AFTER'
+          type: normalizedType,
         }
       });
     }
@@ -289,5 +330,21 @@ router.post(
     });
   })
 );
+
+router.use((err, _req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ message: 'Uploaded file is too large.' });
+    }
+
+    return res.status(400).json({ message: err.message || 'Invalid upload request.' });
+  }
+
+  if (typeof err?.message === 'string' && /Only image files|extension|not allowed|No file uploaded/i.test(err.message)) {
+    return res.status(400).json({ message: err.message });
+  }
+
+  return next(err);
+});
 
 module.exports = router;

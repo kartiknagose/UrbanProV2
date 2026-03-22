@@ -17,13 +17,29 @@
  */
 
 const { Router } = require('express');
-const { create, getOne, getWorkers, update, remove } = require('./service.controller');
+const { create, list, getOne, getWorkers, update, remove } = require('./service.controller');
 const authenticate = require('../../middleware/auth'); // Check if user is logged in
 const { requireAdmin } = require('../../middleware/requireRole'); // Check if user is admin
 const validate = require('../../middleware/validation'); // Check if request data is valid
-const { createServiceSchema } = require('./service.schemas'); // Validation rules
+const {
+  createServiceSchema,
+  serviceIdParamSchema,
+  listServicesQuerySchema,
+  updateServiceSchema,
+} = require('./service.schemas'); // Validation rules
 
 const router = Router();
+const { serviceCatalogCache } = require('../cache/cache.middleware');
+
+const withServiceCatalogInvalidation = (handler) => async (req, res, next) => {
+  try {
+    const { invalidateServiceCatalog } = require('../cache/cache.service');
+    await invalidateServiceCatalog();
+    return handler(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+};
 
 /**
  * ROUTE 1: CREATE A NEW SERVICE
@@ -58,7 +74,7 @@ router.post(
   requireAdmin,          // Step 2: Check if user is admin
   createServiceSchema,   // Step 3: Validate request body
   validate,              // Step 4: Check for validation errors
-  create                 // Step 5: Execute create controller
+  withServiceCatalogInvalidation(create) // Step 5: Execute create controller
 );
 
 /**
@@ -78,8 +94,18 @@ router.post(
  * - Customers need to browse services before registering
  * - Helps with SEO and discoverability
  */
-const { serviceCatalogCache } = require('../cache/cache.middleware');
-router.get('/', serviceCatalogCache);
+router.get(
+  '/',
+  listServicesQuerySchema,
+  validate,
+  (req, res, next) => {
+    const hasFilters = req.query.category || req.query.search || req.query.page || req.query.limit;
+    if (hasFilters) {
+      return list(req, res, next);
+    }
+    return serviceCatalogCache(req, res, next);
+  }
+);
 
 /**
  * ROUTE 3: GET A SINGLE SERVICE BY ID
@@ -98,7 +124,7 @@ router.get('/', serviceCatalogCache);
  * - Customers need to see service details before booking
  * - Helps with sharing direct links to services
  */
-router.get('/:id', getOne);
+router.get('/:id', serviceIdParamSchema, validate, getOne);
 
 /**
  * ROUTE 4: GET WORKERS FOR A SERVICE
@@ -106,7 +132,7 @@ router.get('/:id', getOne);
  * Endpoint: GET /api/services/:id/workers
  * Access: Public
  */
-router.get('/:id/workers', getWorkers);
+router.get('/:id/workers', serviceIdParamSchema, validate, getWorkers);
 
 // ... (previous routes)
 
@@ -115,22 +141,14 @@ router.get('/:id/workers', getWorkers);
  * Endpoint: PATCH /api/services/:id
  * Access: Admin Only
  */
-router.patch('/:id', authenticate, requireAdmin, async (req, res, next) => {
-  const { invalidateServiceCatalog } = require('../cache/cache.service');
-  await invalidateServiceCatalog();
-  return update(req, res, next);
-});
+router.patch('/:id', authenticate, requireAdmin, updateServiceSchema, validate, withServiceCatalogInvalidation(update));
 
 /**
  * ROUTE 6: DELETE A SERVICE
  * Endpoint: DELETE /api/services/:id
  * Access: Admin Only
  */
-router.delete('/:id', authenticate, requireAdmin, async (req, res, next) => {
-  const { invalidateServiceCatalog } = require('../cache/cache.service');
-  await invalidateServiceCatalog();
-  return remove(req, res, next);
-});
+router.delete('/:id', authenticate, requireAdmin, serviceIdParamSchema, validate, withServiceCatalogInvalidation(remove));
 
 // Export the router so index.js can mount it at /api/services
 module.exports = router;

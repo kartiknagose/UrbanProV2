@@ -98,16 +98,23 @@ export function CustomerWalletPage() {
       queryClient.invalidateQueries({ queryKey: ['customer', 'wallet'] });
     },
     onError: (err) => {
-      toast.error(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to add funds');
+      toast.error(err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to add funds');
     }
   });
 
   const handleAddCredits = () => {
     const amountInput = window.prompt('Enter amount to deposit:', '500');
+    if (amountInput == null) return;
+
     const amount = Number(amountInput);
-    if (Number.isFinite(amount) && amount > 0) {
-      addMutation.mutate(amount);
+    const rounded = Math.round(amount * 100) / 100;
+
+    if (!Number.isFinite(rounded) || rounded <= 0 || rounded > 100000) {
+      toast.error('Enter a valid amount between ₹1 and ₹100000.');
+      return;
     }
+
+    addMutation.mutate(rounded);
   };
 
   const handleRedeemGiftCard = async () => {
@@ -117,25 +124,38 @@ export function CustomerWalletPage() {
     try {
       const res = await redeemGiftCard({ code });
       toast.success(res.message);
-      queryClient.invalidateQueries(['customer', 'wallet']);
+      queryClient.invalidateQueries({ queryKey: ['customer', 'wallet'] });
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to redeem gift card');
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Failed to redeem gift card');
     }
   };
 
   const handlePurchaseGiftCard = async () => {
-    const amount = window.prompt('Enter amount for Gift Card:', '1000');
-    if (!amount) return;
+    const amountInput = window.prompt('Enter amount for Gift Card:', '1000');
+    if (!amountInput) return;
+
+    const amount = Number(amountInput);
+    if (!Number.isFinite(amount) || amount < 100 || amount > 10000) {
+      toast.error('Gift card amount must be between ₹100 and ₹10000.');
+      return;
+    }
+
     const recipientEmail = window.prompt('Enter recipient email:');
     if (!recipientEmail) return;
 
+    const normalizedEmail = recipientEmail.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      toast.error('Please enter a valid recipient email.');
+      return;
+    }
+
     try {
-      const res = await purchaseGiftCard({ amount: parseFloat(amount), recipientEmail, senderName: user?.name });
+      const res = await purchaseGiftCard({ amount, recipientEmail: normalizedEmail, senderName: user?.name });
       toast.success(res.message);
       alert(`Gift Card Code: ${res.card.code}\nRecipient: ${res.card.recipientEmail}`);
-      queryClient.invalidateQueries(['customer', 'wallet']);
+      queryClient.invalidateQueries({ queryKey: ['customer', 'wallet'] });
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to purchase gift card');
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Failed to purchase gift card');
     }
   };
 

@@ -100,11 +100,12 @@ export function LocationPicker({ onChange, initialLocation = null, className = '
             const data = await response.json();
             if (data.address) {
                 const addr = data.address;
+                const hasShegaon = (value) => String(value || '').toLowerCase().includes('shegaon');
                 const isShegaon = 
-                    addr.village?.toLowerCase().includes('shegaon') || 
-                    addr.town?.toLowerCase().includes('shegaon') || 
-                    addr.suburb?.toLowerCase().includes('shegaon') ||
-                    data.display_name?.toLowerCase().includes('shegaon');
+                    hasShegaon(addr.village) || 
+                    hasShegaon(addr.town) || 
+                    hasShegaon(addr.suburb) ||
+                    hasShegaon(data.display_name);
                 const formattedAddress = isShegaon 
                     ? `Shegaon, Buldhana, Maharashtra - 444203`
                     : (data.display_name || '');

@@ -3,6 +3,22 @@ import { Card, Button } from '../../../components/common';
 import { MiniMap } from '../../../components/features/location/MiniMap';
 
 export function BookingDetailsGrid({ booking, onOpenMaps }) {
+    const latitude = Number(booking.latitude);
+    const longitude = Number(booking.longitude);
+    const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
+
+    const formatScheduledDate = (value) => {
+        if (!value) return 'N/A';
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString([], { dateStyle: 'full' });
+    };
+
+    const formatScheduledTime = (value) => {
+        if (!value) return 'N/A';
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
     return (
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -13,7 +29,7 @@ export function BookingDetailsGrid({ booking, onOpenMaps }) {
                         </div>
                         <div>
                             <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.1em] mb-1">Scheduled Date</p>
-                            <p className="text-sm font-black">{new Date(booking.scheduledAt || booking.scheduledDate).toLocaleDateString([], { dateStyle: 'full' })}</p>
+                            <p className="text-sm font-black">{formatScheduledDate(booking.scheduledAt || booking.scheduledDate)}</p>
                             <p className="text-[11px] text-gray-500 font-medium">Professional will arrive in this window.</p>
                         </div>
                     </div>
@@ -26,7 +42,7 @@ export function BookingDetailsGrid({ booking, onOpenMaps }) {
                         </div>
                         <div>
                             <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.1em] mb-1">Arrival Time</p>
-                            <p className="text-sm font-black">{new Date(booking.scheduledAt || booking.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            <p className="text-sm font-black">{formatScheduledTime(booking.scheduledAt || booking.scheduledDate)}</p>
                             <p className="text-[11px] text-gray-500 font-medium">Approximate start time.</p>
                         </div>
                     </div>
@@ -56,9 +72,9 @@ export function BookingDetailsGrid({ booking, onOpenMaps }) {
                             </Button>
                         </div>
                     </div>
-                    {booking.latitude && booking.longitude && (
+                    {hasCoordinates && (
                         <div className="mt-4">
-                            <MiniMap lat={booking.latitude} lng={booking.longitude} height="180px" />
+                            <MiniMap lat={latitude} lng={longitude} height="180px" />
                         </div>
                     )}
                 </Card>

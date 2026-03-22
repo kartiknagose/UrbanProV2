@@ -18,13 +18,14 @@ import { FullPageSpinner } from '../components/ui/Spinner';
  */
 export function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading } = useAuthStatus();
+  const location = useLocation();
 
   // Step 1: Still checking if user is logged in
   if (isLoading) return <FullPageSpinner />;
 
   // Step 2: User is not logged in → redirect to login
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   }
 
   // Step 3: User is logged in → show the page
@@ -44,11 +45,12 @@ export function ProtectedRoute({ children }) {
  */
 export function AdminRoute({ children }) {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const location = useLocation();
 
   if (isLoading) return <FullPageSpinner />;
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   }
 
   if (user?.role !== 'ADMIN') {
@@ -75,7 +77,9 @@ export function AdminRoute({ children }) {
 export function PublicRoute({ children }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
-  const allowPublic = new URLSearchParams(location.search).get('force') === 'true';
+  const allowPublic =
+    (import.meta.env.MODE || 'development') !== 'production'
+    && new URLSearchParams(location.search).get('force') === 'true';
 
   // Step 1: Still checking
   if (isLoading) return <FullPageSpinner />;
@@ -114,11 +118,12 @@ export function PublicRoute({ children }) {
  */
 export function WorkerRoute({ children }) {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const location = useLocation();
 
   if (isLoading) return <FullPageSpinner />;
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   }
 
   if (user?.role !== 'WORKER') {
@@ -145,11 +150,12 @@ export function WorkerRoute({ children }) {
  */
 export function CustomerRoute({ children }) {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const location = useLocation();
 
   if (isLoading) return <FullPageSpinner />;
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   }
 
   if (user?.role !== 'CUSTOMER') {

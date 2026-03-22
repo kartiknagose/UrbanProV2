@@ -12,6 +12,18 @@ import {
 import { queryKeys } from '../../../utils/queryKeys';
 import { toast } from 'sonner';
 
+const formatSessionTime = (value, locale) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'N/A';
+    return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+};
+
+const formatSessionDate = (value, locale) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Date not set';
+    return date.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' });
+};
+
 /**
  * Worker-only panel for managing multi-day booking sessions.
  * Allows: scheduling next visit, starting (OTP), and ending sessions.
@@ -95,7 +107,7 @@ export function WorkerSessionPanel({ bookingId, bookingStatus }) {
                                 </span>
                             </div>
                             <span className="text-2xs text-gray-500 font-bold">
-                                {t('Since')} {new Date(activeSession.startTime).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}
+                                {t('Since')} {formatSessionTime(activeSession.startTime, i18n.language)}
                             </span>
                         </div>
                         <Button
@@ -116,7 +128,7 @@ export function WorkerSessionPanel({ bookingId, bookingStatus }) {
                     <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 space-y-3">
                         <div className="flex items-center justify-between">
                             <span className="text-xs font-black text-amber-700 dark:text-amber-400">
-                                {t('Visit scheduled')} — {new Date(pendingSession.sessionDate).toLocaleDateString(i18n.language, { weekday: 'short', month: 'short', day: 'numeric' })}
+                                {t('Visit scheduled')} — {formatSessionDate(pendingSession.sessionDate, i18n.language)}
                             </span>
                         </div>
                         <p className="text-xs text-gray-500">{t('Enter the OTP from the customer to begin this session.')}</p>

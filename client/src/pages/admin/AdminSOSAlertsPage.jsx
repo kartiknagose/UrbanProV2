@@ -32,15 +32,22 @@ function AlertCard({ alert, onAcknowledge, onResolve, isUpdating }) {
     const cfg = STATUS_COLORS[alert.status] || STATUS_COLORS.ACTIVE;
     const StatusIcon = cfg.icon;
 
+    const formatAlertTime = (value) => {
+        if (!value) return 'N/A';
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleString();
+    };
+
     const triggeredUser = alert.booking?.customer?.id === alert.triggeredBy
         ? alert.booking?.customer
         : alert.booking?.workerProfile?.user;
 
     const role = alert.booking?.customer?.id === alert.triggeredBy ? 'Customer' : 'Worker';
 
-    const mapsUrl = alert.latitude && alert.longitude
-        ? `https://maps.google.com/?q=${alert.latitude},${alert.longitude}`
-        : null;
+    const latitude = Number(alert.latitude);
+    const longitude = Number(alert.longitude);
+    const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
+    const mapsUrl = hasCoordinates ? `https://maps.google.com/?q=${latitude},${longitude}` : null;
 
     return (
         <Motion.div
@@ -105,7 +112,7 @@ function AlertCard({ alert, onAcknowledge, onResolve, isUpdating }) {
                                 <div className="flex items-center gap-2 text-sm">
                                     <Clock size={13} className="text-gray-400 dark:text-gray-500" />
                                     <span className="text-gray-600 dark:text-gray-400">
-                                        {new Date(alert.createdAt).toLocaleString()}
+                                        {formatAlertTime(alert.createdAt)}
                                     </span>
                                 </div>
                                 {mapsUrl && (
@@ -180,16 +187,21 @@ export function AdminSOSAlertsPage() {
 
     const updateMutation = useMutation({
         mutationFn: ({ alertId, status }) => updateSosAlertStatus(alertId, status),
-        onSuccess: (_, { status }) => {
+        onSuccess: (_, { alertId, status }) => {
             queryClient.invalidateQueries({ queryKey: queryKeys.safety.sosAlerts() });
-            toast.success(`Alert ${status === 'ACKNOWLEDGED' ? 'acknowledged' : 'resolved'}`);
+            toast.success(`Alert ${status === 'ACKNOWLEDGED' ? 'acknowledged' : 'resolved'}`, {
+                id: `sos-alert-status:${alertId}:${status}`,
+            });
         },
-        onError: () => toast.error('Failed to update alert status'),
+        onError: (err) => toast.error(err?.response?.data?.message || err?.response?.data?.error || 'Failed to update alert status'),
     });
 
     const handleSOSAlert = useCallback((payload) => {
         queryClient.invalidateQueries({ queryKey: queryKeys.safety.sosAlerts() });
-        toast.error(`🚨 NEW SOS ALERT — Booking #${payload.bookingId} (${payload.triggeredBy?.name})`, {
+        const alertId = payload?.alertId || payload?.id || payload?.bookingId || 'unknown';
+        const triggeredBy = payload?.triggeredBy?.name || 'Unknown user';
+        toast.error(`🚨 NEW SOS ALERT — Booking #${payload.bookingId} (${triggeredBy})`, {
+            id: `sos-alert:${alertId}`,
             duration: 10000,
         });
     }, [queryClient]);

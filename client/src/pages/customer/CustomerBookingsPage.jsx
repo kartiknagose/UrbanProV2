@@ -82,10 +82,12 @@ export function CustomerBookingsPage() {
 
   const bookings = data?.bookings || [];
   const debouncedSearch = useDebounce(searchQuery);
-  const filteredBookings = bookings.filter(b =>
-    b.service?.name?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-    b.id.toString().includes(debouncedSearch)
-  );
+  const normalizedSearch = debouncedSearch.toLowerCase();
+  const filteredBookings = bookings.filter((b) => {
+    const serviceName = String(b.service?.name || '').toLowerCase();
+    const bookingIdText = String(b.id || '');
+    return serviceName.includes(normalizedSearch) || bookingIdText.includes(debouncedSearch);
+  });
 
   const PAGE_SIZE = 10;
   const totalPages = Math.max(1, Math.ceil(filteredBookings.length / PAGE_SIZE));

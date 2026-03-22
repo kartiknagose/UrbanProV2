@@ -11,6 +11,10 @@ const AppError = require('../../common/errors/AppError');
  * If already favorited → remove, else → add
  */
 async function toggleFavorite(userId, workerProfileId) {
+  if (!Number.isInteger(workerProfileId) || workerProfileId <= 0) {
+    throw new AppError(400, 'Invalid worker profile id.');
+  }
+
   // Verify worker exists
   const worker = await prisma.workerProfile.findUnique({
     where: { id: workerProfileId },
@@ -43,7 +47,7 @@ async function getFavorites(userId) {
     include: {
       workerProfile: {
         include: {
-          user: { select: { id: true, name: true, email: true, profilePhotoUrl: true } },
+          user: { select: { id: true, name: true, profilePhotoUrl: true } },
           services: { include: { service: { select: { id: true, name: true, category: true } } } }
         }
       }

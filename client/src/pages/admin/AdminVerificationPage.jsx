@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { asArray } from '../../utils/safeData';
 
-const statusFilters = ['ALL', 'PENDING', 'APPROVED', 'REJECTED'];
+const statusFilters = ['ALL', 'PENDING', 'MORE_INFO', 'APPROVED', 'REJECTED'];
 
 export function AdminVerificationPage() {
   usePageTitle('Verification Requests');
@@ -25,6 +25,12 @@ export function AdminVerificationPage() {
   const [modalDoc, setModalDoc] = useState(null);
   const [statusFilter, setStatusFilter] = useState('PENDING');
   const [page, setPage] = useState(1);
+
+  const formatSubmittedAt = (value) => {
+    if (!value) return 'N/A';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleString();
+  };
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.verification.applications(),
@@ -125,7 +131,7 @@ export function AdminVerificationPage() {
                         {application.user?.name || 'Worker'}
                       </CardTitle>
                       <CardDescription>
-                        Submitted: {new Date(application.submittedAt).toLocaleString()}
+                        Submitted: {formatSubmittedAt(application.submittedAt)}
                       </CardDescription>
                     </div>
                     <VerificationStatusBadge status={application.status} />
@@ -153,14 +159,16 @@ export function AdminVerificationPage() {
                       <h4 className="text-sm font-semibold mb-3 text-gray-800 dark:text-gray-200">Submitted Documents</h4>
                       <div className="flex flex-wrap gap-4">
                         {asArray(application.documents).map((doc) => {
-                          const docUrl = resolveProfilePhotoUrl(doc.url);
-                          const isPdf = doc.url.toLowerCase().endsWith('.pdf');
+                          const rawDocUrl = String(doc?.url || '');
+                          const docUrl = resolveProfilePhotoUrl(rawDocUrl);
+                          const isPdf = rawDocUrl.toLowerCase().endsWith('.pdf');
+                          const docTypeLabel = String(doc?.type || 'DOCUMENT').replace(/_/g, ' ');
                           return (
                             <div key={doc.id} className="group relative">
                               <button
                                 type="button"
                                 className="block w-32 h-32 rounded-lg border overflow-hidden relative border-gray-200 bg-gray-50 dark:border-dark-600 dark:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all hover:shadow-lg"
-                                onClick={() => setModalDoc({ ...doc, url: docUrl, isPdf })}
+                                onClick={() => setModalDoc({ ...doc, url: docUrl, isPdf, typeLabel: docTypeLabel })}
                               >
                                 {isPdf ? (
                                   <div className="flex flex-col items-center justify-center w-full h-full text-gray-400">
@@ -180,7 +188,7 @@ export function AdminVerificationPage() {
                                 </div>
                               </button>
                               <p className="text-xs mt-1.5 font-medium truncate w-32 text-gray-600 dark:text-gray-400">
-                                {doc.type.replace(/_/g, ' ')}
+                                {docTypeLabel}
                               </p>
                             </div>
                           );
@@ -261,7 +269,7 @@ export function AdminVerificationPage() {
             <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-dark-700">
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                  {modalDoc.type.replace(/_/g, ' ')}
+                  {modalDoc.typeLabel || String(modalDoc.type || 'DOCUMENT').replace(/_/g, ' ')}
                 </h3>
                 <p className="text-xs text-gray-400">Click outside or press × to close</p>
               </div>

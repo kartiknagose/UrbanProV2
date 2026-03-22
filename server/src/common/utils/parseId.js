@@ -11,8 +11,13 @@
 const AppError = require('../errors/AppError');
 
 function parseId(value, label = 'ID') {
-  const id = parseInt(value, 10);
-  if (isNaN(id) || id < 1) {
+  const normalized = String(value || '').trim();
+  if (!/^\d+$/.test(normalized)) {
+    throw new AppError(400, `Invalid ${label}. Must be a positive integer.`);
+  }
+
+  const id = Number(normalized);
+  if (!Number.isSafeInteger(id) || id < 1) {
     throw new AppError(400, `Invalid ${label}. Must be a positive integer.`);
   }
   return id;

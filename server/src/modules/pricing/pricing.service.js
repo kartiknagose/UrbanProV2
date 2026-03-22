@@ -1,8 +1,19 @@
 const prisma = require('../../config/prisma');
+const AppError = require('../../common/errors/AppError');
 
 const GST_RATE = 0.18; // 18%
 const DISTANCE_OZONE_KM = 5; // First 5km is free
 const DISTANCE_FEE_PER_KM = 10; // ₹10 per km after 5km
+
+const round2 = (value) => Math.round(Number(value) * 100) / 100;
+
+const toFiniteNumber = (value, fieldName) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        throw new AppError(400, `${fieldName} must be a valid number.`);
+    }
+    return parsed;
+};
 
 /**
  * Calculate dynamic price for a booking based on Sprint 9 requirements
@@ -15,17 +26,52 @@ async function calculateDynamicPrice({
     longitude,
     basePriceOverride // From UI, but server recalculates anyway
 }) {
+    const parsedServiceId = Number(serviceId);
+    if (!Number.isInteger(parsedServiceId) || parsedServiceId <= 0) {
+        throw new AppError(400, 'Service ID must be a positive integer.');
+    }
+
+    const deliveryDate = new Date(scheduledAt);
+    if (!scheduledAt || Number.isNaN(deliveryDate.getTime())) {
+        throw new AppError(400, 'Scheduled time is invalid.');
+    }
+
+    const hasLatitude = latitude !== undefined && latitude !== null && latitude !== '';
+    const hasLongitude = longitude !== undefined && longitude !== null && longitude !== '';
+    if (hasLatitude !== hasLongitude) {
+        throw new AppError(400, 'Both latitude and longitude are required together.');
+    }
+
+    const parsedLatitude = hasLatitude ? toFiniteNumber(latitude, 'Latitude') : null;
+    const parsedLongitude = hasLongitude ? toFiniteNumber(longitude, 'Longitude') : null;
+
+    if (parsedLatitude !== null && (parsedLatitude < -90 || parsedLatitude > 90)) {
+        throw new AppError(400, 'Latitude must be between -90 and 90.');
+    }
+    if (parsedLongitude !== null && (parsedLongitude < -180 || parsedLongitude > 180)) {
+        throw new AppError(400, 'Longitude must be between -180 and 180.');
+    }
+
     const service = await prisma.service.findUnique({
-        where: { id: serviceId }
+        where: { id: parsedServiceId }
     });
 
-    if (!service) throw new Error('Service not found');
+    if (!service) throw new AppError(404, 'Service not found');
 
-    let basePrice = Number(service.basePrice) || basePriceOverride || 0;
+    const normalizedBasePrice = service.basePrice === null || service.basePrice === undefined
+        ? (basePriceOverride === undefined || basePriceOverride === null || basePriceOverride === ''
+            ? 0
+            : toFiniteNumber(basePriceOverride, 'Base price'))
+        : toFiniteNumber(service.basePrice, 'Base price');
+
+    if (normalizedBasePrice < 0) {
+        throw new AppError(400, 'Base price cannot be negative.');
+    }
+
+    const basePrice = round2(normalizedBasePrice);
 
     // 1. Time-of-day / Weekend Multiplier
     let timeMultiplier = 1.0;
-    const deliveryDate = new Date(scheduledAt);
     const hour = deliveryDate.getHours();
     const day = deliveryDate.getDay(); // 0 = Sunday, 6 = Saturday
 
@@ -49,17 +95,21 @@ async function calculateDynamicPrice({
     // 3. Demand/Supply Surge Multiplier (Real-time DB query)
     let surgeMultiplier = 1.0;
     try {
-        const pendingCount = await prisma.booking.count({
-            where: { serviceId, status: 'PENDING' }
-        });
-        const activeWorkers = await prisma.workerLocation.count({
-            where: {
-                isOnline: true,
-                workerProfile: {
-                    services: { some: { serviceId } }
+        const [pendingCount, activeWorkers] = await Promise.all([
+            prisma.booking.count({
+                where: { serviceId: parsedServiceId, status: 'PENDING' }
+            }),
+            prisma.workerLocation.count({
+                where: {
+                    isOnline: true,
+                    workerProfile: {
+                        isVerified: true,
+                        user: { isActive: true },
+                        services: { some: { serviceId: parsedServiceId } }
+                    }
                 }
-            }
-        });
+            })
+        ]);
 
         // Ratio: If more pending jobs than active workers -> Surge
         const effectiveWorkers = Math.max(activeWorkers, 1); // Avoid div by 0
@@ -76,9 +126,17 @@ async function calculateDynamicPrice({
     let workerTierMultiplier = 1.0;
     let distanceSurcharge = 0.0;
 
-    if (workerProfileId) {
+    const parsedWorkerProfileId = workerProfileId === undefined || workerProfileId === null || workerProfileId === ''
+        ? null
+        : Number(workerProfileId);
+
+    if (parsedWorkerProfileId !== null && (!Number.isInteger(parsedWorkerProfileId) || parsedWorkerProfileId <= 0)) {
+        throw new AppError(400, 'Worker profile ID must be a positive integer.');
+    }
+
+    if (parsedWorkerProfileId !== null) {
         const worker = await prisma.workerProfile.findUnique({
-            where: { id: workerProfileId }
+            where: { id: parsedWorkerProfileId }
         });
 
         if (worker) {
@@ -87,9 +145,17 @@ async function calculateDynamicPrice({
             else workerTierMultiplier = 0.9; // BASIC / DOCUMENTS = promotional
 
             // Calculate specific distance from worker to job if lat/long match
-            if (worker.baseLatitude && worker.baseLongitude && latitude && longitude) {
+            if (
+                worker.baseLatitude !== null
+                && worker.baseLongitude !== null
+                && parsedLatitude !== null
+                && parsedLongitude !== null
+            ) {
                 const distKm = getDistanceFromLatLonInKm(
-                    latitude, longitude, worker.baseLatitude, worker.baseLongitude
+                    parsedLatitude,
+                    parsedLongitude,
+                    Number(worker.baseLatitude),
+                    Number(worker.baseLongitude)
                 );
                 if (distKm > DISTANCE_OZONE_KM) {
                     distanceSurcharge = (distKm - DISTANCE_OZONE_KM) * DISTANCE_FEE_PER_KM;
@@ -99,7 +165,7 @@ async function calculateDynamicPrice({
     }
 
     // We should round multipliers to 2 decimals for cleanliness
-    surgeMultiplier = Math.round(surgeMultiplier * 100) / 100;
+    surgeMultiplier = round2(surgeMultiplier);
 
     // Calculate Subtotal (Base * multipliers)
     const modifiedBase = basePrice * timeMultiplier * surgeMultiplier * urgencyMultiplier * workerTierMultiplier;
@@ -108,8 +174,8 @@ async function calculateDynamicPrice({
     const subtotal = modifiedBase + distanceSurcharge;
 
     // Tax computed on the final subtotal
-    const gstAmount = subtotal * GST_RATE;
-    const totalPrice = subtotal + gstAmount;
+    const gstAmount = round2(subtotal * GST_RATE);
+    const totalPrice = round2(subtotal + gstAmount);
 
     return {
         basePrice,
@@ -117,9 +183,9 @@ async function calculateDynamicPrice({
         surgeMultiplier,
         urgencyMultiplier,
         workerTierMultiplier,
-        distanceSurcharge: Math.round(distanceSurcharge * 100) / 100,
-        gstAmount: Math.round(gstAmount * 100) / 100,
-        totalPrice: Math.round(totalPrice * 100) / 100
+        distanceSurcharge: round2(distanceSurcharge),
+        gstAmount,
+        totalPrice
     };
 }
 

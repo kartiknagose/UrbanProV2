@@ -11,11 +11,18 @@
 const { verifyJwt } = require('../common/utils/jwt');
 
 module.exports = (req, res, next) => {
-  const token = req.cookies?.token;
+  const cookieToken = req.cookies?.token;
+  const authHeader = req.get('authorization') || '';
+  const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+  const bearerToken = bearerMatch ? bearerMatch[1].trim() : '';
+  const token = cookieToken || bearerToken;
+
   if (!token) return res.status(401).json({ error: 'Authentication required', statusCode: 401 });
 
   const payload = verifyJwt(token);
-  if (!payload) return res.status(401).json({ error: 'Invalid token', statusCode: 401 });
+  if (!payload || !payload.id || !payload.role) {
+    return res.status(401).json({ error: 'Invalid or expired token', statusCode: 401 });
+  }
 
   // Attach the authenticated user's payload to the request so downstream
   // handlers and authorization middleware can reference `req.user`.

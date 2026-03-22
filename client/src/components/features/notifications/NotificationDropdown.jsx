@@ -77,6 +77,12 @@ export function NotificationDropdown() {
         return () => window.removeEventListener('upro:notification-received', handleNewNotification);
     }, [isAuthenticated, refetch]);
 
+    const formatNotificationTime = (value) => {
+        if (!value) return 'N/A';
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
     if (!isAuthenticated) return null;
 
     return (
@@ -142,7 +148,7 @@ export function NotificationDropdown() {
                                                 <p className="text-xs mt-1 leading-relaxed text-gray-600 dark:text-gray-400">{n.message}</p>
                                                 <div className="flex items-center gap-2 mt-2 text-[10px] uppercase font-black tracking-wider text-gray-400">
                                                     <Clock size={10} />
-                                                    {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    {formatNotificationTime(n.createdAt)}
                                                 </div>
                                             </div>
                                         </div>

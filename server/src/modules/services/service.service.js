@@ -29,7 +29,20 @@ const AppError = require('../../common/errors/AppError');
  * @throws {Error} - If service name already exists
  */
 async function createService(serviceData) {
-  const { name, description, category, basePrice } = serviceData;
+  const name = String(serviceData.name || '').trim();
+  const description = serviceData.description === undefined ? undefined : String(serviceData.description || '').trim();
+  const category = serviceData.category === undefined ? undefined : String(serviceData.category || '').trim();
+  const basePrice = serviceData.basePrice === undefined || serviceData.basePrice === null || serviceData.basePrice === ''
+    ? null
+    : Number(serviceData.basePrice);
+
+  if (!name) {
+    throw new AppError(400, 'Service name is required.');
+  }
+
+  if (basePrice !== null && (!Number.isFinite(basePrice) || basePrice < 0)) {
+    throw new AppError(400, 'Base price must be a valid non-negative number.');
+  }
 
   // STEP 1: Check if a service with this name already exists
   // Why? We don't want two "Plumbing Repair" services - creates confusion
@@ -53,7 +66,7 @@ async function createService(serviceData) {
       name: name,                           // The service name
       description: description || null,     // Optional description (null if not provided)
       category: category || null,           // Optional category (null if not provided)
-      basePrice: basePrice || null,         // Optional base price (null if not provided)
+      basePrice,                            // Optional base price (null if not provided)
       // translations field is not used yet (for future multi-language support)
     },
   });
@@ -130,6 +143,7 @@ async function getServiceWorkers(serviceId, { skip = 0, limit = 20 } = {}) {
     serviceId,
     worker: {
       isVerified: true,
+      user: { isActive: true },
       location: { isOnline: true },
     },
   };
@@ -145,7 +159,7 @@ async function getServiceWorkers(serviceId, { skip = 0, limit = 20 } = {}) {
             totalReviews: true,
             isVerified: true,
             user: {
-              select: { id: true, name: true, email: true, profilePhotoUrl: true },
+              select: { id: true, name: true, profilePhotoUrl: true },
             },
           },
         },
@@ -166,23 +180,52 @@ async function getServiceWorkers(serviceId, { skip = 0, limit = 20 } = {}) {
  * @param {object} data - { name, description, ... }
  */
 async function updateService(id, data) {
+  const updateData = {
+    ...(data.name !== undefined ? { name: String(data.name).trim() } : {}),
+    ...(data.description !== undefined ? { description: data.description === null ? null : String(data.description).trim() } : {}),
+    ...(data.category !== undefined ? { category: data.category === null ? null : String(data.category).trim() } : {}),
+    ...(data.basePrice !== undefined
+      ? {
+        basePrice: data.basePrice === null || data.basePrice === ''
+          ? null
+          : Number(data.basePrice),
+      }
+      : {}),
+  };
+
+  if (updateData.basePrice !== undefined && updateData.basePrice !== null && (!Number.isFinite(updateData.basePrice) || updateData.basePrice < 0)) {
+    throw new AppError(400, 'Base price must be a valid non-negative number.');
+  }
+
+  const existingById = await prisma.service.findUnique({ where: { id }, select: { id: true } });
+  if (!existingById) {
+    throw new AppError(404, 'Service not found.');
+  }
+
   // Optional: Check name uniqueness if name is being changed
-  if (data.name) {
+  if (updateData.name) {
     const existing = await prisma.service.findFirst({
       where: {
-        name: { equals: data.name, mode: 'insensitive' },
+        name: { equals: updateData.name, mode: 'insensitive' },
         NOT: { id }
       }
     });
     if (existing) {
-      throw new AppError(409, `Service '${data.name}' already exists.`);
+      throw new AppError(409, `Service '${updateData.name}' already exists.`);
     }
   }
 
-  return prisma.service.update({
-    where: { id },
-    data,
-  });
+  try {
+    return await prisma.service.update({
+      where: { id },
+      data: updateData,
+    });
+  } catch (error) {
+    if (error.code === 'P2025') {
+      throw new AppError(404, 'Service not found.');
+    }
+    throw error;
+  }
 }
 
 /**
@@ -190,9 +233,19 @@ async function updateService(id, data) {
  * @param {number} id - Service ID
  */
 async function deleteService(id) {
-  return prisma.service.delete({
-    where: { id },
-  });
+  try {
+    return await prisma.service.delete({
+      where: { id },
+    });
+  } catch (error) {
+    if (error.code === 'P2025') {
+      throw new AppError(404, 'Service not found.');
+    }
+    if (error.code === 'P2003') {
+      throw new AppError(409, 'Cannot delete service because it is referenced by existing records.');
+    }
+    throw error;
+  }
 }
 
 // Export all service functions so controllers can use them

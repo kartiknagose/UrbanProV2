@@ -1,5 +1,5 @@
 const asyncHandler = require('../../common/utils/asyncHandler');
-const AppError = require('../../common/errors/AppError');
+const parseId = require('../../common/utils/parseId');
 const {
   listAvailability,
   createAvailability,
@@ -20,11 +20,7 @@ exports.create = asyncHandler(async (req, res) => {
 });
 
 exports.remove = asyncHandler(async (req, res) => {
-  const id = Number(req.params.id);
-
-  if (Number.isNaN(id)) {
-    throw new AppError(400, 'Invalid availability id');
-  }
+  const id = parseId(req.params.id, 'Availability ID');
 
   await removeAvailability(req.user.id, id);
   res.json({ message: 'Availability removed successfully.' });

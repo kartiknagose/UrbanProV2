@@ -65,6 +65,12 @@ export function WorkerProfileWindow({ workerId, isOpen, onClose }) {
     const services = data?.services || [];
     const reviews = profile?.user?.reviewsReceived || [];
 
+    const formatReviewDate = (value) => {
+        if (!value) return 'N/A';
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
+    };
+
     if (!isOpen) return null;
 
     const content = (
@@ -299,7 +305,7 @@ export function WorkerProfileWindow({ workerId, isOpen, onClose }) {
                                                         </div>
                                                         <p className="text-xs italic leading-relaxed opacity-70">"{review.comment}"</p>
                                                         <p className="text-[9px] font-bold text-gray-400 mt-3 absolute right-5 bottom-4 uppercase tracking-tighter">
-                                                            {new Date(review.createdAt).toLocaleDateString()}
+                                                            {formatReviewDate(review.createdAt)}
                                                         </p>
                                                     </div>
                                                 ))}

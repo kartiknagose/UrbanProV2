@@ -1,5 +1,6 @@
 const asyncHandler = require('../../common/utils/asyncHandler');
 const AppError = require('../../common/errors/AppError');
+const parseId = require('../../common/utils/parseId');
 const { isValidUploadUrl } = require('../../common/utils/validateUploadUrl');
 const {
   upsertWorkerProfile,
@@ -129,8 +130,8 @@ exports.getServices = asyncHandler(async (req, res) => {
 // GET /api/workers/:workerId/services
 // Get all services offered by a specific worker (public endpoint - any user can view)
 exports.getWorkerServices = asyncHandler(async (req, res) => {
-  const { workerId } = req.params;
-  const services = await getWorkerServicesById(parseInt(workerId));
+  const workerId = parseId(req.params.workerId, 'Worker ID');
+  const services = await getWorkerServicesById(workerId);
 
   res.json({ services });
 });
@@ -138,13 +139,13 @@ exports.getWorkerServices = asyncHandler(async (req, res) => {
 // GET /api/workers/:workerId
 // Get worker public profile (name, rating, bio, etc)
 exports.getProfile = asyncHandler(async (req, res) => {
-  const { workerId } = req.params;
-  const profile = await getWorkerProfileById(parseInt(workerId));
+  const workerId = parseId(req.params.workerId, 'Worker ID');
+  const profile = await getWorkerProfileById(workerId);
 
   if (!profile) throw new AppError(404, 'Worker not found');
 
   // Also fetch services to make it a complete profile view
-  const services = await getWorkerServicesById(parseInt(workerId));
+  const services = await getWorkerServicesById(workerId);
 
   res.json({ profile, services });
 });
@@ -153,9 +154,9 @@ exports.getProfile = asyncHandler(async (req, res) => {
 // Remove a service from the authenticated worker's offered services
 exports.removeService = asyncHandler(async (req, res) => {
   const userId = req.user.id;
-  const { serviceId } = req.params;
+  const serviceId = parseId(req.params.serviceId, 'Service ID');
 
-  await removeWorkerService(userId, parseInt(serviceId));
+  await removeWorkerService(userId, serviceId);
 
   res.json({
     message: 'Service removed successfully',
@@ -165,7 +166,8 @@ exports.removeService = asyncHandler(async (req, res) => {
 // GET /api/workers/leaderboard (Sprint 17 - #81)
 // Get top workers based on ratings and reviews
 exports.getLeaderboard = asyncHandler(async (req, res) => {
-  const limit = req.query.limit ? parseInt(req.query.limit) : 20;
-  const workers = await getTopWorkers(limit);
+  const limit = req.query.limit ? Number(req.query.limit) : 20;
+  const safeLimit = Number.isInteger(limit) && limit > 0 ? Math.min(limit, 100) : 20;
+  const workers = await getTopWorkers(safeLimit);
   res.json({ workers });
 });

@@ -14,6 +14,12 @@ import { getRatingLabel } from '../../utils/rating';
 import { getPageLayout } from '../../constants/layout';
 import { usePageTitle } from '../../hooks/usePageTitle';
 
+const formatReviewDate = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString();
+};
+
 export function CustomerReviewsPage() {
   usePageTitle('My Reviews');
   const navigate = useNavigate();
@@ -132,16 +138,16 @@ export function CustomerReviewsPage() {
                         {/* Header Strip */}
                         <div className="px-6 py-4 flex items-center justify-between bg-neutral-50 dark:bg-dark-800/50 border-b border-neutral-100 dark:border-dark-700">
                           <div className="flex items-center gap-4">
-                            <Avatar name={workerName} src={booking.workerProfile?.user?.profilePhoto} size="md" />
+                            <Avatar name={workerName} src={booking.workerProfile?.user?.profilePhotoUrl} size="md" />
                             <div>
                               <p
                                 className="font-bold text-neutral-900 dark:text-white cursor-pointer hover:text-brand-500 transition-colors"
-                                onClick={() => navigate(`/bookings/${booking.id}`)}
+                                onClick={() => navigate(`/customer/bookings/${booking.id}`)}
                               >
                                 {booking.service?.name || `Booking #${booking.id}`}
                               </p>
                               <p className="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-1 mt-0.5">
-                                Completed by {workerName} on {new Date(booking.scheduledAt).toLocaleDateString()}
+                                Completed by {workerName} on {formatReviewDate(booking.scheduledAt)}
                               </p>
                             </div>
                           </div>
@@ -234,13 +240,13 @@ export function CustomerReviewsPage() {
                     <Card className="p-6">
                       <div className="flex items-start justify-between gap-4 mb-4">
                         <div className="flex items-center gap-3">
-                          <Avatar name={review.reviewee?.name} src={review.reviewee?.profilePhoto} size="sm" />
+                          <Avatar name={review.reviewee?.name} src={review.reviewee?.profilePhotoUrl} size="sm" />
                           <div>
                             <p className="font-bold text-neutral-900 dark:text-white leading-tight">
                               {review.booking?.service?.name || 'Service'}
                             </p>
                             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                              Reviewed {review.reviewee?.name || 'Worker'} on {new Date(review.createdAt).toLocaleDateString()}
+                              Reviewed {review.reviewee?.name || 'Worker'} on {formatReviewDate(review.createdAt)}
                             </p>
                           </div>
                         </div>

@@ -13,10 +13,15 @@ const { requireCustomer, requireWorker } = require('../../middleware/requireRole
 
 // Import validation schemas
 const {
+  previewPriceSchema,
   createBookingSchema,
   updateBookingStatusSchema,
   cancelBookingSchema,
   payBookingSchema,
+  bookingOtpSchema,
+  createSessionSchema,
+  startSessionSchema,
+  rescheduleBookingSchema,
   refreshOtpSchema,
 } = require('./booking.schemas');
 
@@ -30,6 +35,8 @@ router.post(
   '/preview-price',
   authenticate,
   requireCustomer,
+  previewPriceSchema,
+  validate,
   bookingController.previewPrice
 );
 
@@ -124,6 +131,9 @@ router.post(
   '/:id/start',
   authenticate,
   requireWorker,
+  otpLimiter,
+  bookingOtpSchema,
+  validate,
   bookingController.verifyBookingStart
 );
 
@@ -134,6 +144,9 @@ router.post(
   '/:id/complete',
   authenticate,
   requireWorker,
+  otpLimiter,
+  bookingOtpSchema,
+  validate,
   bookingController.verifyBookingCompletion
 );
 
@@ -144,6 +157,7 @@ router.post(
   '/:id/otp/refresh',
   authenticate,
   requireWorker,
+  otpLimiter,
   refreshOtpSchema,
   validate,
   bookingController.refreshBookingOtp
@@ -167,6 +181,8 @@ router.post(
   '/:id/sessions',
   authenticate,
   requireWorker,
+  createSessionSchema,
+  validate,
   bookingController.createSession
 );
 
@@ -178,6 +194,8 @@ router.post(
   authenticate,
   requireWorker,
   otpLimiter,
+  startSessionSchema,
+  validate,
   bookingController.startSession
 );
 
@@ -199,6 +217,8 @@ router.post(
 router.patch(
   '/:id/reschedule',
   authenticate,
+  rescheduleBookingSchema,
+  validate,
   bookingController.rescheduleBooking
 );
 

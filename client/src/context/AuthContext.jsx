@@ -107,6 +107,19 @@ const getApiErrorMessage = (error, fallback) => {
   );
 };
 
+const getStoredUser = () => {
+  const raw = localStorage.getItem('user');
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    localStorage.removeItem('user');
+    return null;
+  }
+};
+
 /**
  * AuthProvider Component
  * 
@@ -131,8 +144,7 @@ export function AuthProvider({ children }) {
         const data = await getCurrentUser();
 
         // Prefer stored user details for UI if it matches current session
-        const storedUserRaw = localStorage.getItem('user');
-        const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
+        const storedUser = getStoredUser();
         const sessionUser = data.user || null;
         const user = storedUser?.id === sessionUser?.id
           ? { ...storedUser, ...sessionUser }

@@ -8,6 +8,37 @@ import { clientEnv } from '../config/env';
 // Base API URL - points to backend server
 const API_URL = API_BASE_URL;
 
+const PUBLIC_EXACT_PATHS = new Set([
+  '/',
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/verify-email',
+]);
+
+const PUBLIC_PREFIX_PATHS = [
+  '/services',
+  '/system-status',
+  '/about',
+  '/contact',
+  '/how-it-works',
+  '/pricing',
+  '/security',
+  '/faq',
+  '/privacy',
+  '/terms',
+  '/cookies',
+  '/blog',
+  '/careers',
+];
+
+const isPublicPathname = (pathname) => {
+  if (!pathname) return false;
+  if (PUBLIC_EXACT_PATHS.has(pathname)) return true;
+  return PUBLIC_PREFIX_PATHS.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+};
+
 // Create axios instance with default config
 const axiosInstance = axios.create({
   baseURL: API_URL,
@@ -54,16 +85,9 @@ axiosInstance.interceptors.response.use(
         // Clear auth data
         localStorage.removeItem('user');
 
-        // Only redirect to login if not on public routes
-        const publicPaths = [
-          '/', '/login', '/register', '/forgot-password', '/reset-password',
-          '/verify-email', '/services', '/system-status', '/about', '/contact',
-          '/how-it-works', '/pricing', '/security', '/faq', '/privacy',
-          '/terms', '/cookies', '/blog', '/careers',
-        ];
-        const isPublicPath = publicPaths.some((path) =>
-          window.location.pathname === '/' ? path === '/' : window.location.pathname.startsWith(path)
-        );
+        // Only redirect to login if not on public routes.
+        const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+        const isPublicPath = isPublicPathname(pathname);
 
         if (hadUser && !isPublicPath) {
           // Dispatch a custom event so AuthContext can handle navigation
@@ -74,17 +98,17 @@ axiosInstance.interceptors.response.use(
 
       // Handle 403 Forbidden - insufficient permissions
       if (status === 403) {
-        console.error('Access denied:', data.message);
+        console.error('Access denied:', data?.error || data?.message);
       }
 
       // Handle 404 Not Found
       if (status === 404) {
-        console.error('Resource not found:', data.message);
+        console.error('Resource not found:', data?.error || data?.message);
       }
 
       // Handle 500 Server Error
       if (status === 500) {
-        console.error('Server error:', data.message);
+        console.error('Server error:', data?.error || data?.message);
       }
     } else if (error.request) {
       // Request made but no response received (network error)

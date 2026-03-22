@@ -16,7 +16,17 @@ const AppError = require('../../common/errors/AppError');
  * @param {object} data - { bookingId, rating, comment }
  */
 async function createReview(userId, userRole, data) {
-  const { bookingId, rating, comment } = data;
+  const bookingId = Number(data.bookingId);
+  const rating = Number(data.rating);
+  const comment = typeof data.comment === 'string' ? data.comment.trim() : undefined;
+
+  if (!Number.isInteger(bookingId) || bookingId < 1) {
+    throw new AppError(400, 'Booking ID must be a positive integer.');
+  }
+
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    throw new AppError(400, 'Rating must be between 1 and 5.');
+  }
 
   // 1. Fetch booking with worker profile info
   const booking = await prisma.booking.findUnique({
@@ -97,7 +107,9 @@ async function createReview(userId, userRole, data) {
   }
 
   // 4-7. Create review + recalculate rating in a transaction for atomicity
-  const review = await prisma.$transaction(async (tx) => {
+  let review;
+  try {
+    review = await prisma.$transaction(async (tx) => {
     // 4. Create the review
     const newReview = await tx.review.create({
       data: {
@@ -105,14 +117,14 @@ async function createReview(userId, userRole, data) {
         reviewerId,
         revieweeId,
         rating,
-        comment,
+        comment: comment || null,
       },
       include: {
         booking: {
           include: { service: { select: { id: true, name: true, category: true } } },
         },
-        reviewer: { select: { id: true, name: true, email: true } },
-        reviewee: { select: { id: true, name: true, email: true } },
+        reviewer: { select: { id: true, name: true } },
+        reviewee: { select: { id: true, name: true } },
       },
     });
 
@@ -147,7 +159,13 @@ async function createReview(userId, userRole, data) {
     }
 
     return newReview;
-  });
+    });
+  } catch (error) {
+    if (error.code === 'P2002') {
+      throw new AppError(409, 'You have already reviewed this booking.');
+    }
+    throw error;
+  }
 
   return review;
 }
@@ -165,7 +183,7 @@ async function getMyReviews(userId, { skip = 0, limit = 20 } = {}) {
         booking: {
           include: { service: { select: { id: true, name: true, category: true } } },
         },
-        reviewee: { select: { id: true, name: true, email: true } },
+        reviewee: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
       skip,
@@ -189,7 +207,7 @@ async function getReviewsAboutMe(userId, { skip = 0, limit = 20 } = {}) {
         booking: {
           include: { service: { select: { id: true, name: true, category: true } } },
         },
-        reviewer: { select: { id: true, name: true, email: true } },
+        reviewer: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
       skip,
@@ -205,6 +223,10 @@ async function getReviewsAboutMe(userId, { skip = 0, limit = 20 } = {}) {
  * Returns completed bookings where the user has NOT yet left a review
  */
 async function getPendingReviews(userId, userRole, { skip = 0, limit = 20 } = {}) {
+  if (!['CUSTOMER', 'WORKER'].includes(userRole)) {
+    throw new AppError(403, 'Only customers and workers can access pending reviews.');
+  }
+
   let whereClause = {
     status: 'COMPLETED',
     reviews: { none: { reviewerId: userId } },
@@ -229,10 +251,10 @@ async function getPendingReviews(userId, userRole, { skip = 0, limit = 20 } = {}
           select: {
             id: true,
             userId: true,
-            user: { select: { id: true, name: true, email: true } },
+            user: { select: { id: true, name: true } },
           },
         },
-        customer: { select: { id: true, name: true, email: true } },
+        customer: { select: { id: true, name: true } },
         reviews: {
           select: { reviewerId: true },
         },

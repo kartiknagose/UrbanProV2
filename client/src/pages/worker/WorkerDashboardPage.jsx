@@ -60,6 +60,17 @@ import { toast } from 'sonner';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { asArray } from '../../utils/safeData';
 
+const formatJobSchedule = (value, locale) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Schedule not set';
+  return date.toLocaleString(locale, {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 export function WorkerDashboardPage() {
     const { t, i18n } = useTranslation();
     usePageTitle(t('Dashboard'));
@@ -319,7 +330,7 @@ export function WorkerDashboardPage() {
                                 <MapPin size={12} /> {job.address?.split(',')[0] || t('Nearby Location')}
                               </p>
                               <p className="text-xs text-gray-400 mt-1">
-                                {new Date(job.scheduledAt || job.scheduledDate).toLocaleDateString(i18n.language, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                {formatJobSchedule(job.scheduledAt || job.scheduledDate, i18n.language)}
                               </p>
                             </div>
                           </div>

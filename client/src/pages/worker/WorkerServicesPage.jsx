@@ -70,10 +70,11 @@ export function WorkerServicesPage() {
   const filteredAvailableServices = useMemo(() => {
     if (!searchTerm) return availableServices;
     const lowerTerm = searchTerm.toLowerCase();
-    return availableServices.filter(service =>
-      service.name?.toLowerCase().includes(lowerTerm) ||
-      (service.category && service.category.toLowerCase().includes(lowerTerm))
-    );
+    return availableServices.filter((service) => {
+      const serviceName = String(service.name || '').toLowerCase();
+      const serviceCategory = String(service.category || '').toLowerCase();
+      return serviceName.includes(lowerTerm) || serviceCategory.includes(lowerTerm);
+    });
 
   }, [availableServices, searchTerm]);
 

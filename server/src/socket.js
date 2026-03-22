@@ -9,6 +9,11 @@ const { CORS_ORIGIN } = require('./config/env');
 const { verifyJwt } = require('./common/utils/jwt');
 let ioInstance = null;
 
+const parsePositiveId = (value) => {
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? id : null;
+};
+
 function init(server) {
   // Lazy-require to avoid adding heavy deps when not needed in tests
   const { Server } = require('socket.io');
@@ -17,10 +22,13 @@ function init(server) {
   // Allow `CORS_ORIGIN` to be a single origin or a comma-separated list
   // (eg. "http://localhost:5173,http://localhost:5174"). Socket.IO accepts
   // either a string or an array for the `origin` option; normalize here.
-  const originValue = CORS_ORIGIN || '*';
-  const origin = typeof originValue === 'string' && originValue.includes(',')
-    ? originValue.split(',').map(s => s.trim())
-    : originValue;
+  const configuredOrigins = String(CORS_ORIGIN || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const origin = configuredOrigins.length > 0
+    ? configuredOrigins
+    : (isDev ? '*' : false);
 
   ioInstance = new Server(server, {
     cors: {
@@ -81,24 +89,109 @@ function init(server) {
     //   - 'admin' room only if role is ADMIN
     //   - 'booking:X' rooms (for live booking updates) — allowed for any authenticated user
     // All other room join attempts are silently rejected.
-    socket.on('joinRoom', (room) => {
+    socket.on('joinRoom', async (room) => {
       if (typeof room !== 'string' || room.length === 0 || room.length > 100) return;
 
-      // Allow booking-specific rooms (e.g. "booking:42") for live tracking
       if (room.startsWith('booking:')) {
+        const bookingId = parsePositiveId(room.split(':')[1]);
+        if (!bookingId) return;
+
+        const prisma = require('./config/prisma');
+        const booking = await prisma.booking.findUnique({
+          where: { id: bookingId },
+          select: {
+            id: true,
+            customerId: true,
+            workerProfile: { select: { userId: true } },
+          },
+        });
+
+        if (!booking) return;
+
+        const isAllowed =
+          socket.user.role === 'ADMIN'
+          || booking.customerId === socket.user.id
+          || booking.workerProfile?.userId === socket.user.id;
+
+        if (!isAllowed) {
+          console.warn(`Socket ${socket.id} denied join to booking room: ${room}`);
+          return;
+        }
+
         socket.join(room);
         return;
       }
 
-      // Allow conversation rooms (e.g. "conversation:7") for live chat
       if (room.startsWith('conversation:')) {
+        const conversationId = parsePositiveId(room.split(':')[1]);
+        if (!conversationId) return;
+
+        const prisma = require('./config/prisma');
+        const conversation = await prisma.conversation.findUnique({
+          where: { id: conversationId },
+          select: {
+            id: true,
+            customerId: true,
+            workerUserId: true,
+          },
+        });
+
+        if (!conversation) return;
+
+        const isAllowed =
+          socket.user.role === 'ADMIN'
+          || conversation.customerId === socket.user.id
+          || conversation.workerUserId === socket.user.id;
+
+        if (!isAllowed) {
+          console.warn(`Socket ${socket.id} denied join to conversation room: ${room}`);
+          return;
+        }
+
         socket.join(room);
         return;
       }
 
-      // Allow worker_tracking rooms (e.g. "worker_tracking:5") for customers
-      // to receive real-time worker location updates during active bookings
       if (room.startsWith('worker_tracking:')) {
+        const workerProfileId = parsePositiveId(room.split(':')[1]);
+        if (!workerProfileId) return;
+
+        const prisma = require('./config/prisma');
+
+        if (socket.user.role === 'ADMIN') {
+          socket.join(room);
+          return;
+        }
+
+        if (socket.user.role === 'WORKER') {
+          const ownProfile = await prisma.workerProfile.findUnique({
+            where: { userId: socket.user.id },
+            select: { id: true },
+          });
+
+          if (ownProfile?.id === workerProfileId) {
+            socket.join(room);
+            return;
+          }
+
+          console.warn(`Socket ${socket.id} denied join to worker tracking room: ${room}`);
+          return;
+        }
+
+        const hasRelevantBooking = await prisma.booking.findFirst({
+          where: {
+            workerProfileId,
+            customerId: socket.user.id,
+            status: { in: ['CONFIRMED', 'IN_PROGRESS'] },
+          },
+          select: { id: true },
+        });
+
+        if (!hasRelevantBooking) {
+          console.warn(`Socket ${socket.id} denied join to worker tracking room: ${room}`);
+          return;
+        }
+
         socket.join(room);
         return;
       }

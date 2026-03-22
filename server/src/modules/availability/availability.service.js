@@ -25,7 +25,17 @@ async function listAvailability(userId) {
 
 async function createAvailability(userId, data) {
   const profile = await ensureWorkerProfile(userId);
-  const { dayOfWeek, startTime, endTime } = data;
+  const dayOfWeek = Number(data.dayOfWeek);
+  const startTime = String(data.startTime || '').trim();
+  const endTime = String(data.endTime || '').trim();
+
+  if (!Number.isInteger(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
+    throw new AppError(400, 'Day of week must be between 0 (Sunday) and 6 (Saturday).');
+  }
+
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime)) {
+    throw new AppError(400, 'Time must be in HH:mm format.');
+  }
 
   const startMinutes = timeToMinutes(startTime);
   const endMinutes = timeToMinutes(endTime);
@@ -34,28 +44,37 @@ async function createAvailability(userId, data) {
     throw new AppError(400, 'Start time must be before end time.');
   }
 
-  const existing = await prisma.availability.findMany({
-    where: { workerId: profile.id, dayOfWeek },
-  });
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.availability.findMany({
+        where: { workerId: profile.id, dayOfWeek },
+      });
 
-  const hasOverlap = existing.some((slot) => {
-    const slotStart = timeToMinutes(slot.startTime);
-    const slotEnd = timeToMinutes(slot.endTime);
-    return startMinutes < slotEnd && endMinutes > slotStart;
-  });
+      const hasOverlap = existing.some((slot) => {
+        const slotStart = timeToMinutes(slot.startTime);
+        const slotEnd = timeToMinutes(slot.endTime);
+        return startMinutes < slotEnd && endMinutes > slotStart;
+      });
 
-  if (hasOverlap) {
-    throw new AppError(409, 'Availability overlaps with an existing slot.');
+      if (hasOverlap) {
+        throw new AppError(409, 'Availability overlaps with an existing slot.');
+      }
+
+      return tx.availability.create({
+        data: {
+          workerId: profile.id,
+          dayOfWeek,
+          startTime,
+          endTime,
+        },
+      });
+    });
+  } catch (error) {
+    if (error.code === 'P2002') {
+      throw new AppError(409, 'Availability slot already exists.');
+    }
+    throw error;
   }
-
-  return prisma.availability.create({
-    data: {
-      workerId: profile.id,
-      dayOfWeek,
-      startTime,
-      endTime,
-    },
-  });
 }
 
 async function removeAvailability(userId, availabilityId) {

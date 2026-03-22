@@ -291,6 +291,60 @@ const { calculateDynamicPrice } = require('../pricing/pricing.service');
 async function createBooking(customerId, bookingData) {
   let { workerProfileId, serviceId, scheduledDate, addressDetails, latitude, longitude, estimatedPrice, notes, estimatedDuration, couponCode, frequency } = bookingData;
 
+  serviceId = Number(serviceId);
+  if (!Number.isInteger(serviceId) || serviceId <= 0) {
+    throw new AppError(400, 'Service ID must be a valid number.');
+  }
+
+  if (workerProfileId !== undefined && workerProfileId !== null && workerProfileId !== '') {
+    workerProfileId = Number(workerProfileId);
+    if (!Number.isInteger(workerProfileId) || workerProfileId <= 0) {
+      throw new AppError(400, 'Worker profile ID must be a valid number.');
+    }
+  } else {
+    workerProfileId = null;
+  }
+
+  if (estimatedDuration !== undefined && estimatedDuration !== null && estimatedDuration !== '') {
+    estimatedDuration = Number(estimatedDuration);
+    if (!Number.isInteger(estimatedDuration) || estimatedDuration < 15 || estimatedDuration > 1440) {
+      throw new AppError(400, 'Estimated duration must be between 15 and 1440 minutes.');
+    }
+  } else {
+    estimatedDuration = null;
+  }
+
+  if (latitude !== undefined && latitude !== null && latitude !== '') {
+    latitude = Number(latitude);
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+      throw new AppError(400, 'Latitude must be between -90 and 90.');
+    }
+  } else {
+    latitude = null;
+  }
+
+  if (longitude !== undefined && longitude !== null && longitude !== '') {
+    longitude = Number(longitude);
+    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      throw new AppError(400, 'Longitude must be between -180 and 180.');
+    }
+  } else {
+    longitude = null;
+  }
+
+  if (estimatedPrice !== undefined && estimatedPrice !== null && estimatedPrice !== '') {
+    estimatedPrice = Number(estimatedPrice);
+    if (!Number.isFinite(estimatedPrice)) {
+      throw new AppError(400, 'Estimated price must be a valid number.');
+    }
+  } else {
+    estimatedPrice = undefined;
+  }
+
+  if (typeof frequency === 'string' && frequency.trim()) {
+    frequency = frequency.trim().toUpperCase();
+  }
+
   // BUSINESS GROWTH: Coupon Validation (Sprint 17)
   let appliedCoupon = null;
   if (couponCode) {
@@ -1192,10 +1246,26 @@ async function getOpenBookingsForWorker(userId, { skip = 0, limit = 20 } = {}) {
 
   const workerServiceIds = worker.services.map(s => s.serviceId);
 
+  const textServiceAreas = Array.isArray(worker.serviceAreas)
+    ? worker.serviceAreas
+      .filter((area) => typeof area === 'string' && area.trim())
+      .map((area) => area.trim())
+    : [];
+
   const where = {
     status: 'PENDING',
     workerProfileId: null, // Open booking
-    serviceId: { in: workerServiceIds } // Matches worker's skills
+    serviceId: { in: workerServiceIds }, // Matches worker's skills
+    ...(textServiceAreas.length > 0
+      ? {
+        OR: textServiceAreas.map((area) => ({
+          address: {
+            contains: area,
+            mode: 'insensitive',
+          },
+        })),
+      }
+      : {}),
   };
 
   // 2. Find PENDING bookings with NO worker assigned, matching their services
@@ -1224,17 +1294,9 @@ async function getOpenBookingsForWorker(userId, { skip = 0, limit = 20 } = {}) {
     prisma.booking.count({ where }),
   ]);
 
-  // 3. Filter by Location (Service Area)
-  // Only show jobs where the job address matches one of the worker's service areas
-  const relevantBookings = openBookings.filter(booking => {
-    if (!worker.serviceAreas || worker.serviceAreas.length === 0) return true;
-    if (!booking.address) return false;
-    return worker.serviceAreas.some(area => booking.address.toLowerCase().includes(area.toLowerCase()));
-  });
-
   // Map to flatten city for frontend convenience
   return {
-    data: relevantBookings.map(booking => ({
+    data: openBookings.map(booking => ({
       ...booking,
       customer: {
         ...booking.customer,
@@ -1254,7 +1316,21 @@ async function getOpenBookingsForWorker(userId, { skip = 0, limit = 20 } = {}) {
  * - Worker ID is assigned to the booking
  */
 async function acceptBooking(bookingId, userId) {
-  const worker = await requireWorkerProfile(userId, 'Only registered workers can accept bookings.', 403);
+  const worker = await requireWorkerProfile(userId, 'Only registered workers can accept bookings.', 403, {
+    user: {
+      select: {
+        isProfileComplete: true,
+      },
+    },
+  });
+
+  if (!worker.user?.isProfileComplete) {
+    throw new AppError(403, 'Please complete your profile details first.');
+  }
+
+  if (!worker.isVerified) {
+    throw new AppError(403, 'Only verified workers can accept booking requests.');
+  }
 
   // Transaction to ensure no two workers accept the same job at the exact same millisecond
   return prisma.$transaction(async (tx) => {

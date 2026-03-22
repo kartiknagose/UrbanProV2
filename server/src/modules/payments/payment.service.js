@@ -3,6 +3,20 @@ const crypto = require('crypto');
 const AppError = require('../../common/errors/AppError');
 const prisma = require('../../config/prisma');
 
+function toPaiseAmount(amount) {
+  const normalizedAmount = Number(amount);
+  if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+    throw new AppError(400, 'Invalid payment amount.');
+  }
+
+  const paise = Math.round(normalizedAmount * 100);
+  if (!Number.isSafeInteger(paise) || paise <= 0) {
+    throw new AppError(400, 'Invalid payment amount.');
+  }
+
+  return paise;
+}
+
 function getRazorpayClient() {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -18,10 +32,10 @@ function getRazorpayClient() {
 async function createRazorpayOrder(bookingId, amount, currency = 'INR') {
   const razorpay = getRazorpayClient();
   const options = {
-    amount: Math.round(amount * 100), // Razorpay expects paise
+    amount: toPaiseAmount(amount), // Razorpay expects paise
     currency,
     receipt: `booking_${bookingId}`,
-    notes: { bookingId },
+    notes: { bookingId: String(bookingId) },
     payment_capture: 1,
   };
   const order = await razorpay.orders.create(options);
@@ -31,7 +45,7 @@ async function createRazorpayOrder(bookingId, amount, currency = 'INR') {
 async function createRazorpayWalletTopupOrder(userId, amount, currency = 'INR') {
   const razorpay = getRazorpayClient();
   const options = {
-    amount: Math.round(amount * 100),
+    amount: toPaiseAmount(amount),
     currency,
     receipt: `wallet_${userId}_${Date.now()}`,
     notes: { userId: String(userId), purpose: 'WALLET_TOPUP' },
@@ -53,7 +67,13 @@ function verifyRazorpayPaymentSignature({ orderId, paymentId, signature }) {
 
   const payload = `${orderId}|${paymentId}`;
   const digest = crypto.createHmac('sha256', keySecret).update(payload).digest('hex');
-  return digest === signature;
+
+  const providedSignature = String(signature);
+  if (providedSignature.length !== digest.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(Buffer.from(digest, 'utf8'), Buffer.from(providedSignature, 'utf8'));
 }
 
 async function fetchRazorpayOrder(orderId) {

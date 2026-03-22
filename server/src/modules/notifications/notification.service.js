@@ -1,11 +1,18 @@
 const prisma = require('../../config/prisma');
-const { getIo } = require('../../socket');
 const { pushToUser } = require('./push.service');
 const { shouldNotify } = require('./preference.service');
 
+let getIo;
+try {
+    ({ getIo } = require('../../socket'));
+} catch (_err) {
+    getIo = null;
+}
+
 async function createNotification({ userId, type, title, message, data }) {
+    let notification;
     try {
-        const notification = await prisma.notification.create({
+        notification = await prisma.notification.create({
             data: {
                 userId,
                 type,
@@ -15,15 +22,25 @@ async function createNotification({ userId, type, title, message, data }) {
             }
         });
 
+    } catch (error) {
+        console.error('Error creating notification:', error);
+        return null;
+    }
+
+    try {
         // Push via Socket.IO (in-app)
         const sendInApp = await shouldNotify(userId, 'inApp', type);
         if (sendInApp) {
-            const io = getIo();
+            const io = getIo ? getIo() : null;
             if (io) {
                 io.to(`user:${userId}`).emit('notification:new', notification);
             }
         }
+    } catch (error) {
+        console.warn('In-app notification delivery failed:', error.message);
+    }
 
+    try {
         // Push via Web Push (browser notification)
         const sendPush = await shouldNotify(userId, 'push', type);
         if (sendPush) {
@@ -33,15 +50,14 @@ async function createNotification({ userId, type, title, message, data }) {
                 icon: '/pwa-192x192.png',
                 badge: '/pwa-64x64.png',
                 tag: `${type}-${notification.id}`,
-                data: { url: getNotificationUrl(type, data), ...data },
+                data: { url: getNotificationUrl(type, data), ...(data || {}) },
             }).catch(() => {}); // fire-and-forget — don't block the main flow
         }
-
-        return notification;
     } catch (error) {
-        console.error('Error creating notification:', error);
-        return null;
+        console.warn('Push notification delivery failed:', error.message);
     }
+
+    return notification;
 }
 
 /**

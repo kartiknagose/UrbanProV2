@@ -84,7 +84,7 @@ exports.checkCoupon = asyncHandler(async (req, res) => {
  * Apply a Referral Code (if not applied during signup)
  */
 exports.applyReferralCode = asyncHandler(async (req, res) => {
-    const { code } = req.body;
+    const code = String(req.body.code || '').trim();
     await GrowthService.applyReferral(req.user.id, code);
     res.json({ message: 'Referral code applied successfully!' });
 });
@@ -175,11 +175,15 @@ exports.confirmWalletTopup = asyncHandler(async (req, res) => {
  * Add Credits to Wallet (manual/internal use)
  */
 exports.addCredits = asyncHandler(async (req, res) => {
-    const { amount, description } = req.body;
-    if (!amount || amount <= 0) throw new AppError(400, 'Invalid amount.');
+    const amount = Number(req.body.amount);
+    const description = typeof req.body.description === 'string' ? req.body.description.trim() : undefined;
+    const targetUserId = req.body.userId ? Number(req.body.userId) : req.user.id;
+
+    if (!Number.isFinite(amount) || amount <= 0) throw new AppError(400, 'Invalid amount.');
+    if (!Number.isInteger(targetUserId) || targetUserId <= 0) throw new AppError(400, 'Invalid target user id.');
 
     const transaction = await GrowthService.depositCredits(
-        req.user.id,
+        targetUserId,
         amount,
         description || 'Wallet Top-up'
     );
@@ -197,10 +201,12 @@ exports.addCredits = asyncHandler(async (req, res) => {
  * Toggle favorite status for a worker
  */
 exports.toggleFavorite = asyncHandler(async (req, res) => {
-    const { workerProfileId } = req.body;
-    if (!workerProfileId) throw new AppError(400, 'workerProfileId is required.');
+    const workerProfileId = Number(req.body.workerProfileId);
+    if (!Number.isInteger(workerProfileId) || workerProfileId <= 0) {
+        throw new AppError(400, 'workerProfileId is required.');
+    }
 
-    const result = await FavoritesService.toggleFavorite(req.user.id, Number(workerProfileId));
+    const result = await FavoritesService.toggleFavorite(req.user.id, workerProfileId);
     res.json(result);
 });
 
@@ -218,8 +224,8 @@ exports.getFavorites = asyncHandler(async (req, res) => {
  * Check if a worker is favorited
  */
 exports.checkFavorite = asyncHandler(async (req, res) => {
-    const { workerProfileId } = req.params;
-    const favorited = await FavoritesService.isFavorited(req.user.id, Number(workerProfileId));
+    const workerProfileId = Number(req.params.workerProfileId);
+    const favorited = await FavoritesService.isFavorited(req.user.id, workerProfileId);
     res.json({ favorited });
 });
 
@@ -248,10 +254,10 @@ exports.getLoyaltySummary = asyncHandler(async (req, res) => {
  * Redeem loyalty points for discount
  */
 exports.redeemPoints = asyncHandler(async (req, res) => {
-    const { points } = req.body;
-    if (!points || points <= 0) throw new AppError(400, 'Invalid points amount.');
+    const points = Number(req.body.points);
+    if (!Number.isInteger(points) || points <= 0) throw new AppError(400, 'Invalid points amount.');
 
-    const result = await LoyaltyService.redeemPoints(req.user.id, Number(points));
+    const result = await LoyaltyService.redeemPoints(req.user.id, points);
     res.json(result);
 });
 
@@ -291,7 +297,10 @@ exports.cancelProPlus = asyncHandler(async (req, res) => {
  * POST /api/growth/giftcards/purchase
  */
 exports.purchaseGiftCard = asyncHandler(async (req, res) => {
-    const { senderName, recipientEmail, message, amount } = req.body;
+    const senderName = typeof req.body.senderName === 'string' ? req.body.senderName.trim() : null;
+    const recipientEmail = String(req.body.recipientEmail || '').trim().toLowerCase();
+    const message = typeof req.body.message === 'string' ? req.body.message.trim() : null;
+    const amount = Number(req.body.amount);
     const card = await GrowthService.purchaseGiftCard({ senderName, recipientEmail, message, amount });
     res.json({ message: 'Gift card purchased successfully', card });
 });
@@ -300,7 +309,7 @@ exports.purchaseGiftCard = asyncHandler(async (req, res) => {
  * POST /api/growth/giftcards/redeem
  */
 exports.redeemGiftCard = asyncHandler(async (req, res) => {
-    const { code } = req.body;
+    const code = String(req.body.code || '').trim();
     if (!code) throw new AppError(400, 'Gift card code is required.');
 
     const result = await GrowthService.redeemGiftCard(req.user.id, code);
@@ -311,7 +320,7 @@ exports.redeemGiftCard = asyncHandler(async (req, res) => {
  * GET /api/growth/giftcards/check/:code
  */
 exports.checkGiftCard = asyncHandler(async (req, res) => {
-    const { code } = req.params;
+    const code = String(req.params.code || '').trim();
     const info = await GrowthService.checkGiftCard(code);
     res.json(info);
 });

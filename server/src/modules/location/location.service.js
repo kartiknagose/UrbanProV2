@@ -114,7 +114,7 @@ async function getWorkerLocation(workerProfileId) {
  * Get all online workers within a radius
  * (Simple box filter for now, can be improved with PostGIS if needed)
  */
-async function getNearbyWorkers(lat, lng, radiusKm = 10) {
+async function getNearbyWorkers(lat, lng, radiusKm = 10, limit = 50) {
     // 1 degree latitude is approx 111km
     // 1 degree longitude is approx 111km * cos(lat)
     const latDelta = radiusKm / 111;
@@ -122,7 +122,7 @@ async function getNearbyWorkers(lat, lng, radiusKm = 10) {
     const safeCosLatitude = Math.max(Math.abs(cosLatitude), 0.01);
     const lngDelta = radiusKm / (111 * safeCosLatitude);
 
-    return prisma.workerLocation.findMany({
+    const candidates = await prisma.workerLocation.findMany({
         where: {
             isOnline: true,
             latitude: {
@@ -132,16 +132,32 @@ async function getNearbyWorkers(lat, lng, radiusKm = 10) {
             longitude: {
                 gte: lng - lngDelta,
                 lte: lng + lngDelta
-            }
-        },
-        include: {
+            },
             workerProfile: {
-                include: {
+                isVerified: true,
+                user: {
+                    isActive: true,
+                },
+            },
+        },
+        select: {
+            id: true,
+            workerProfileId: true,
+            latitude: true,
+            longitude: true,
+            isOnline: true,
+            lastUpdated: true,
+            workerProfile: {
+                select: {
+                    id: true,
+                    rating: true,
+                    totalReviews: true,
+                    isVerified: true,
                     user: {
                         select: { id: true, name: true, profilePhotoUrl: true }
                     },
                     services: {
-                        include: {
+                        select: {
                             service: true
                         }
                     }
@@ -149,6 +165,18 @@ async function getNearbyWorkers(lat, lng, radiusKm = 10) {
             }
         }
     });
+
+    return candidates
+        .map((workerLocation) => {
+            const distanceKm = calculateDistance(lat, lng, workerLocation.latitude, workerLocation.longitude);
+            return {
+                ...workerLocation,
+                distanceKm,
+            };
+        })
+        .filter((workerLocation) => workerLocation.distanceKm <= radiusKm)
+        .sort((a, b) => a.distanceKm - b.distanceKm)
+        .slice(0, limit);
 }
 
 /**

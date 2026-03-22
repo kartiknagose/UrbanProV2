@@ -6,17 +6,26 @@ const AppError = require('../../common/errors/AppError');
 /**
  * Generate PDF Invoice for Customer
  */
-exports.generateBookingInvoicePDF = async (bookingId, res) => {
+exports.generateBookingInvoicePDF = async ({ bookingId, requesterId, requesterRole, res }) => {
     const booking = await prisma.booking.findUnique({
         where: { id: bookingId },
         include: {
-            customer: true,
-            workerProfile: { include: { user: true } },
+            customer: { select: { id: true, name: true } },
+            workerProfile: { select: { userId: true, user: { select: { name: true } } } },
             service: true
         }
     });
 
     if (!booking) throw new AppError(404, 'Booking not found');
+
+    const canAccess =
+        requesterRole === 'ADMIN'
+        || booking.customerId === requesterId
+        || booking.workerProfile?.userId === requesterId;
+
+    if (!canAccess) {
+        throw new AppError(403, 'You are not authorized to access this invoice.');
+    }
 
     const doc = new PDFDocument({ margin: 50 });
     doc.pipe(res);
@@ -103,6 +112,13 @@ exports.generateBookingInvoicePDF = async (bookingId, res) => {
  * Generate Monthly Revenue & TDS Report for a Worker
  */
 exports.generateWorkerRevenuePDF = async (userId, month, year, res) => {
+    if (!Number.isInteger(month) || month < 1 || month > 12) {
+        throw new AppError(400, 'Month must be between 1 and 12.');
+    }
+    if (!Number.isInteger(year) || year < 2020 || year > 2100) {
+        throw new AppError(400, 'Year must be between 2020 and 2100.');
+    }
+
     const profile = await prisma.workerProfile.findUnique({
         where: { userId },
         include: { user: true }
@@ -177,6 +193,13 @@ exports.generateWorkerRevenuePDF = async (userId, month, year, res) => {
  * Platform Admin - Export CSV for GSTR-1 logic
  */
 exports.exportGSTR1CSV = async (month, year, res) => {
+    if (!Number.isInteger(month) || month < 1 || month > 12) {
+        throw new AppError(400, 'Month must be between 1 and 12.');
+    }
+    if (!Number.isInteger(year) || year < 2020 || year > 2100) {
+        throw new AppError(400, 'Year must be between 2020 and 2100.');
+    }
+
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
@@ -197,7 +220,7 @@ exports.exportGSTR1CSV = async (month, year, res) => {
             'Invoice No': `INV-${b.id}`,
             'Date': new Date(b.paidAt || b.createdAt).toLocaleDateString(),
             'Customer Name': b.customer.name,
-            'Service Category': b.service.category,
+            'Service Category': b.service?.category || 'N/A',
             'Taxable Base Value': Number(b.basePrice || b.totalPrice || 0) - Number(b.gstAmount || 0),
             'IGST/CGST/SGST Amount': Number(b.gstAmount || 0),
             'Total Invoice Value': Number(b.totalPrice || 0),
