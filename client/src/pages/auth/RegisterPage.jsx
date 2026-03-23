@@ -8,8 +8,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, User, Briefcase, ArrowRight, Phone, CheckCircle } from 'lucide-react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { AuthLayout } from '../../components/layout/AuthLayout';
-import { Input, Button } from '../../components/common';
+import { Button } from '../../components/common';
+import { FormField } from '../../components/common/forms';
 import { useAuth } from '../../hooks/useAuth';
+import { toastSuccess, toastErrorFromResponse } from '../../utils/notifications';
 import { usePageTitle } from '../../hooks/usePageTitle';
 
 const registerSchema = z.object({
@@ -46,8 +48,10 @@ export function RegisterPage() {
     const result = role === 'WORKER' ? await registerAsWorker(userData) : await registerUser(userData);
     if (!result.success) {
       setServerError(result.error || 'Registration failed. Please try again.');
+      toastErrorFromResponse({ message: result.error || 'Registration failed' });
       return;
     }
+    toastSuccess('Account created! Check your email to verify.');
     setIsSuccess(true);
   };
 
@@ -131,44 +135,54 @@ export function RegisterPage() {
 
             {/* Form */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <Input
+              <FormField
+                name="name"
                 label="Full Name"
                 placeholder="John Doe"
                 icon={User}
+                required
                 error={errors.name?.message}
                 {...register('name')}
               />
-              <Input
+              <FormField
+                name="email"
                 label="Email Address"
                 type="email"
                 placeholder="you@example.com"
                 icon={Mail}
+                required
                 error={errors.email?.message}
                 {...register('email', { onChange: () => { setServerError(''); clearError(); } })}
               />
-              <Input
+              <FormField
+                name="mobile"
                 label="Mobile Number"
                 type="tel"
                 placeholder="9876543210"
                 icon={Phone}
+                required
                 error={errors.mobile?.message}
                 hint="10-digit mobile number without country code"
                 {...register('mobile')}
               />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
+                <FormField
+                  name="password"
                   label="Password"
                   type="password"
                   placeholder="Min 8 chars"
                   icon={Lock}
+                  required
                   error={errors.password?.message}
                   {...register('password')}
                 />
-                <Input
+                <FormField
+                  name="confirmPassword"
                   label="Confirm Password"
                   type="password"
                   placeholder="Repeat password"
                   icon={Lock}
+                  required
                   error={errors.confirmPassword?.message}
                   {...register('confirmPassword')}
                 />

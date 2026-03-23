@@ -89,15 +89,13 @@ export function useAsync(asyncFunction, immediate = false, initialData = null) {
   }, [initialData]);
 
   // Execute immediately if requested
-  const executeIfImmediate = useCallback(() => {
+  useEffect(() => {
+    // Only execute if immediate flag is set
     if (immediate) {
       execute();
     }
-  }, [immediate, execute]);
-
-  useEffect(() => {
-    executeIfImmediate();
-  }, [executeIfImmediate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - execute only once on mount
 
   return {
     ...state,

@@ -8,8 +8,10 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowRight, ArrowLeft, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
 import { motion as Motion } from 'framer-motion';
 import { AuthLayout } from '../../components/layout/AuthLayout';
-import { Input, Button } from '../../components/common';
+import { Button } from '../../components/common';
+import { FormField } from '../../components/common/forms';
 import { requestPasswordReset } from '../../api/auth';
+import { toastSuccess, toastErrorFromResponse } from '../../utils/notifications';
 import { usePageTitle } from '../../hooks/usePageTitle';
 
 const schema = z.object({
@@ -34,9 +36,12 @@ export function ForgotPasswordPage() {
     try {
       const response = await requestPasswordReset(data.email);
       setSuccessMessage(response.message || 'If an account exists with that email, a reset link has been sent.');
+      toastSuccess('Password reset link sent! Check your email.');
       if (response.resetLink) setResetLink(response.resetLink);
     } catch (error) {
-      setServerError(error.response?.data?.message || 'Failed to send reset email. Please try again.');
+      const message = error.response?.data?.message || 'Failed to send reset email. Please try again.';
+      setServerError(message);
+      toastErrorFromResponse(error);
     }
   };
 
@@ -82,11 +87,13 @@ export function ForgotPasswordPage() {
       </Motion.div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <Input
+        <FormField
+          name="email"
           label="Email Address"
           type="email"
           placeholder="you@example.com"
           icon={Mail}
+          required
           error={errors.email?.message}
           {...register('email')}
         />

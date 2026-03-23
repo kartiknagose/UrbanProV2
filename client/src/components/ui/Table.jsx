@@ -194,7 +194,7 @@ function SortIcon({ isActive, direction }) {
 /**
  * TableSkeleton - Loading state for tables
  */
-export function TableSkeleton({ rows = 5, columns = 4 }) {
+export function TableSkeleton({ rows = 5, _columns = 4 }) {
   return (
     <div className="space-y-2">
       {[...Array(rows)].map((_, i) => (

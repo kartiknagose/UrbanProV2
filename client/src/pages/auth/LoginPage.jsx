@@ -8,8 +8,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, LogIn, ArrowRight, CheckCircle } from 'lucide-react';
 import { motion as Motion } from 'framer-motion';
 import { AuthLayout } from '../../components/layout/AuthLayout';
-import { Input, Button } from '../../components/common';
+import { Button } from '../../components/common';
+import { FormField } from '../../components/common/forms';
 import { useAuth } from '../../hooks/useAuth';
+import { toastSuccess, toastErrorFromResponse } from '../../utils/notifications';
 import { IMAGES } from '../../constants/images';
 import { usePageTitle } from '../../hooks/usePageTitle';
 
@@ -35,7 +37,12 @@ export function LoginPage() {
     setServerError('');
     clearError();
     const result = await login(data);
-    if (!result.success) { setServerError(result.error || 'Login failed'); return; }
+    if (!result.success) { 
+      setServerError(result.error || 'Login failed');
+      toastErrorFromResponse({ message: result.error || 'Login failed' });
+      return; 
+    }
+    toastSuccess('Login successful! Redirecting...');
     const role = result.user?.role;
     setTimeout(() => {
       if (role === 'ADMIN')  navigate('/admin/dashboard');
@@ -76,22 +83,26 @@ export function LoginPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Email */}
-        <Input
+        <FormField
+          name="email"
           label="Email Address"
           type="email"
           placeholder="you@example.com"
           icon={Mail}
+          required
           error={errors.email?.message}
           {...register('email', { onChange: () => { setServerError(''); clearError(); } })}
         />
 
         {/* Password */}
         <div className="space-y-1">
-          <Input
+          <FormField
+            name="password"
             label="Password"
             type="password"
             placeholder="Your password"
             icon={Lock}
+            required
             error={errors.password?.message}
             {...register('password', { onChange: () => { setServerError(''); clearError(); } })}
           />

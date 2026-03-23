@@ -8,8 +8,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, Save, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { motion as Motion } from 'framer-motion';
 import { AuthLayout } from '../../components/layout/AuthLayout';
-import { Input, Button } from '../../components/common';
+import { Button } from '../../components/common';
+import { FormField } from '../../components/common/forms';
 import { resetPassword } from '../../api/auth';
+import { toastSuccess, toastErrorFromResponse } from '../../utils/notifications';
 import { usePageTitle } from '../../hooks/usePageTitle';
 
 const schema = z.object({
@@ -36,13 +38,17 @@ export function ResetPasswordPage() {
     setServerError('');
     if (!token) {
       setServerError('Reset token is missing. Please use the link from your email.');
+      toastErrorFromResponse({ message: 'Reset token is missing' });
       return;
     }
     try {
       await resetPassword({ token, password: data.password });
+      toastSuccess('Password reset successfully! You can now log in.');
       setSuccess(true);
     } catch (error) {
-      setServerError(error.response?.data?.message || 'Failed to reset password. The link may have expired.');
+      const message = error.response?.data?.message || 'Failed to reset password. The link may have expired.';
+      setServerError(message);
+      toastErrorFromResponse(error);
     }
   };
 
@@ -83,20 +89,24 @@ export function ResetPasswordPage() {
         </Motion.div>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <Input
+          <FormField
+            name="password"
             label="New Password"
             type="password"
             placeholder="Create a strong password"
             icon={Lock}
+            required
             error={errors.password?.message}
             hint="At least 8 characters with letters and numbers"
             {...register('password')}
           />
-          <Input
+          <FormField
+            name="confirmPassword"
             label="Confirm Password"
             type="password"
             placeholder="Confirm your new password"
             icon={Lock}
+            required
             error={errors.confirmPassword?.message}
             {...register('confirmPassword')}
           />

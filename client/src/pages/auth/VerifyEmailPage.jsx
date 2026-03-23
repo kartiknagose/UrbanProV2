@@ -7,6 +7,7 @@ import { motion as Motion } from 'framer-motion';
 import { verifyEmail } from '../../api/auth';
 import { MainLayout } from '../../components/layout/MainLayout';
 import { Button } from '../../components/common';
+import { toastSuccess, toastErrorFromResponse } from '../../utils/notifications';
 import { usePageTitle } from '../../hooks/usePageTitle';
 
 export function VerifyEmailPage() {
@@ -42,16 +43,20 @@ export function VerifyEmailPage() {
         } else if (!data.hasAddress) {
           successMsg = 'Email verified! Please login to add your address.';
         }
+        toastSuccess('Email verified successfully! ✓');
         setStatus('success');
         setMessage(successMsg);
         setVerifiedEmail(data.email || '');
       } catch (error) {
         if (error.response?.data?.message?.includes('already verified') || error.response?.status === 409) {
+          toastSuccess('Email is already verified. You can sign in.');
           setStatus('success');
           setMessage('Email is already verified. You can sign in.');
         } else {
+          const message = error.response?.data?.message || 'Verification failed. The link may have expired or already been used.';
+          toastErrorFromResponse(error);
           setStatus('error');
-          setMessage(error.response?.data?.message || 'Verification failed. The link may have expired or already been used.');
+          setMessage(message);
         }
       }
     };
