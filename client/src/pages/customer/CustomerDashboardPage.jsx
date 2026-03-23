@@ -17,12 +17,14 @@ import {
   AsyncState,
   ConfirmDialog
 } from '../../components/common';
+import { EmptyDataState } from '../../components/common/sections';
 
 import {
   Calendar,
   Briefcase,
   CheckCircle,
   Clock,
+  Home,
   Zap,
   Star,
   CalendarClock,
@@ -41,7 +43,8 @@ import { getPageLayout } from '../../constants/layout';
 import { getServiceImage } from '../../constants/images';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcut';
 import { useSocketEvent } from '../../hooks/useSocket';
-import { toast } from 'sonner';
+import { formatCurrencyCompact } from '../../utils/formatters';
+import { toastSuccess, toastErrorFromResponse, toastInfo, toastError } from '../../utils/notifications';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { useRazorpay } from '../../hooks/useRazorpay';
 import { ensureRazorpayLoaded, getRazorpayKeyId } from '../../utils/razorpay';
@@ -58,7 +61,7 @@ export function CustomerDashboardPage() {
 
   useRazorpay({
     onError: () => {
-      toast.error(t('Payment system failed to load. Please refresh and try again.'));
+      toastError(t('Payment system failed to load. Please refresh and try again.'));
     },
   });
 
@@ -83,11 +86,11 @@ export function CustomerDashboardPage() {
   const reviewMutation = useMutation({
     mutationFn: (payload) => createReview(payload),
     onSuccess: () => {
-      toast.success(t('Review submitted! Thank you.'));
+      toastSuccess(t('Review submitted! Thank you.'));
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings.customer() });
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || error.response?.data?.error || t('Failed to submit review'));
+      toastErrorFromResponse(error, t('Failed to submit review'));
     },
   });
 
@@ -100,13 +103,13 @@ export function CustomerDashboardPage() {
 
   const launchRazorpayCheckout = (order, booking, onSuccess, onFailure) => {
     if (!window?.Razorpay) {
-      toast.error(t('Payment system unavailable. Please try again in a moment.'));
+      toastError(t('Payment system unavailable. Please try again in a moment.'));
       onFailure?.();
       return;
     }
 
     if (!razorpayKeyId) {
-      toast.error(t('Payment is not configured. Please contact support.'));
+      toastError(t('Payment is not configured. Please contact support.'));
       onFailure?.();
       return;
     }
@@ -135,7 +138,7 @@ export function CustomerDashboardPage() {
       const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (_error) {
-      toast.error(t('Unable to open payment window. Please try again.'));
+      toastError(t('Unable to open payment window. Please try again.'));
       onFailure?.();
     }
   };
@@ -195,11 +198,11 @@ export function CustomerDashboardPage() {
           )),
         };
       });
-      toast.success(t('Payment successful! Thank you.'));
+      toastSuccess(t('Payment successful! Thank you.'));
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings.customer() });
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || error.response?.data?.error || error.message || t('Payment failed'));
+      toastErrorFromResponse(error, t('Payment failed'));
     },
   });
 
@@ -261,10 +264,16 @@ export function CustomerDashboardPage() {
       .reduce((sum, booking) => sum + Number(booking.totalPrice || 0), 0);
   }, [bookings]);
 
+  const pendingPaymentTotal = useMemo(() => {
+    return bookings
+      .filter((booking) => booking.status === 'COMPLETED' && booking.paymentStatus !== 'PAID')
+      .reduce((sum, booking) => sum + Number(booking.totalPrice || 0), 0);
+  }, [bookings]);
+
   useSocketEvent('booking:created', (payload) => {
     const customerId = payload?.customerId || payload?.customer?.id;
     if (String(customerId) === String(user?.id)) {
-      toast.info(t('New booking confirmed!'));
+      toastInfo(t('New booking confirmed!'));
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings.customer() });
     }
   });
@@ -273,7 +282,7 @@ export function CustomerDashboardPage() {
     const customerId = payload?.customerId || payload?.customer?.id;
     if (String(customerId) === String(user?.id)) {
       const bookingId = payload?.id || payload?.bookingId;
-      toast.success(t('Booking status: {{status}}', { status: t(payload.status) }), {
+      toastSuccess(t('Booking status: {{status}}', { status: t(payload.status) }), {
         id: `booking-status:${bookingId}:${payload?.status}`,
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings.customer() });
@@ -289,6 +298,10 @@ export function CustomerDashboardPage() {
           <div className="flex items-center gap-6">
             <Avatar name={user?.name} src={user?.profilePhotoUrl} size="xl" ring />
             <div>
+              <div className="inline-flex items-center gap-2 mb-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-brand-600 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
+                <Home size={12} />
+                {t('Customer Home')}
+              </div>
               <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-2 text-gray-900 dark:text-white">
                 {t('Welcome back,')} <span className="text-brand-500">{user?.name?.split(' ')[0]}!</span>
               </h1>
@@ -323,13 +336,13 @@ export function CustomerDashboardPage() {
             />
             <StatCard
               title={t("Pending Payments")}
-              value={`₹${bookings.filter(b => b.status === 'COMPLETED' && b.paymentStatus !== 'PAID').reduce((sum, b) => sum + Number(b.totalPrice || 0), 0).toLocaleString()}`}
+              value={formatCurrencyCompact(pendingPaymentTotal)}
               icon={Wallet}
               color="info"
             />
             <StatCard
               title={t("Total Invested")}
-              value={`₹${totalSpent.toLocaleString()}`}
+              value={formatCurrencyCompact(totalSpent)}
               icon={Briefcase}
               color="warning"
             />
@@ -381,34 +394,43 @@ export function CustomerDashboardPage() {
               <h2 className="text-2xl font-bold tracking-tight mb-8 text-gray-900 dark:text-white">
                 {t('Handpicked for you')}
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {services.slice(0, 4).map(service => (
-                  <Card
-                    key={service.id}
-                    className="group hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden border-0 bg-transparent"
-                    onClick={() => navigate(`/services/${service.id}`)}
-                  >
-                    <div className="relative h-56 rounded-[2rem] overflow-hidden shadow-lg">
-                      <img
-                        src={getServiceImage(service.name || service.category)}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 blur-[0.5px] group-hover:blur-0"
-                        alt={service.name}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/10 to-transparent opacity-80" />
-                      <div className="absolute bottom-6 left-6 right-6">
-                        <Badge className="bg-brand-500 text-white border-0 mb-3 px-3 py-1 font-bold uppercase text-[8px] tracking-[0.2em]">{t(service.category || '')}</Badge>
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-white font-bold text-xl tracking-tight">{t(service.name || '')}</h3>
+              {services.length === 0 ? (
+                <EmptyDataState
+                  title={t('No recommendations yet')}
+                  description={t('Explore services to unlock personalized recommendations.')}
+                  actionLabel={t('Browse Services')}
+                  onAction={() => navigate('/services')}
+                />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {services.slice(0, 4).map(service => (
+                    <Card
+                      key={service.id}
+                      className="group hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden border-0 bg-transparent"
+                      onClick={() => navigate(`/services/${service.id}`)}
+                    >
+                      <div className="relative h-56 rounded-[2rem] overflow-hidden shadow-lg">
+                        <img
+                          src={getServiceImage(service.name || service.category)}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 blur-[0.5px] group-hover:blur-0"
+                          alt={service.name}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/10 to-transparent opacity-80" />
+                        <div className="absolute bottom-6 left-6 right-6">
+                          <Badge className="bg-brand-500 text-white border-0 mb-3 px-3 py-1 font-bold uppercase text-[8px] tracking-[0.2em]">{t(service.category || '')}</Badge>
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-white font-bold text-xl tracking-tight">{t(service.name || '')}</h3>
 
-                          <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white scale-0 group-hover:scale-100 transition-transform duration-300">
-                            <ArrowRight size={20} />
+                            <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white scale-0 group-hover:scale-100 transition-transform duration-300">
+                              <ArrowRight size={20} />
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </section>
           </div>
 
@@ -424,9 +446,9 @@ export function CustomerDashboardPage() {
                   const fallbackCopy = async () => {
                     try {
                       await navigator.clipboard.writeText(window.location.origin);
-                      toast.success(t('Link copied to clipboard!'));
+                      toastSuccess(t('Link copied to clipboard!'));
                     } catch {
-                      toast.error(t('Unable to copy link. Please copy it manually.'));
+                      toastError(t('Unable to copy link. Please copy it manually.'));
                     }
                   };
 
@@ -482,7 +504,7 @@ export function CustomerDashboardPage() {
 
             {/* Support widget */}
             <div className="p-2">
-              <button onClick={() => toast.info(t('Support center coming soon! For urgent help, email support@urbanpro.com'))} className="w-full p-6 rounded-3xl border-2 border-dashed flex items-center justify-between group transition-all border-gray-200 hover:border-brand-500/30 dark:border-dark-700 dark:hover:border-brand-500/50">
+              <button onClick={() => toastInfo(t('Support center coming soon! For urgent help, email support@urbanpro.com'))} className="w-full p-6 rounded-3xl border-2 border-dashed flex items-center justify-between group transition-all border-gray-200 hover:border-brand-500/30 dark:border-dark-700 dark:hover:border-brand-500/50">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-dark-800 flex items-center justify-center">
                     <Clock size={18} className="text-gray-400" />
