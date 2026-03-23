@@ -1,9 +1,13 @@
 import { IndianRupee, CheckCircle2, Star, Clock } from 'lucide-react';
 import { Badge } from '../../../components/common';
 import { toFixedSafe } from '../../../utils/numberFormat';
+import { formatCurrencyCompact } from '../../../utils/formatters';
 
 export function ServiceHeader({ service }) {
   const avgRating = toFixedSafe(service?.avgRating, 1, null);
+  const basePriceLabel = service?.basePrice
+    ? formatCurrencyCompact(service.basePrice)
+    : 'Top Rated';
 
   return (
     <div>
@@ -15,7 +19,7 @@ export function ServiceHeader({ service }) {
           <div className="bg-brand-100 dark:bg-brand-900/30 p-1 rounded-full">
             <IndianRupee size={12} strokeWidth={3} />
           </div>
-          <span>Starts at ₹{service.basePrice || 'Top Rated'}</span>
+          <span>Starts at {basePriceLabel}</span>
         </div>
       </div>
 

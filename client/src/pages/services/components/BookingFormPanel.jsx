@@ -5,7 +5,8 @@ import { Input, Textarea, Button, Badge } from '../../../components/common';
 import { LocationPicker } from '../../../components/features/location/LocationPicker';
 import { AddressAutocomplete } from '../../../components/features/location/AddressAutocomplete';
 import { validateCoupon } from '../../../api/growth';
-import { toast } from 'sonner';
+import { formatCurrencyCompact } from '../../../utils/formatters';
+import { toastSuccess, toastErrorFromResponse } from '../../../utils/notifications';
 
 import { useTranslation } from 'react-i18next';
 
@@ -53,9 +54,9 @@ export function BookingFormPanel({
       });
       setAppliedCoupon(result);
       setValue('couponCode', result.code);
-      toast.success(t('Coupon applied successfully!'));
+      toastSuccess(t('Coupon applied successfully!'));
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Invalid coupon code');
+      toastErrorFromResponse(err, 'Invalid coupon code');
       setAppliedCoupon(null);
       setValue('couponCode', '');
     } finally {
@@ -71,6 +72,7 @@ export function BookingFormPanel({
 
   const finalTotalPrice = pricingData?.totalPrice || estimatedPrice || (selectedWorker ? selectedWorker.hourlyRate : service.basePrice);
   const discountedPrice = appliedCoupon ? Math.max(0, finalTotalPrice - appliedCoupon.discountAmount) : finalTotalPrice;
+  const formatINR = (value) => formatCurrencyCompact(Number(value || 0));
 
   return (
     <div className="rounded-[3rem] shadow-2xl overflow-hidden border border-white/40 bg-slate-50/90 dark:bg-dark-900/90 dark:border-dark-700/50 relative shadow-brand-500/5 backdrop-blur-3xl">
@@ -185,7 +187,7 @@ export function BookingFormPanel({
                 type="number"
                 label={t("Offer Price (Optional)")}
                 icon={IndianRupee}
-                placeholder={`Est: ₹${selectedWorker ? selectedWorker.hourlyRate : service.basePrice}`}
+                placeholder={`Est: ${formatINR(selectedWorker ? selectedWorker.hourlyRate : service.basePrice)}`}
                 hint={t("Propose a custom budget")}
                 className="group"
                 {...register('estimatedPrice')}
@@ -253,7 +255,7 @@ export function BookingFormPanel({
               <div className="space-y-3.5 pb-5 mb-5 border-b border-neutral-200/60 border-dashed dark:border-dark-800">
                 <div className="flex justify-between items-center text-sm font-semibold">
                   <span className="text-neutral-500">{t('Service Fee')}</span>
-                  <span className="text-neutral-700 dark:text-neutral-300">₹{pricingData.basePrice}</span>
+                  <span className="text-neutral-700 dark:text-neutral-300">{formatINR(pricingData.basePrice)}</span>
                 </div>
 
                 {pricingData.timeMultiplier > 1 && (
@@ -275,7 +277,7 @@ export function BookingFormPanel({
                 {pricingData.gstAmount > 0 && (
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-neutral-400 font-medium">{t('Taxes & Fees')} (GST 18%)</span>
-                    <span className="text-neutral-500 font-bold">+₹{pricingData.gstAmount}</span>
+                    <span className="text-neutral-500 font-bold">+{formatINR(pricingData.gstAmount)}</span>
                   </div>
                 )}
               </div>
@@ -295,7 +297,7 @@ export function BookingFormPanel({
                         <span className="text-xs font-black uppercase tracking-[0.1em]">{appliedCoupon.code}</span>
                       </div>
                     </div>
-                    <span className="font-black text-2xl relative z-10 tracking-tighter">-₹{appliedCoupon.discountAmount}</span>
+                    <span className="font-black text-2xl relative z-10 tracking-tighter">-{formatINR(appliedCoupon.discountAmount)}</span>
                   </div>
                 </Motion.div>
               )}
@@ -311,11 +313,11 @@ export function BookingFormPanel({
                     <>
                       {appliedCoupon ? (
                         <div className="flex items-baseline gap-3">
-                          <span className="text-neutral-300 dark:text-dark-600 line-through text-xl font-bold decoration-2">₹{finalTotalPrice}</span>
-                          <span className="text-transparent bg-clip-text bg-gradient-to-r from-success-500 to-emerald-400">₹{discountedPrice}</span>
+                          <span className="text-neutral-300 dark:text-dark-600 line-through text-xl font-bold decoration-2">{formatINR(finalTotalPrice)}</span>
+                          <span className="text-transparent bg-clip-text bg-gradient-to-r from-success-500 to-emerald-400">{formatINR(discountedPrice)}</span>
                         </div>
                       ) : (
-                        `₹${finalTotalPrice}`
+                        formatINR(finalTotalPrice)
                       )}
                     </>
                   )}

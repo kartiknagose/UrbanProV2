@@ -4,6 +4,7 @@ import { Input, Badge, Button, Avatar } from "../../../components/common";
 import { bookingModes } from "./bookingModes";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { toFixedSafe } from "../../../utils/numberFormat";
+import { formatCurrencyCompact } from "../../../utils/formatters";
 
 const getVerificationLevelVariant = (level) => {
   switch (level) {
@@ -177,7 +178,7 @@ export function WorkerSelectionPanel({
                                 {worker.user?.name || "Professional"}
                               </h4>
                               <span className="font-black text-brand-600 dark:text-brand-400 shrink-0">
-                                ₹{worker.hourlyRate}<span className="text-[10px] text-neutral-400 uppercase">/hr</span>
+                                {formatCurrencyCompact(worker.hourlyRate)}<span className="text-[10px] text-neutral-400 uppercase">/hr</span>
                               </span>
                             </div>
 
