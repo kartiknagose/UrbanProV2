@@ -33,7 +33,6 @@ import {
   Textarea,
   WorkerTierBadge,
 } from '../../components/common';
-import { toast } from 'sonner';
 import { createWorkerProfile, getMyWorkerProfile } from '../../api/workers';
 import { uploadProfilePhoto } from '../../api/uploads';
 import { useAuth } from '../../hooks/useAuth';
@@ -43,6 +42,8 @@ import { getPageLayout } from '../../constants/layout';
 import { LocationPicker } from '../../components/features/location/LocationPicker';
 import { MiniMap } from '../../components/features/location/MiniMap';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import { formatCurrencyCompact } from '../../utils/formatters';
+import { toastSuccess, toastError } from '../../utils/notifications';
 
 const workerProfileSchema = z.object({
   bio: z.string().min(10, 'Bio must be at least 10 characters'),
@@ -428,7 +429,7 @@ export function WorkerProfilePage() {
         setUser(updatedUser);
       }
 
-      toast.success(t('Profile updated successfully.'));
+      toastSuccess(t('Profile updated successfully.'));
     } catch (error) {
       const errorMessage =
         error?.response?.data?.message ||
@@ -436,11 +437,14 @@ export function WorkerProfilePage() {
         error?.message ||
         t('Failed to update profile');
       setServerError(errorMessage);
-      toast.error(errorMessage);
+      toastError(errorMessage);
     }
   };
 
   const completionBadgeVariant = profileCompletion.percent >= 80 ? 'success' : 'info';
+  const formattedHourlyRate = profileData?.hourlyRate
+    ? formatCurrencyCompact(profileData.hourlyRate)
+    : '--';
 
   return (
     <MainLayout>
@@ -541,7 +545,7 @@ export function WorkerProfilePage() {
                         {t('Hourly Rate')}
                       </p>
                       <p className="mt-1 text-base font-bold text-neutral-900 dark:text-white">
-                        ₹{profileData?.hourlyRate || '--'}
+                        {formattedHourlyRate}
                       </p>
                     </div>
                     <div className="rounded-lg bg-neutral-50 p-2.5 dark:bg-dark-800">
@@ -702,7 +706,7 @@ export function WorkerProfilePage() {
                             </p>
                           </div>
                           <p className="text-sm text-neutral-700 dark:text-neutral-200">
-                            {t('Current base rate')}: <span className="font-bold">₹{profileData?.hourlyRate || '--'}</span>
+                            {t('Current base rate')}: <span className="font-bold">{formattedHourlyRate}</span>
                           </p>
                           <Button
                             variant="outline"

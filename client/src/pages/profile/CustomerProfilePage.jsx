@@ -13,11 +13,11 @@ import {
   History, MessageSquare, AlertCircle
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MainLayout } from '../../components/layout/MainLayout';
 import { Card, Input, CardHeader, CardTitle, CardDescription, Button, Badge } from '../../components/common';
+import { EmptyDataState } from '../../components/common/sections';
 import { LocationPicker } from '../../components/features/location/LocationPicker';
 
 import { getCustomerProfile, saveCustomerProfile } from '../../api/customers';
@@ -29,6 +29,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { resolveProfilePhotoUrl } from '../../utils/profilePhoto';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { queryKeys } from '../../utils/queryKeys';
+import { formatCurrencyCompact } from '../../utils/formatters';
+import { toastSuccess, toastError, toastInfo, toastErrorFromResponse, toastCopied } from '../../utils/notifications';
 
 void motion;
 
@@ -59,10 +61,10 @@ export function CustomerProfilePage() {
     try {
       await navigator.clipboard.writeText(code);
       setCopiedRef(true);
-      toast.success(t('Code copied!'));
+      toastCopied(t('Code copied!'));
       setTimeout(() => setCopiedRef(false), 2000);
     } catch {
-      toast.error(t('Unable to copy code. Please copy it manually.'));
+      toastError(t('Unable to copy code. Please copy it manually.'));
     }
   };
 
@@ -84,10 +86,10 @@ export function CustomerProfilePage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.safety.emergencyContacts() });
       setContactForm({ name: '', phone: '', relation: '' });
       setShowContactForm(false);
-      toast.success(t('Emergency contact added!'));
+      toastSuccess(t('Emergency contact added!'));
     },
     onError: (error) => {
-      toast.error(error.response?.data?.error || error.response?.data?.message || t('Failed to add contact'));
+      toastErrorFromResponse(error, t('Failed to add contact'));
     }
   });
 
@@ -103,23 +105,23 @@ export function CustomerProfilePage() {
   const changePasswordMutation = useMutation({
     mutationFn: changePassword,
     onSuccess: () => {
-      toast.success(t('Password updated successfully!'));
+      toastSuccess(t('Password updated successfully!'));
       setShowPasswordForm(false);
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     },
     onError: (error) => {
-      toast.error(error.response?.data?.error || t('Failed to update password. Check your current password.'));
+      toastErrorFromResponse(error, t('Failed to update password. Check your current password.'));
     }
   });
 
   const handlePasswordSubmit = (e) => {
     e.preventDefault();
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error(t('New passwords do not match!'));
+      toastError(t('New passwords do not match!'));
       return;
     }
     if (passwordForm.newPassword.length < 8) {
-      toast.error(t('New password must be at least 8 characters.'));
+      toastError(t('New password must be at least 8 characters.'));
       return;
     }
     changePasswordMutation.mutate({
@@ -211,7 +213,7 @@ export function CustomerProfilePage() {
           setPhotoPreview(resolvedPhoto);
         }
       } catch (error) {
-        toast.error(error.response?.data?.message || t('Failed to load profile'));
+        toastErrorFromResponse(error, t('Failed to load profile'));
       }
     };
 
@@ -222,7 +224,7 @@ export function CustomerProfilePage() {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        toast.error(t('Only image files are allowed'));
+        toastError(t('Only image files are allowed'));
         return;
       }
       setPhotoFile(file);
@@ -260,7 +262,7 @@ export function CustomerProfilePage() {
           hasShegaon(data.display_name);
 
         if (isShegaon) {
-           toast.success(t('Shegaon (Buldhana) detected! Syncing high-precision coordinates.'));
+            toastSuccess(t('Shegaon (Buldhana) detected! Syncing high-precision coordinates.'));
         }
 
         setValue('line1', line1 || addr.display_name?.split(',')[0] || '', { shouldDirty: true });
@@ -270,7 +272,7 @@ export function CustomerProfilePage() {
         setValue('postalCode', postalCode || '444203', { shouldDirty: true });
         setValue('country', 'India', { shouldDirty: true });
         
-        toast.info(t('Location parsed from map. Please review the fields below.'));
+        toastInfo(t('Location parsed from map. Please review the fields below.'));
       }
     } catch (error) {
       console.error('Map Reverse Geocoding Error:', error);
@@ -306,10 +308,10 @@ export function CustomerProfilePage() {
         setUser(newUserState);
       }
 
-      toast.success(t('Profile updated successfully!'));
+      toastSuccess(t('Profile updated successfully!'));
       setIsEditing(false);
     } catch (error) {
-      toast.error(error.response?.data?.message || t('Failed to update profile'));
+      toastErrorFromResponse(error, t('Failed to update profile'));
     }
   };
 
@@ -515,7 +517,7 @@ export function CustomerProfilePage() {
                                     handleSubmit(onSubmit, (errs) => {
                                       console.error('Submission Errors:', errs);
                                       const firstError = Object.values(errs)[0]?.message;
-                                      toast.error(firstError || t('Please review your profile details.'));
+                                      toastError(firstError || t('Please review your profile details.'));
                                     })();
                                   }}
                                   loading={isSubmitting}
@@ -628,7 +630,7 @@ export function CustomerProfilePage() {
                                     handleSubmit(onSubmit, (errs) => {
                                       console.error('Global Submission Errors:', errs);
                                       const firstError = Object.values(errs)[0]?.message;
-                                      toast.error(firstError || t('Please review required inputs.'));
+                                      toastError(firstError || t('Please review required inputs.'));
                                     })();
                                   }} 
                                   icon={Save} 
@@ -737,7 +739,7 @@ export function CustomerProfilePage() {
                                  size="sm" 
                                  onClick={() => {
                                    if (!contactForm.name || !contactForm.phone || !contactForm.relation) {
-                                     toast.error(t('Please fill all fields and select a relationship.'));
+                                     toastError(t('Please fill all fields and select a relationship.'));
                                      return;
                                    }
                                    addContactMutation.mutate(contactForm);
@@ -805,7 +807,7 @@ export function CustomerProfilePage() {
                              <p className="text-xs font-semibold text-neutral-500 mb-1">{t('Available Balance')}</p>
                              <div className="text-4xl font-black text-neutral-900 dark:text-white flex items-baseline tracking-tight">
                                <span className="text-xl font-bold mr-1 text-brand-500">₹</span>
-                               {walletData?.balance || '0.00'}
+                               {formatCurrencyCompact(walletData?.balance || 0).replace('₹', '')}
                              </div>
                            </div>
 
@@ -859,13 +861,18 @@ export function CustomerProfilePage() {
                                <p className="text-sm font-bold text-gray-900 dark:text-white">{tx.description}</p>
                                <p className="text-xs text-gray-500 uppercase tracking-widest">{formatWalletTransactionDate(tx.createdAt)}</p>
                              </div>
-                             <span className={`text-sm font-bold ${parseFloat(tx.amount) > 0 ? 'text-success-600' : 'text-gray-900 dark:text-white'}`}>
-                               {parseFloat(tx.amount) > 0 ? '+' : ''}₹{Math.abs(tx.amount)}
+                             <span className={`text-sm font-bold ${Number(tx.amount) > 0 ? 'text-success-600' : 'text-gray-900 dark:text-white'}`}>
+                               {Number(tx.amount) > 0 ? '+' : ''}{formatCurrencyCompact(Math.abs(Number(tx.amount || 0)))}
                              </span>
                            </div>
                          ))}
                          {(!walletData?.transactions || walletData.transactions.length === 0) && (
-                           <p className="text-sm text-center py-6 text-gray-400">{t('No recent transactions.')}</p>
+                           <EmptyDataState
+                             title={t('No recent transactions')}
+                             description={t('Your wallet activity will appear here after top-ups and bookings.')}
+                             actionLabel={t('Open Wallet')}
+                             onAction={() => navigate('/customer/wallet')}
+                           />
                          )}
                        </div>
                     </Card>
