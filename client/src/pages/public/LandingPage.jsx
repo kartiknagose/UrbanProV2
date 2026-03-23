@@ -406,7 +406,7 @@ export function LandingPage() {
           <Motion.div
             {...fadeUp()}
             className="relative rounded-[2.5rem] p-12 lg:p-16 text-center overflow-hidden isolate"
-            style={{ background: 'linear-gradient(135deg, #1d4ed8, #7c3aed, #9d174d)' }}
+            style={{ background: 'linear-gradient(135deg, #0f766e, #1d4ed8, #ea580c)' }}
           >
             {/* Background accents */}
             <div className="absolute inset-0 overflow-hidden -z-10" aria-hidden="true">
@@ -430,7 +430,7 @@ export function LandingPage() {
                 onClick={() => navigate('/register')}
                 className="h-14 px-8 text-lg font-bold bg-white text-brand-700 hover:bg-neutral-50 border-none shadow-2xl"
               >
-                {t('Get Started')} — {t("It's Free")}
+                {t('Get Started')} · {t("It's Free")}
               </Button>
               <Button
                 size="xl"

@@ -22,6 +22,7 @@ import {
   ShieldAlert,
   Zap,
   ArrowRight,
+  Truck,
   Wifi,
   WifiOff
 } from 'lucide-react';
@@ -44,6 +45,7 @@ import {
   Modal,
   ConfirmDialog
 } from '../../components/common';
+import { EmptyDataState } from '../../components/common/sections';
 
 import { getAllBookings, getOpenBookings } from '../../api/bookings';
 import { getMyWorkerProfile } from '../../api/workers';
@@ -56,7 +58,8 @@ import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcut';
 import { useWorkerLocation } from '../../hooks/useWorkerLocation';
 import { useBookingActions } from '../../hooks/useBookingActions';
 import { useSocketEvent } from '../../hooks/useSocket';
-import { toast } from 'sonner';
+import { formatCurrencyCompact } from '../../utils/formatters';
+import { toastInfo } from '../../utils/notifications';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { asArray } from '../../utils/safeData';
 
@@ -135,7 +138,7 @@ export function WorkerDashboardPage() {
       .reduce((sum, b) => sum + Number(b.totalPrice || 0), 0);
 
     return [
-      { title: t('Revenue'), value: `₹${totalEarnings.toLocaleString()}`, icon: Wallet, color: 'brand' },
+      { title: t('Revenue'), value: formatCurrencyCompact(totalEarnings), icon: Wallet, color: 'brand' },
       { title: t('Active'), value: activeBookings.length, icon: Activity, color: 'info' },
       { title: t('Rating'), value: profile?.rating || t('NEW'), icon: Star, color: 'warning' },
       { title: t('Jobs Done'), value: bookings.filter(b => b.status === 'COMPLETED').length, icon: CheckCircle, color: 'success' },
@@ -143,7 +146,7 @@ export function WorkerDashboardPage() {
   }, [bookings, activeBookings, profile, t]);
 
   useSocketEvent('booking:created', () => {
-    toast.info(t('New service request available on the board!'));
+    toastInfo(t('New service request available on the board!'));
     refetch();
     queryClient.invalidateQueries({ queryKey: queryKeys.bookings.open() });
   });
@@ -177,6 +180,10 @@ export function WorkerDashboardPage() {
               </button>
             </div>
             <div>
+              <div className="inline-flex items-center gap-2 mb-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-brand-600 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
+                <Truck size={12} />
+                {t('Worker Dispatch')}
+              </div>
               <h1 className="text-4xl md:text-5xl font-bold tracking-tighter mb-2 text-gray-900 dark:text-white">
                 {t('HQ')}, <span className="text-brand-500 font-bold">{user?.name?.split(' ')[0]}</span>
               </h1>
@@ -272,11 +279,12 @@ export function WorkerDashboardPage() {
                 </div>
 
                 {directRequests.length === 0 ? (
-                  <Card className="p-12 text-center border-dashed border-2">
-                    <User size={40} className="text-gray-300 mx-auto mb-4" />
-                    <p className="font-bold text-lg text-gray-500 dark:text-gray-400">{t('No direct requests yet')}</p>
-                    <p className="text-xs text-gray-400 mt-2 max-w-xs mx-auto">{t('When customers book you directly from your profile, their requests will appear here.')}</p>
-                  </Card>
+                  <EmptyDataState
+                    title={t('No direct requests yet')}
+                    description={t('When customers book you directly from your profile, their requests will appear here.')}
+                    actionLabel={t('Share Profile')}
+                    onAction={() => navigate('/worker/profile')}
+                  />
                 ) : (
                   <div className="space-y-4">
                     {directRequests.map(booking => (
@@ -310,11 +318,12 @@ export function WorkerDashboardPage() {
                 </div>
 
                 {openJobs.length === 0 ? (
-                  <Card className="p-12 text-center border-dashed border-2">
-                    <Zap size={40} className="text-gray-300 mx-auto mb-4" />
-                    <p className="font-bold text-lg text-gray-500 dark:text-gray-400">{t('No open jobs right now')}</p>
-                    <p className="text-xs text-gray-400 mt-2 max-w-xs mx-auto">{t('New open requests from customers will appear here. Stay online to get notified.')}</p>
-                  </Card>
+                  <EmptyDataState
+                    title={t('No open jobs right now')}
+                    description={t('New open requests from customers will appear here. Stay online to get notified.')}
+                    actionLabel={t('Set Availability')}
+                    onAction={() => navigate('/worker/availability')}
+                  />
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
                     {openJobs.map(job => (
@@ -337,7 +346,7 @@ export function WorkerDashboardPage() {
                           <div className="flex items-center gap-6">
                             <div className="text-right hidden md:block">
                               <p className="text-[10px] font-bold uppercase text-gray-400">{t('Potential')}</p>
-                              <p className="text-lg font-bold text-success-500">₹{job.totalPrice || '750+'}</p>
+                              <p className="text-lg font-bold text-success-500">{job.totalPrice ? formatCurrencyCompact(job.totalPrice) : t('Negotiable')}</p>
                             </div>
                             <Button
                               variant="primary"
