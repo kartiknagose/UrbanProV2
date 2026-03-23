@@ -15,8 +15,10 @@ export const IMAGES = {
     CATEGORY_ELECTRICAL: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
     CATEGORY_PAINTING: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
     CATEGORY_AC: 'https://images.unsplash.com/photo-1621905252507-b35492cc253e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    CATEGORY_APPLIANCE_REPAIR: 'https://images.unsplash.com/photo-1581579188871-45ea61f2a45e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
     CATEGORY_CARPENTRY: 'https://images.unsplash.com/photo-1622675363311-ac05f3a0c9a3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
     CATEGORY_BEAUTY: 'https://images.unsplash.com/photo-1560750588-73207b1ef5b8?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    CATEGORY_PERSONAL_CARE: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
     CATEGORY_PEST_CONTROL: 'https://images.unsplash.com/photo-1588612140418-47bf20977462?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
     CATEGORY_DEFAULT: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
 
@@ -41,14 +43,38 @@ export const getServiceImage = (input) => {
     // NOTE: Direct unsplash source is deprecated. We must rely on our fixed list or a proxy.
     // Let's improve the matching logic to map specific tasks to our fixed categories better.
 
-    if (norm.includes('clean') || norm.includes('maid') || norm.includes('house') || norm.includes('sweep') || norm.includes('mop') || norm.includes('dust')) return IMAGES.CATEGORY_CLEANING;
+    // Cleaning services
+    if (norm.includes('clean') || norm.includes('maid') || norm.includes('house') || norm.includes('sweep') || norm.includes('mop') || norm.includes('dust') || norm.includes('kitchen') || norm.includes('bathroom')) return IMAGES.CATEGORY_CLEANING;
+
+    // Plumbing services
     if (norm.includes('plumb') || norm.includes('water') || norm.includes('pipe') || norm.includes('leak') || norm.includes('drain') || norm.includes('tap') || norm.includes('basin')) return IMAGES.CATEGORY_PLUMBING;
+
+    // Electrical services
     if (norm.includes('electric') || norm.includes('wire') || norm.includes('power') || norm.includes('switch') || norm.includes('light') || norm.includes('fan')) return IMAGES.CATEGORY_ELECTRICAL;
+
+    // Painting services
     if (norm.includes('paint') || norm.includes('wall') || norm.includes('color') || norm.includes('white wash')) return IMAGES.CATEGORY_PAINTING;
-    if (norm.includes('ac') || norm.includes('air') || norm.includes('cool') || norm.includes('freeze') || norm.includes('fridge')) return IMAGES.CATEGORY_AC;
-    if (norm.includes('carpenter') || norm.includes('wood') || norm.includes('furniture') || norm.includes('door') || norm.includes('drill')) return IMAGES.CATEGORY_CARPENTRY;
-    if (norm.includes('beauty') || norm.includes('hair') || norm.includes('facial') || norm.includes('massage') || norm.includes('salon')) return IMAGES.CATEGORY_BEAUTY;
-    if (norm.includes('pest') || norm.includes('bug') || norm.includes('insect')) return IMAGES.CATEGORY_PEST_CONTROL;
+
+    // Cooling & AC services
+    if (norm.includes('ac') || norm.includes('air') || norm.includes('cool') || norm.includes('freeze')) return IMAGES.CATEGORY_AC;
+
+    // Appliance repair services
+    if (norm.includes('appliance') || norm.includes('machine') || norm.includes('washing') || norm.includes('refrigerator') || norm.includes('fridge') || norm.includes('microwave') || norm.includes('oven')) return IMAGES.CATEGORY_APPLIANCE_REPAIR;
+
+    // Carpentry services
+    if (norm.includes('carpenter') || norm.includes('wood') || norm.includes('furniture') || norm.includes('door') || norm.includes('drill') || norm.includes('cabinet')) return IMAGES.CATEGORY_CARPENTRY;
+
+    // Beauty & personal care services
+    if (norm.includes('beauty') || norm.includes('hair') || norm.includes('facial') || norm.includes('massage') || norm.includes('salon') || norm.includes('spa') || norm.includes('care') || norm.includes('men') || norm.includes('women')) return IMAGES.CATEGORY_PERSONAL_CARE;
+
+    // Pest control
+    if (norm.includes('pest') || norm.includes('bug') || norm.includes('insect') || norm.includes('termite') || norm.includes('cockroach') || norm.includes('rodent')) return IMAGES.CATEGORY_PEST_CONTROL;
+
+    // Category-level fallbacks from backend seeded groups
+    if (norm.includes('home maintenance')) return IMAGES.CATEGORY_CARPENTRY;
+    if (norm.includes('cleaning & pest control')) return IMAGES.CATEGORY_CLEANING;
+    if (norm.includes('appliance repair')) return IMAGES.CATEGORY_APPLIANCE_REPAIR;
+    if (norm.includes('personal care')) return IMAGES.CATEGORY_PERSONAL_CARE;
 
     return IMAGES.CATEGORY_DEFAULT;
 };

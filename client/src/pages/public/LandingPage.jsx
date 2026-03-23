@@ -343,6 +343,11 @@ export function LandingPage() {
                   src={getServiceImage(category.name)}
                   alt={category.name}
                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  onError={(event) => {
+                    if (event.currentTarget.src !== IMAGES.CATEGORY_DEFAULT) {
+                      event.currentTarget.src = IMAGES.CATEGORY_DEFAULT;
+                    }
+                  }}
                 />
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent group-hover:from-brand-900/80" />

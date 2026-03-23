@@ -7,7 +7,7 @@ import { MainLayout } from '../../components/layout/MainLayout';
 import { Card, CardHeader, CardTitle, CardDescription } from '../../components/common';
 import { Input, Button, Badge, PageHeader, Skeleton, AsyncState } from '../../components/common';
 import { getAllServices } from '../../api/services';
-import { getServiceImage } from '../../constants/images';
+import { IMAGES, getServiceImage } from '../../constants/images';
 import { getPageLayout } from '../../constants/layout';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcut';
 import { queryKeys } from '../../utils/queryKeys';
@@ -56,6 +56,11 @@ const ServiceCard = memo(({ service }) => {
           alt={service.name}
           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
           loading="lazy"
+          onError={(event) => {
+            if (event.currentTarget.src !== IMAGES.CATEGORY_DEFAULT) {
+              event.currentTarget.src = IMAGES.CATEGORY_DEFAULT;
+            }
+          }}
         />
 
         {/* Rating Badge */}

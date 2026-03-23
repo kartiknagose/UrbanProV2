@@ -40,7 +40,7 @@ import { getAllServices } from '../../api/services';
 import { queryKeys } from '../../utils/queryKeys';
 import { useAuth } from '../../hooks/useAuth';
 import { getPageLayout } from '../../constants/layout';
-import { getServiceImage } from '../../constants/images';
+import { IMAGES, getServiceImage } from '../../constants/images';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcut';
 import { useSocketEvent } from '../../hooks/useSocket';
 import { formatCurrencyCompact } from '../../utils/formatters';
@@ -414,6 +414,11 @@ export function CustomerDashboardPage() {
                           src={getServiceImage(service.name || service.category)}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 blur-[0.5px] group-hover:blur-0"
                           alt={service.name}
+                          onError={(event) => {
+                            if (event.currentTarget.src !== IMAGES.CATEGORY_DEFAULT) {
+                              event.currentTarget.src = IMAGES.CATEGORY_DEFAULT;
+                            }
+                          }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/10 to-transparent opacity-80" />
                         <div className="absolute bottom-6 left-6 right-6">
