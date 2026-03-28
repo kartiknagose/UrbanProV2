@@ -14,4 +14,5 @@ export * from './verification';
 export * from './payments';
 export * from './notifications';
 export * from './chat';
+export * from './ai';
 export { default as axiosInstance } from './axios';

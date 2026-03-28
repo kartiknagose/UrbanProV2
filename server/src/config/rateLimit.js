@@ -127,6 +127,28 @@ const otpLimiter = rateLimit({
   },
 });
 
+const aiChatLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req, _res) => {
+    return req.user?.id ? `ai_chat:user:${req.user.id}` : `ai_chat:ip:${ipKeyGenerator(req.ip)}`;
+  },
+  message: { error: 'Too many AI chat requests. Please try again later.' },
+});
+
+const aiVoiceLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req, _res) => {
+    return req.user?.id ? `ai_voice:user:${req.user.id}` : `ai_voice:ip:${ipKeyGenerator(req.ip)}`;
+  },
+  message: { error: 'Too many AI voice requests. Please try again later.' },
+});
+
 module.exports = {
   globalLimiter,
   authLimiter,
@@ -136,6 +158,8 @@ module.exports = {
   paymentWebhookLimiter,
   bookingLimiter,
   otpLimiter,
+  aiChatLimiter,
+  aiVoiceLimiter,
   walletTopupCreateLimiter,
   walletTopupVerifyLimiter,
   walletRedeemLimiter,

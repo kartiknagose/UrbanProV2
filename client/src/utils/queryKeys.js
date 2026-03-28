@@ -53,6 +53,8 @@ export const queryKeys = {
     workers: () => ['admin-workers'],
     workersPreview: () => ['admin-workers-preview'],
     verificationPreview: () => ['admin-verification-preview'],
+    aiAuditSummary: () => ['admin-ai-audit-summary'],
+    aiAudits: (filters) => ['admin-ai-audits', filters],
   },
 
   // ── Verification ──────────────────────────────────────────

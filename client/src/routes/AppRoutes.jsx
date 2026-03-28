@@ -73,6 +73,7 @@ const AdminSOSAlertsPage = lazy(() => import('../pages/admin/AdminSOSAlertsPage.
 const AdminAnalyticsPage = lazy(() => import('../pages/admin/AdminAnalyticsPage.jsx').then(m => ({ default: m.AdminAnalyticsPage })));
 const AdminFraudPage = lazy(() => import('../pages/admin/AdminFraudPage.jsx').then(m => ({ default: m.AdminFraudPage })));
 const AdminCouponsPage = lazy(() => import('../pages/admin/AdminCouponsPage.jsx').then(m => ({ default: m.AdminCouponsPage })));
+const AdminAIAuditPage = lazy(() => import('../pages/admin/AdminAIAuditPage.jsx').then(m => ({ default: m.AdminAIAuditPage })));
 
 function RoutePrefetcher() {
   const { isAuthenticated, user } = useAuth();
@@ -111,6 +112,7 @@ function RoutePrefetcher() {
         jobs.push(import('../pages/admin/AdminDashboardPage.jsx'));
         jobs.push(import('../pages/admin/AdminBookingsPage.jsx'));
         jobs.push(import('../pages/admin/AdminUsersPage.jsx'));
+        jobs.push(import('../pages/admin/AdminAIAuditPage.jsx'));
         prefetched.current.add('admin-core');
       }
 
@@ -214,6 +216,7 @@ export function AppRoutes() {
         <Route path="/admin/analytics" element={<AdminRoute><AdminAnalyticsPage /></AdminRoute>} />
         <Route path="/admin/fraud" element={<AdminRoute><AdminFraudPage /></AdminRoute>} />
         <Route path="/admin/coupons" element={<AdminRoute><AdminCouponsPage /></AdminRoute>} />
+        <Route path="/admin/ai-audit" element={<AdminRoute><AdminAIAuditPage /></AdminRoute>} />
 
         {/* 404 - Wildcard */}
         <Route path="*" element={<NotFoundPage />} />

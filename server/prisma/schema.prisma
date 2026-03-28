@@ -89,6 +89,7 @@ model User {
   workerConversations            Conversation[]                  @relation("WorkerConversations")
   messages                       Message[]
   statusChanges                  BookingStatusHistory[]
+  aiActionAudits                 AIActionAudit[]
 
   // Business Growth (Sprint 17)
   referralCode   String?             @unique
@@ -590,6 +591,31 @@ model BookingStatusHistory {
 
   @@index([bookingId])
   @@index([changedBy])
+}
+
+model AIActionAudit {
+  id                   Int      @id @default(autoincrement())
+  userId               Int
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role                 Role
+  sessionId            String
+  channel              String   @default("CHAT")
+  intent               String
+  action               String?
+  requiresConfirmation Boolean  @default(false)
+  status               String   @default("SUCCESS")
+  requestText          String?  @db.Text
+  requestData          Json?
+  responseText         String?  @db.Text
+  responseData         Json?
+  error                String?
+  durationMs           Int?
+  createdAt            DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([intent, createdAt])
+  @@index([status, createdAt])
+  @@index([createdAt])
 }
 
 model Payout {

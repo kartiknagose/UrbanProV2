@@ -32,7 +32,7 @@ module.exports = (err, _req, res, _next) => {
 
   // Log via Winston — error level for 5xx, warn for 4xx
   const logLevel = status >= 500 ? 'error' : 'warn';
-  logger[logLevel]('%s %s -> %d: %s', _req.method, _req.originalUrl, status, rawMessage, {
+  logger[logLevel](`${_req.method} ${_req.originalUrl} -> ${status}: ${rawMessage}`, {
     ...(isDevelopment && { stack: err.stack }),
   });
 

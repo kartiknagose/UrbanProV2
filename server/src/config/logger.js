@@ -7,6 +7,7 @@ const logger = createLogger({
   level: isProduction ? 'info' : 'debug',
   format: format.combine(
     format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    format.splat(),
     format.errors({ stack: true }),
     isProduction
       ? format.json()

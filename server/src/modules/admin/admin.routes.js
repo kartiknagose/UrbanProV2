@@ -13,13 +13,15 @@ const {
 } = require('./admin.schemas');
 const {
     getDashboard, getUsers, getWorkers, updateUser, removeUser, getFraudAlerts,
-    getCoupons, createCoupon, updateCouponStatus, removeCoupon
+    getCoupons, createCoupon, updateCouponStatus, removeCoupon, getAiAuditSummary, getAiAudits
 } = require('./admin.controller');
 
 const router = Router();
 
 router.get('/dashboard', auth, requireAdmin, getDashboard);
 router.get('/fraud-alerts', auth, requireAdmin, getFraudAlerts);
+router.get('/ai-audits/summary', auth, requireAdmin, getAiAuditSummary);
+router.get('/ai-audits', auth, requireAdmin, getAiAudits);
 router.get('/users', auth, requireAdmin, getUsersSchema, validate, getUsers);
 router.get('/workers', auth, requireAdmin, listWorkersSchema, validate, getWorkers);
 router.patch('/users/:id/status', auth, requireAdmin, updateUserStatusSchema, validate, updateUser);

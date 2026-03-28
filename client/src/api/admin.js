@@ -4,10 +4,22 @@ const ADMIN_ENDPOINTS = {
   DASHBOARD: '/admin/dashboard',
   USERS: '/admin/users',
   WORKERS: '/admin/workers',
+  AI_AUDITS: '/admin/ai-audits',
+  AI_AUDITS_SUMMARY: '/admin/ai-audits/summary',
   USER_STATUS: (id) => `/admin/users/${id}/status`,
   USER_DELETE: (id) => `/admin/users/${id}`,
   ANALYTICS: '/analytics/summary',
   FRAUD_ALERTS: '/admin/fraud-alerts',
+};
+
+export const getAiAuditSummary = async () => {
+  const response = await axiosInstance.get(ADMIN_ENDPOINTS.AI_AUDITS_SUMMARY);
+  return response.data;
+};
+
+export const getAiAudits = async (params) => {
+  const response = await axiosInstance.get(ADMIN_ENDPOINTS.AI_AUDITS, { params });
+  return response.data;
 };
 
 export const getFraudAlerts = async () => {

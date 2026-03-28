@@ -4,7 +4,7 @@ const parsePagination = require('../../common/utils/parsePagination');
 const AppError = require('../../common/errors/AppError');
 const {
   getDashboardStats, listUsers, listWorkers, updateUserStatus, deleteUser, getFraudAlerts,
-  createCoupon, listCoupons, toggleCoupon, deleteCoupon
+  createCoupon, listCoupons, toggleCoupon, deleteCoupon, getAiAuditSummary, listAiAudits
 } = require('./admin.service');
 
 let getIo;
@@ -125,4 +125,32 @@ exports.removeCoupon = asyncHandler(async (req, res) => {
   await deleteCoupon(id);
   res.json({ message: 'Coupon deleted successfully' });
   emitAdminDataChanged('admin:coupons_updated', { action: 'delete', couponId: id });
+});
+
+exports.getAiAuditSummary = asyncHandler(async (_req, res) => {
+  const summary = await getAiAuditSummary();
+  res.json({ summary });
+});
+
+exports.getAiAudits = asyncHandler(async (req, res) => {
+  const { page, limit, skip } = parsePagination(req.query);
+  const filters = {
+    userId: req.query.userId,
+    intent: req.query.intent,
+    status: req.query.status,
+    channel: req.query.channel,
+    from: req.query.from,
+    to: req.query.to,
+  };
+
+  const { data, total } = await listAiAudits(filters, { skip, limit });
+  res.json({
+    audits: data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  });
 });

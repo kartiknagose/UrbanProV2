@@ -18,25 +18,8 @@ const {
 exports.getWallet = asyncHandler(async (req, res) => {
     const userId = req.user.id;
 
-    const wallet = await prisma.wallet.findUnique({
-        where: { userId },
-        include: {
-            user: {
-                select: {
-                    transactions: {
-                        orderBy: { createdAt: 'desc' },
-                        take: 50
-                    }
-                }
-            }
-        }
-    });
-
-    res.json({
-        balance: wallet?.balance || 0,
-        currency: wallet?.currency || 'INR',
-        transactions: wallet?.user?.transactions || []
-    });
+    const wallet = await GrowthService.getWalletSnapshot(userId);
+    res.json(wallet);
 });
 
 /**
@@ -306,23 +289,11 @@ exports.failWalletTopup = asyncHandler(async (req, res) => {
  */
 exports.redeemWalletBalance = asyncHandler(async (req, res) => {
     const amount = Number(req.body?.amount);
-    const normalizedAmount = Math.round(amount * 100) / 100;
     const description = typeof req.body?.description === 'string' ? req.body.description.trim() : '';
 
-    if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0 || normalizedAmount > 100000) {
-        throw new AppError(400, 'Invalid redeem amount.');
-    }
-
-    const transaction = await prisma.$transaction(async (tx) => {
-        await GrowthService.initializeWallet(req.user.id, tx);
-        return GrowthService.processWalletTransaction({
-            userId: req.user.id,
-            amount: -normalizedAmount,
-            type: 'WITHDRAWAL',
-            description: description || 'Wallet redeem',
-            referenceId: `WALLET_REDEEM:${Date.now()}`,
-        }, tx);
-    });
+    const transaction = await prisma.$transaction((tx) =>
+        GrowthService.redeemWalletBalance(req.user.id, amount, description || 'Wallet redeem', tx)
+    );
 
     res.json({
         message: 'Wallet redeemed successfully.',

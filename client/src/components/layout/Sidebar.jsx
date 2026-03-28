@@ -6,7 +6,7 @@ import {
   Home, Briefcase, Calendar, User, ShieldCheck, ShieldAlert,
   Clock, Star, Lock, ChevronLeft, ChevronRight, Search,
   LayoutDashboard, ClipboardList, MessageSquare, Gift, Shield,
-  Activity, Tag, AlertTriangle, Users, Wallet, X, Heart, Medal, Crown,
+  Activity, Tag, AlertTriangle, Users, Wallet, X, Heart, Medal, Crown, Bot,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { resolveProfilePhotoUrl } from '../../utils/profilePhoto';
@@ -42,6 +42,7 @@ const navConfig = {
     { label: 'Workers',         to: '/admin/workers',        icon: Users },
     { label: 'Verification',    to: '/admin/verification',   icon: ShieldCheck },
     { label: 'Fraud Detection', to: '/admin/fraud',          icon: ShieldAlert },
+    { label: 'AI Audit',        to: '/admin/ai-audit',       icon: Bot },
     { label: 'Coupons',         to: '/admin/coupons',        icon: Tag },
     { label: 'SOS Alerts',      to: '/admin/sos-alerts',     icon: AlertTriangle, highlight: true },
   ],

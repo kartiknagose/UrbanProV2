@@ -1,6 +1,6 @@
-# Changelog - UrbanPro V2 Frontend Modernization (v2.0)
+# Changelog - ExpertsHub V2 Frontend Modernization (v2.0)
 
-All notable changes to the UrbanPro V2 frontend are documented here.
+All notable changes to the ExpertsHub V2 frontend are documented here.
 
 **Format based on:** [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)  
 **Versioning:** [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
@@ -26,7 +26,7 @@ Comprehensive UI/UX modernization sprint achieving 100% consistency in currency 
 - **Notification System** (`utils/notifications.ts`)
   - `toastSuccess(message, options?)` - Success notifications with consistent styling
   - `toastError(message, options?)` - Error notifications
-  - `toastErrorFromResponse(error, fallback?)` - API error extraction and display
+  - `toastErrorFromResponse(error, fallback?)` - API eFix this and other all such errors present in the project.rror extraction and display
   - `toastCopied(label?)` - Copy-to-clipboard feedback
   - Built-in deduplication prevents duplicate notifications on same event
   - Replaces 40+ raw Sonner toast calls across codebase

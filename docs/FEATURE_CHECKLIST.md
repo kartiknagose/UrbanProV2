@@ -1,4 +1,4 @@
-# UrbanPro V2 — Feature Implementation Checklist
+# ExpertsHub V2 — Feature Implementation Checklist
 
 > Cross-reference of every roadmap item vs. what is currently built.
 > **Legend:** ✅ Done &nbsp;|&nbsp; ⚠️ Partial &nbsp;|&nbsp; ❌ Not implemented
@@ -313,7 +313,7 @@
 
 | Feature | Status | Notes |
 |---|---|---|
-| UrbanPro Plus subscription (₹99/month) | ✅ Done | `ProPlusService` with monthly/yearly plans |
+| ExpertsHub Plus subscription (₹99/month) | ✅ Done | `ProPlusService` with monthly/yearly plans |
 | Loyalty points (1 pt per ₹10 → redeem) | ✅ Done | `LoyaltyService` with expiry and credit logic |
 | Service packages / bundles | ✅ Done | Category bundles with discounted tiered pricing |
 | One-click rebook with same worker | ✅ Done | "Book Again" button on `BookingCard.jsx` |
@@ -370,7 +370,7 @@
 *Phase 4.1 · Completed 2026-03-06*
 *Depends on: Nothing — foundational mobile-first infrastructure*
 
-**Goal:** Make UrbanPro installable as a PWA with offline support, update prompts, and iOS/Android splash screens.
+**Goal:** Make ExpertsHub installable as a PWA with offline support, update prompts, and iOS/Android splash screens.
 
 | # | Feature | Status | Implementation Details |
 |---|---------|--------|----------------------|
@@ -443,8 +443,8 @@
 | 9 | Admin document viewer (view uploaded docs inline) | ✅ | Modal/panel in admin verification page — render Aadhaar, PAN, selfie, address proof images inline with zoom. Approve/reject per document. |
 | 10 | Customer reviews photos before confirming completion | ✅ | Photo gallery in booking detail page — customer sees worker's "before" and "after" photos, can flag issues before confirming. |
 | 11 | Admin photo dispute resolution viewer | ✅ | Admin view: dynamic photo gallery with zooming over "before" and "after" states rendered inside the Booking details. |
-| 12 | Full verification badges (ID Verified, Background OK, Top Rated, UrbanPro Pro) | ✅ | Tiered badge system on worker cards and profiles — badges derived from verification status, rating, and completion count. |
-| 13 | Filter workers by verification level | ✅ | Filter chips/dropdown on service detail page — "Verified Only", "Top Rated", "UrbanPro Pro". Backend query filter. |
+| 12 | Full verification badges (ID Verified, Background OK, Top Rated, ExpertsHub Pro) | ✅ | Tiered badge system on worker cards and profiles — badges derived from verification status, rating, and completion count. |
+| 13 | Filter workers by verification level | ✅ | Filter chips/dropdown on service detail page — "Verified Only", "Top Rated", "ExpertsHub Pro". Backend query filter. |
 
 ---
 
@@ -658,7 +658,7 @@
 | 71 | Referral program (₹50 credit) | ✅ | Code generation, referral tracking, bonus awarding. |
 | 72 | Coupon System (Promo codes) | ✅ | Discount validation, usage limits, service category filters. |
 | 73 | Customer Wallet & Top-up | ✅ | Ledger system, transaction history, simulated payments. |
-| 74 | UrbanPro Plus subscription | ✅ | `ProPlusService` with monthly/yearly plans |
+| 74 | ExpertsHub Plus subscription | ✅ | `ProPlusService` with monthly/yearly plans |
 | 75 | Loyalty points (1 pt per ₹10 → redeem) | ✅ | `LoyaltyService` with expiry and credit logic |
 | 76 | Service packages / bundles | ✅ | Category bundles with discounted tiered pricing |
 | 77 | One-click rebook with same worker | ✅ | "Book Again" button on `BookingCard.jsx` |

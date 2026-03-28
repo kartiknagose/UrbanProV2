@@ -1,6 +1,6 @@
-# UrbanPro V2
+# ExpertsHub V2
 
-UrbanPro V2 is now organized as a Supabase-first deployment with a React frontend, Supabase as the backend data platform, and a small Node bridge that stays in place for Redis-backed cache, Socket.IO, payment webhooks, and other long-running tasks that should not move to edge runtimes.
+ExpertsHub V2 is now organized as a Supabase-first deployment with a React frontend, Supabase as the backend data platform, and a small Node bridge that stays in place for Redis-backed cache, Socket.IO, payment webhooks, and other long-running tasks that should not move to edge runtimes.
 
 This repository keeps the existing Redis pipeline intact while moving the data, auth, storage, and deploy surface toward Supabase.
 
@@ -337,3 +337,5 @@ This repository is configured for a Supabase-backed deployment foundation with:
 - Sentry on both client and server
 
 If you want a full one-way cutover to Supabase edge functions for every API route, the next step is to migrate each `server/src/modules/*` route one by one and remove the Node bridge only after parity is proven.
+
+<!-- 1fba355           -->3fa67e6

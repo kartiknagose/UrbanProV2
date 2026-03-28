@@ -243,6 +243,81 @@ async function deleteCoupon(id) {
   }
 }
 
+async function getAiAuditSummary() {
+  const [total, failed, declined, byIntentRows, byChannelRows] = await Promise.all([
+    prisma.aIActionAudit.count(),
+    prisma.aIActionAudit.count({ where: { status: 'FAILED' } }),
+    prisma.aIActionAudit.count({ where: { status: 'DECLINED' } }),
+    prisma.aIActionAudit.groupBy({
+      by: ['intent'],
+      _count: { _all: true },
+      orderBy: { _count: { intent: 'desc' } },
+      take: 8,
+    }),
+    prisma.aIActionAudit.groupBy({
+      by: ['channel'],
+      _count: { _all: true },
+      orderBy: { _count: { channel: 'desc' } },
+    }),
+  ]);
+
+  return {
+    total,
+    failed,
+    declined,
+    byIntent: byIntentRows.map((row) => ({ intent: row.intent, count: row._count._all })),
+    byChannel: byChannelRows.map((row) => ({ channel: row.channel, count: row._count._all })),
+  };
+}
+
+async function listAiAudits(filters = {}, { skip = 0, limit = 20 } = {}) {
+  const where = {};
+
+  if (filters.userId) {
+    where.userId = Number(filters.userId);
+  }
+
+  if (filters.intent) {
+    where.intent = String(filters.intent).toLowerCase();
+  }
+
+  if (filters.status) {
+    where.status = String(filters.status).toUpperCase();
+  }
+
+  if (filters.channel) {
+    where.channel = String(filters.channel).toUpperCase();
+  }
+
+  if (filters.from || filters.to) {
+    where.createdAt = {};
+    if (filters.from) where.createdAt.gte = new Date(filters.from);
+    if (filters.to) where.createdAt.lte = new Date(filters.to);
+  }
+
+  const [data, total] = await Promise.all([
+    prisma.aIActionAudit.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    }),
+    prisma.aIActionAudit.count({ where }),
+  ]);
+
+  return { data, total };
+}
+
 module.exports = {
   getDashboardStats,
   listUsers,
@@ -253,5 +328,7 @@ module.exports = {
   createCoupon,
   listCoupons,
   toggleCoupon,
-  deleteCoupon
+  deleteCoupon,
+  getAiAuditSummary,
+  listAiAudits,
 };

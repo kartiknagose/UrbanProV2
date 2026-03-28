@@ -48,6 +48,7 @@ const growthRoutes = require('./modules/business_growth/growth.routes'); // Refe
 const payoutRoutes = require('./modules/payouts/payout.routes');
 const invoiceRoutes = require('./modules/invoices/invoice.routes');
 const analyticsRoutes = require('./modules/analytics/analytics.routes');
+const aiRoutes = require('./modules/ai/ai.routes');
 const { verifySmtpConnection, isResendConfigured, isSendGridConfigured, sendVerificationEmail } = require('./common/utils/mailer');
 
 // Create Express application instance
@@ -254,6 +255,7 @@ app.use('/api/growth', growthRoutes);
 app.use('/api/payouts', payoutRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/ai', aiRoutes);
 
 // 404 and error handlers
 app.use(notFoundHandler);
@@ -294,8 +296,8 @@ if (require.main === module) {
   });
 
   server.listen(PORT, () => {
-    logger.info('Server listening on http://localhost:%d', PORT);
-    logger.info('CORS origin: %s', CORS_ORIGIN);
+    logger.info(`Server listening on http://localhost:${PORT}`);
+    logger.info(`CORS origin: ${CORS_ORIGIN}`);
 
     // Proactive SMTP diagnostics on boot (so Render logs always show SMTP state)
     console.log('[SMTP] Preflight starting...');

@@ -1,4 +1,4 @@
-# UrbanPro V2 - Frontend Modernization Sprint (Phases 1-8)
+# ExpertsHub V2 - Frontend Modernization Sprint (Phases 1-8)
 ## Stabilization & Release Summary
 
 **Release Date:** March 23, 2026  

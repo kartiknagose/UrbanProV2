@@ -1,6 +1,7 @@
 const prisma = require('../../config/prisma');
 const { pushToUser } = require('./push.service');
 const { shouldNotify } = require('./preference.service');
+const logger = require('../../config/logger');
 
 let getIo;
 try {
@@ -81,36 +82,57 @@ function getNotificationUrl(type, data) {
 
 async function getUserNotifications(userId, { skip = 0, limit = 20 } = {}) {
     const where = { userId };
-    const [data, total] = await Promise.all([
-        prisma.notification.findMany({
-            where,
-            orderBy: { createdAt: 'desc' },
-            skip,
-            take: limit,
-        }),
-        prisma.notification.count({ where }),
-    ]);
-    return { data, total };
+    try {
+        const [data, total] = await Promise.all([
+            prisma.notification.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit,
+            }),
+            prisma.notification.count({ where }),
+        ]);
+        return { data, total, degraded: false };
+    } catch (error) {
+        // Keep UI usable during transient DB/network outages.
+        logger.warn('Notifications unavailable, returning empty list: %s', error.message);
+        return { data: [], total: 0, degraded: true };
+    }
 }
 
 async function markAsRead(notificationId, userId) {
-    return await prisma.notification.updateMany({
-        where: { id: notificationId, userId },
-        data: { read: true }
-    });
+    try {
+        return await prisma.notification.updateMany({
+            where: { id: notificationId, userId },
+            data: { read: true }
+        });
+    } catch (error) {
+        logger.warn('Failed to mark notification as read: %s', error.message);
+        return { count: 0 };
+    }
 }
 
 async function markAllAsRead(userId) {
-    return await prisma.notification.updateMany({
-        where: { userId, read: false },
-        data: { read: true }
-    });
+    try {
+        return await prisma.notification.updateMany({
+            where: { userId, read: false },
+            data: { read: true }
+        });
+    } catch (error) {
+        logger.warn('Failed to mark all notifications as read: %s', error.message);
+        return { count: 0 };
+    }
 }
 
 async function getUnreadCount(userId) {
-    return await prisma.notification.count({
-        where: { userId, read: false }
-    });
+    try {
+        return await prisma.notification.count({
+            where: { userId, read: false }
+        });
+    } catch (error) {
+        logger.warn('Unread notification count unavailable, defaulting to 0: %s', error.message);
+        return 0;
+    }
 }
 
 module.exports = {

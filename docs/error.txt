@@ -1,3 +1,4 @@
+
 D:\mini_project\UrbanPro V2\server>npm run dev
 
 > server@1.0.0 dev
@@ -8,44 +9,185 @@ D:\mini_project\UrbanPro V2\server>npm run dev
 [nodemon] watching path(s): *.*
 [nodemon] watching extensions: js,mjs,cjs,json
 [nodemon] starting `node src/index.js`
-[dotenv@17.2.3] injecting env (25) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
-ValidationError: Custom keyGenerator appears to use request IP without calling the ipKeyGenerator helper function for IPv6 addresses. This could allow IPv6 users to bypass limits. See https://express-rate-limit.github.io/ERR_ERL_KEY_GEN_IPV6/ for more information.
-    at Object.keyGeneratorIpFallback (D:\mini_project\UrbanPro V2\server\node_modules\express-rate-limit\dist\index.cjs:642:13)
-    at wrappedValidations.<computed> [as keyGeneratorIpFallback] (D:\mini_project\UrbanPro V2\server\node_modules\express-rate-limit\dist\index.cjs:685:22)
-    at parseOptions (D:\mini_project\UrbanPro V2\server\node_modules\express-rate-limit\dist\index.cjs:755:16)
-    at rateLimit (D:\mini_project\UrbanPro V2\server\node_modules\express-rate-limit\dist\index.cjs:836:18)
-    at Object.<anonymous> (D:\mini_project\UrbanPro V2\server\src\config\rateLimit.js:53:24)
-    at Module._compile (node:internal/modules/cjs/loader:1554:14)
-    at Object..js (node:internal/modules/cjs/loader:1706:10)
-    at Module.load (node:internal/modules/cjs/loader:1289:32)
-    at Function._load (node:internal/modules/cjs/loader:1108:12)
-    at TracingChannel.traceSync (node:diagnostics_channel:322:14) {
-  code: 'ERR_ERL_KEY_GEN_IPV6',
-  help: 'https://express-rate-limit.github.io/ERR_ERL_KEY_GEN_IPV6/'
-}
-ValidationError: Custom keyGenerator appears to use request IP without calling the ipKeyGenerator helper function for IPv6 addresses. This could allow IPv6 users to bypass limits. See https://express-rate-limit.github.io/ERR_ERL_KEY_GEN_IPV6/ for more information.
-    at Object.keyGeneratorIpFallback (D:\mini_project\UrbanPro V2\server\node_modules\express-rate-limit\dist\index.cjs:642:13)
-    at wrappedValidations.<computed> [as keyGeneratorIpFallback] (D:\mini_project\UrbanPro V2\server\node_modules\express-rate-limit\dist\index.cjs:685:22)
-    at parseOptions (D:\mini_project\UrbanPro V2\server\node_modules\express-rate-limit\dist\index.cjs:755:16)
-    at rateLimit (D:\mini_project\UrbanPro V2\server\node_modules\express-rate-limit\dist\index.cjs:836:18)
-    at Object.<anonymous> (D:\mini_project\UrbanPro V2\server\src\config\rateLimit.js:72:20)
-    at Module._compile (node:internal/modules/cjs/loader:1554:14)
-    at Object..js (node:internal/modules/cjs/loader:1706:10)
-    at Module.load (node:internal/modules/cjs/loader:1289:32)
-    at Function._load (node:internal/modules/cjs/loader:1108:12)
-    at TracingChannel.traceSync (node:diagnostics_channel:322:14) {
-  code: 'ERR_ERL_KEY_GEN_IPV6',
-  help: 'https://express-rate-limit.github.io/ERR_ERL_KEY_GEN_IPV6/'
-}
-2026-03-23 00:50:56 [info]: Cloudinary configured (cloud: %s)
+[dotenv@17.2.3] injecting env (35) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+2026-03-25 10:36:09 [info]: Cloudinary configured (cloud: dj34snccr)
 Socket.IO Redis adapter enabled
-2026-03-23 00:50:57 [info]: Socket.IO initialized
+2026-03-25 10:36:09 [info]: Socket.IO initialized
 [CRON] Initializing background jobs...
 [CRON] Jobs scheduled successfully.
-2026-03-23 00:50:57 [info]: Server listening on http://localhost:%d
-2026-03-23 00:50:57 [info]: CORS origin: %s
+2026-03-25 10:36:10 [info]: Server listening on http://localhost:3000
+2026-03-25 10:36:10 [info]: CORS origin: http://localhost:5173,http://localhost:5174
 [SMTP] Preflight starting...
+Socket connected: 5-v9eiT89Lf2dfaJAAAB userId= 5 role= WORKER
 [SMTP] Preflight connected
-2026-03-23 00:51:00 [info]: SMTP preflight: connected
-[Email] ✅ SMTP Connected Successfully to smtp.gmail.com:587 as kartiknagose007@gmail.com
+2026-03-25 10:36:12 [info]: SMTP preflight: connected
+[Email] ❌ SMTP Connection Failed for user kartiknagose007@gmail.com: {
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  code: 'ETIMEDOUT',
+  message: 'Greeting never received',
+  response: undefined
+}
+2026-03-25 10:36:20 [info]: GET /api/safety/active-booking 200 4715.943 ms - 16
+2026-03-25 10:36:20 [info]: HTTP request completed: GET /api/safety/active-booking {"id":"eebfbb99-c3f9-4537-ba88-eacabcbcd008","method":"GET","url":"/api/safety/active-booking","status":200,"duration":"4731.79ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"}
 [SMTP] Preflight timeout guard reached (if no result above, SMTP verify may be blocked).
+prisma:error
+Invalid `prisma.notification.count()` invocation in
+D:\mini_project\UrbanPro V2\server\src\modules\notifications\notification.service.js:91:29
+
+  88     skip,
+  89     take: limit,
+  90 }),
+→ 91 prisma.notification.count(
+Can't reach database server at `aws-1-ap-south-1.pooler.supabase.com:5432`
+
+Please make sure your database server is running at `aws-1-ap-south-1.pooler.supabase.com:5432`.
+2026-03-25 10:36:25 [error]: PrismaClientKnownRequestError:
+Invalid `prisma.notification.count()` invocation in
+D:\mini_project\UrbanPro V2\server\src\modules\notifications\notification.service.js:91:29
+
+  88     skip,
+  89     take: limit,
+  90 }),
+→ 91 prisma.notification.count(
+Can't reach database server at `aws-1-ap-south-1.pooler.supabase.com:5432`
+
+Please make sure your database server is running at `aws-1-ap-south-1.pooler.supabase.com:5432`.
+    at $n.handleRequestError (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Promise.all (index 1)
+    at async Object.getUserNotifications (D:\mini_project\UrbanPro V2\server\src\modules\notifications\notification.service.js:84:27)
+    at async D:\mini_project\UrbanPro V2\server\src\modules\notifications\notification.controller.js:9:44 {"url":"/api/notifications?client=%5Bobject+Object%5D&queryKey%5B%5D=notifications&signal=%5Bobject+AbortSignal%5D","method":"GET","id":"98ed10ed-36cb-45c0-a5ef-4073136292e1"}
+2026-03-25 10:36:25 [error]: PrismaClientKnownRequestError:
+Invalid `prisma.notification.count()` invocation in
+D:\mini_project\UrbanPro V2\server\src\modules\notifications\notification.service.js:91:29
+
+  88     skip,
+  89     take: limit,
+  90 }),
+→ 91 prisma.notification.count(
+Can't reach database server at `aws-1-ap-south-1.pooler.supabase.com:5432`
+
+Please make sure your database server is running at `aws-1-ap-south-1.pooler.supabase.com:5432`.
+    at $n.handleRequestError (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Promise.all (index 1)
+    at async Object.getUserNotifications (D:\mini_project\UrbanPro V2\server\src\modules\notifications\notification.service.js:84:27)
+    at async D:\mini_project\UrbanPro V2\server\src\modules\notifications\notification.controller.js:9:44
+prisma:error
+Invalid `prisma.notification.findMany()` invocation in
+D:\mini_project\UrbanPro V2\server\src\modules\notifications\notification.service.js:85:29
+
+  82 async function getUserNotifications(userId, { skip = 0, limit = 20 } = {}) {
+  83     const where = { userId };
+  84     const [data, total] = await Promise.all([
+→ 85         prisma.notification.findMany(
+Can't reach database server at `aws-1-ap-south-1.pooler.supabase.com:5432`
+
+Please make sure your database server is running at `aws-1-ap-south-1.pooler.supabase.com:5432`.
+2026-03-25 10:36:25 [info]: GET /api/notifications?client=%5Bobject+Object%5D&queryKey%5B%5D=notifications&signal=%5Bobject+AbortSignal%5D 500 5070.491 ms - -
+2026-03-25 10:36:25 [error]: HTTP request failed: GET /api/notifications?client=%5Bobject+Object%5D&queryKey%5B%5D=notifications&signal=%5Bobject+AbortSignal%5D {"id":"98ed10ed-36cb-45c0-a5ef-4073136292e1","method":"GET","url":"/api/notifications?client=%5Bobject+Object%5D&queryKey%5B%5D=notifications&signal=%5Bobject+AbortSignal%5D","status":500,"duration":"5105.79ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"}
+2026-03-25 10:36:26 [warn]: [CLOUDINARY] Clock skew detected (attempt 1/2). Retrying upload for verif-5-1774415177694
+2026-03-25 10:36:26 [warn]: [CLOUDINARY] Server time: 2026-03-25T05:06:26.106Z, Offset: 0ms, Skewed: false
+2026-03-25 10:36:26 [warn]: [CLOUDINARY] Original error: Stale request - reported time is 2026-03-25 05:06:17 +0000 which is more than 1 hour ago
+prisma:error
+Invalid `prisma.notification.count()` invocation in
+D:\mini_project\UrbanPro V2\server\src\modules\notifications\notification.service.js:91:29
+
+  88     skip,
+  89     take: limit,
+  90 }),
+→ 91 prisma.notification.count(
+Can't reach database server at `aws-1-ap-south-1.pooler.supabase.com:5432`
+
+Please make sure your database server is running at `aws-1-ap-south-1.pooler.supabase.com:5432`.
+2026-03-25 10:36:31 [error]: PrismaClientKnownRequestError:
+Invalid `prisma.notification.count()` invocation in
+D:\mini_project\UrbanPro V2\server\src\modules\notifications\notification.service.js:91:29
+
+  88     skip,
+  89     take: limit,
+  90 }),
+→ 91 prisma.notification.count(
+Can't reach database server at `aws-1-ap-south-1.pooler.supabase.com:5432`
+
+Please make sure your database server is running at `aws-1-ap-south-1.pooler.supabase.com:5432`.
+    at $n.handleRequestError (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Promise.all (index 1)
+    at async Object.getUserNotifications (D:\mini_project\UrbanPro V2\server\src\modules\notifications\notification.service.js:84:27)
+    at async D:\mini_project\UrbanPro V2\server\src\modules\notifications\notification.controller.js:9:44 {"url":"/api/notifications?client=%5Bobject+Object%5D&queryKey%5B%5D=notifications&signal=%5Bobject+AbortSignal%5D","method":"GET","id":"cc6802d2-f842-4dbc-ad83-69b3c54c7c67"}
+2026-03-25 10:36:31 [error]: PrismaClientKnownRequestError:
+Invalid `prisma.notification.count()` invocation in
+D:\mini_project\UrbanPro V2\server\src\modules\notifications\notification.service.js:91:29
+
+  88     skip,
+  89     take: limit,
+  90 }),
+→ 91 prisma.notification.count(
+Can't reach database server at `aws-1-ap-south-1.pooler.supabase.com:5432`
+
+Please make sure your database server is running at `aws-1-ap-south-1.pooler.supabase.com:5432`.
+    at $n.handleRequestError (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (D:\mini_project\UrbanPro V2\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Promise.all (index 1)
+    at async Object.getUserNotifications (D:\mini_project\UrbanPro V2\server\src\modules\notifications\notification.service.js:84:27)
+    at async D:\mini_project\UrbanPro V2\server\src\modules\notifications\notification.controller.js:9:44
+2026-03-25 10:36:31 [info]: GET /api/notifications?client=%5Bobject+Object%5D&queryKey%5B%5D=notifications&signal=%5Bobject+AbortSignal%5D 500 5044.186 ms - -
+2026-03-25 10:36:31 [error]: HTTP request failed: GET /api/notifications?client=%5Bobject+Object%5D&queryKey%5B%5D=notifications&signal=%5Bobject+AbortSignal%5D {"id":"cc6802d2-f842-4dbc-ad83-69b3c54c7c67","method":"GET","url":"/api/notifications?client=%5Bobject+Object%5D&queryKey%5B%5D=notifications&signal=%5Bobject+AbortSignal%5D","status":500,"duration":"5063.62ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"}
+2026-03-25 10:36:32 [info]: POST /api/uploads/verification-doc - - ms - -
+2026-03-25 10:36:32 [info]: POST /api/uploads/verification-doc - - ms - -
+2026-03-25 10:36:32 [info]: POST /api/uploads/verification-doc - - ms - -
+2026-03-25 10:36:32 [info]: POST /api/uploads/verification-doc - - ms - -
+2026-03-25 10:36:33 [warn]: [CLOUDINARY] Clock skew detected (attempt 1/2). Retrying upload for verif-5-1774415177683
+2026-03-25 10:36:33 [warn]: [CLOUDINARY] Server time: 2026-03-25T05:06:33.068Z, Offset: 0ms, Skewed: false
+2026-03-25 10:36:33 [warn]: [CLOUDINARY] Original error: Stale request - reported time is 2026-03-25 05:06:17 +0000 which is more than 1 hour ago
+2026-03-25 10:36:34 [warn]: [CLOUDINARY] Clock skew detected (attempt 1/2). Retrying upload for verif-5-1774415177668
+2026-03-25 10:36:34 [warn]: [CLOUDINARY] Server time: 2026-03-25T05:06:34.997Z, Offset: 0ms, Skewed: false
+2026-03-25 10:36:35 [warn]: [CLOUDINARY] Original error: Stale request - reported time is 2026-03-25 05:06:17 +0000 which is more than 1 hour ago
+2026-03-25 10:36:35 [warn]: [CLOUDINARY] Clock skew detected (attempt 2/2). Retrying upload for verif-5-1774415177694
+2026-03-25 10:36:35 [warn]: [CLOUDINARY] Server time: 2026-03-25T05:06:35.078Z, Offset: 0ms, Skewed: false
+2026-03-25 10:36:35 [warn]: [CLOUDINARY] Original error: Stale request - reported time is 2026-03-25 05:06:27 +0000 which is more than 1 hour ago
+2026-03-25 10:36:36 [warn]: [CLOUDINARY] Clock skew detected (attempt 2/2). Retrying upload for verif-5-1774415177683
+2026-03-25 10:36:36 [warn]: [CLOUDINARY] Server time: 2026-03-25T05:06:36.632Z, Offset: 0ms, Skewed: false
+2026-03-25 10:36:36 [warn]: [CLOUDINARY] Original error: Stale request - reported time is 2026-03-25 05:06:34 +0000 which is more than 1 hour ago
+2026-03-25 10:36:53 [info]: POST /api/uploads/verification-doc - - ms - -
+2026-03-25 10:36:53 [info]: POST /api/uploads/verification-doc - - ms - -
+2026-03-25 10:36:53 [info]: POST /api/uploads/verification-doc - - ms - -
+2026-03-25 10:36:53 [info]: POST /api/uploads/verification-doc - - ms - -
+2026-03-25 10:36:59 [warn]: [CLOUDINARY] Clock skew detected (attempt 1/2). Retrying upload for verif-5-1774415198162
+2026-03-25 10:36:59 [warn]: [CLOUDINARY] Server time: 2026-03-25T05:06:59.367Z, Offset: 0ms, Skewed: false
+2026-03-25 10:36:59 [warn]: [CLOUDINARY] Original error: Stale request - reported time is 2026-03-25 05:06:38 +0000 which is more than 1 hour ago
+2026-03-25 10:37:08 [warn]: [CLOUDINARY] Clock skew detected (attempt 2/2). Retrying upload for verif-5-1774415198162
+2026-03-25 10:37:08 [warn]: [CLOUDINARY] Server time: 2026-03-25T05:07:08.264Z, Offset: 0ms, Skewed: false
+2026-03-25 10:37:08 [warn]: [CLOUDINARY] Original error: Stale request - reported time is 2026-03-25 05:07:00 +0000 which is more than 1 hour ago
+2026-03-25 10:37:08 [warn]: [CLOUDINARY] Clock skew detected (attempt 1/2). Retrying upload for verif-5-1774415198219
+2026-03-25 10:37:08 [warn]: [CLOUDINARY] Server time: 2026-03-25T05:07:08.739Z, Offset: 0ms, Skewed: false
+2026-03-25 10:37:08 [warn]: [CLOUDINARY] Original error: Stale request - reported time is 2026-03-25 05:06:38 +0000 which is more than 1 hour ago
+2026-03-25 10:37:10 [error]: [CRITICAL] Cloudinary clock skew persists after 2 retries. Server time: 2026-03-25T05:07:10.505Z. Check system clock and sync with NTP. Original error: Stale request - reported time is 2026-03-25 05:06:38 +0000 which is more than 1 hour ago
+2026-03-25 10:37:10 [error]: Error: Upload failed: Server clock is severely out of sync with Cloudinary (>1 hour difference). Fix: ntpdate -s time.nist.gov (Linux/WSL), sudo ntpdate -s time.apple.com (macOS), or w32tm /resync /force (Windows admin). See docs/CLOUDINARY_STALE_REQUEST_FIX.md
+    at D:\mini_project\UrbanPro V2\server\src\config\cloudinary.js:82:25
+    at D:\mini_project\UrbanPro V2\server\node_modules\cloudinary\lib\utils\index.js:1388:14
+    at IncomingMessage.<anonymous> (D:\mini_project\UrbanPro V2\server\node_modules\cloudinary\lib\uploader.js:528:9)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {"url":"/api/uploads/verification-doc","method":"POST","id":"d4939cff-bd52-4090-9a58-df2b35378d3f"}
+2026-03-25 10:37:10 [error]: Error: Upload failed: Server clock is severely out of sync with Cloudinary (>1 hour difference). Fix: ntpdate -s time.nist.gov (Linux/WSL), sudo ntpdate -s time.apple.com (macOS), or w32tm /resync /force (Windows admin). See docs/CLOUDINARY_STALE_REQUEST_FIX.md
+    at D:\mini_project\UrbanPro V2\server\src\config\cloudinary.js:82:25
+    at D:\mini_project\UrbanPro V2\server\node_modules\cloudinary\lib\utils\index.js:1388:14
+    at IncomingMessage.<anonymous> (D:\mini_project\UrbanPro V2\server\node_modules\cloudinary\lib\uploader.js:528:9)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+2026-03-25 10:37:10 [warn]: [CLOUDINARY] Clock skew detected (attempt 2/2). Retrying upload for verif-5-1774415198219
+2026-03-25 10:37:10 [warn]: [CLOUDINARY] Server time: 2026-03-25T05:07:10.889Z, Offset: 0ms, Skewed: false
+2026-03-25 10:37:10 [warn]: [CLOUDINARY] Original error: Stale request - reported time is 2026-03-25 05:07:09 +0000 which is more than 1 hour ago

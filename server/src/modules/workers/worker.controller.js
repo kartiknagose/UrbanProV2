@@ -100,8 +100,11 @@ exports.saveProfile = asyncHandler(async (req, res) => {
 exports.me = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const profile = await getMyWorkerProfile(userId);
-  if (!profile) throw new AppError(404, 'No worker profile found');
-  res.json({ profile });
+
+  // First-time workers may not have a profile yet.
+  // Return 200 with null profile so the client can render the edit form
+  // instead of failing the whole page load with a 404.
+  res.json({ profile: profile || null });
 });
 
 // POST /api/workers/services

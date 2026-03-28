@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const auth = require('../../middleware/auth');
+const { clockSyncMiddleware } = require('../../middleware/clockSync');
 const asyncHandler = require('../../common/utils/asyncHandler');
 const prisma = require('../../config/prisma');
 const { isConfigured: cloudinaryEnabled, uploadToCloudinary } = require('../../config/cloudinary');
@@ -10,6 +11,9 @@ const { optimizeImage } = require('./imageOptimization');
 const AppError = require('../../common/errors/AppError');
 
 const router = Router();
+
+// Apply clock sync validation to all upload routes
+router.use(clockSyncMiddleware);
 
 // Ensure upload directory exists
 const profilePhotoDir = path.join(__dirname, '../../uploads/profile-photos');
@@ -30,6 +34,25 @@ if (!fs.existsSync(bookingPhotoDir)) {
 const chatAttachmentDir = path.join(__dirname, '../../uploads/chat-attachments');
 if (!fs.existsSync(chatAttachmentDir)) {
   fs.mkdirSync(chatAttachmentDir, { recursive: true });
+}
+
+function buildLocalProfilePhotoUrl(userId, buffer) {
+  const fileName = `user-${userId}-${Date.now()}.webp`;
+  const filePath = path.join(profilePhotoDir, fileName);
+  fs.writeFileSync(filePath, buffer);
+  return `/uploads/profile-photos/${fileName}`;
+}
+
+function getSafeExtension(fileName, fallbackExt) {
+  const ext = path.extname(String(fileName || '')).toLowerCase();
+  return ext || fallbackExt;
+}
+
+function buildLocalUploadUrl({ directory, publicPrefix, filePrefix, userId, buffer, extension }) {
+  const fileName = `${filePrefix}-${userId}-${Date.now()}${extension}`;
+  const filePath = path.join(directory, fileName);
+  fs.writeFileSync(filePath, buffer);
+  return `${publicPrefix}/${fileName}`;
 }
 
 // Multer storage config for profile photos
@@ -167,12 +190,17 @@ router.post(
     }
 
     if (cloudinaryEnabled && optimizedBuffer) {
-      const result = await uploadToCloudinary(optimizedBuffer, {
-        folder: 'ExpertsHub/profile-photos',
-        public_id: `user-${req.user.id}-${Date.now()}`,
-        transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face' }],
-      });
-      photoUrl = result.url;
+      try {
+        const result = await uploadToCloudinary(optimizedBuffer, {
+          folder: 'ExpertsHub/profile-photos',
+          public_id: `user-${req.user.id}-${Date.now()}`,
+          transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face' }],
+        });
+        photoUrl = result.url;
+      } catch (_cloudinaryError) {
+        // Fallback to local storage so profile update is not blocked by external clock/network issues.
+        photoUrl = buildLocalProfilePhotoUrl(req.user.id, optimizedBuffer);
+      }
     } else {
       photoUrl = `/uploads/profile-photos/${req.file.filename}`;
     }
@@ -199,13 +227,25 @@ router.post(
     let docUrl;
 
     if (cloudinaryEnabled && req.file.buffer) {
-      const isPdf = req.file.mimetype === 'application/pdf';
-      const result = await uploadToCloudinary(req.file.buffer, {
-        folder: 'ExpertsHub/verification-docs',
-        public_id: `verif-${req.user.id}-${Date.now()}`,
-        resource_type: isPdf ? 'raw' : 'image',
-      });
-      docUrl = result.url;
+      try {
+        const isPdf = req.file.mimetype === 'application/pdf';
+        const result = await uploadToCloudinary(req.file.buffer, {
+          folder: 'ExpertsHub/verification-docs',
+          public_id: `verif-${req.user.id}-${Date.now()}`,
+          resource_type: isPdf ? 'raw' : 'image',
+        });
+        docUrl = result.url;
+      } catch (_cloudinaryError) {
+        const fallbackExt = req.file.mimetype === 'application/pdf' ? '.pdf' : '.jpg';
+        docUrl = buildLocalUploadUrl({
+          directory: verificationDocDir,
+          publicPrefix: '/uploads/verification-docs',
+          filePrefix: 'verif',
+          userId: req.user.id,
+          buffer: req.file.buffer,
+          extension: getSafeExtension(req.file.originalname, fallbackExt),
+        });
+      }
     } else {
       docUrl = `/uploads/verification-docs/${req.file.filename}`;
     }
@@ -230,11 +270,22 @@ router.post(
     let photoUrl;
 
     if (cloudinaryEnabled && req.file.buffer) {
-      const result = await uploadToCloudinary(req.file.buffer, {
-        folder: 'ExpertsHub/booking-photos',
-        public_id: `booking-${req.user.id}-${Date.now()}`,
-      });
-      photoUrl = result.url;
+      try {
+        const result = await uploadToCloudinary(req.file.buffer, {
+          folder: 'ExpertsHub/booking-photos',
+          public_id: `booking-${req.user.id}-${Date.now()}`,
+        });
+        photoUrl = result.url;
+      } catch (_cloudinaryError) {
+        photoUrl = buildLocalUploadUrl({
+          directory: bookingPhotoDir,
+          publicPrefix: '/uploads/booking-photos',
+          filePrefix: 'booking',
+          userId: req.user.id,
+          buffer: req.file.buffer,
+          extension: getSafeExtension(req.file.originalname, '.jpg'),
+        });
+      }
     } else {
       photoUrl = `/uploads/booking-photos/${req.file.filename}`;
     }
@@ -311,13 +362,25 @@ router.post(
     let fileUrl;
 
     if (cloudinaryEnabled && req.file.buffer) {
-      const isPdf = req.file.mimetype === 'application/pdf';
-      const result = await uploadToCloudinary(req.file.buffer, {
-        folder: 'ExpertsHub/chat-attachments',
-        public_id: `chat-${req.user.id}-${Date.now()}`,
-        resource_type: isPdf ? 'raw' : 'image',
-      });
-      fileUrl = result.url;
+      try {
+        const isPdf = req.file.mimetype === 'application/pdf';
+        const result = await uploadToCloudinary(req.file.buffer, {
+          folder: 'ExpertsHub/chat-attachments',
+          public_id: `chat-${req.user.id}-${Date.now()}`,
+          resource_type: isPdf ? 'raw' : 'image',
+        });
+        fileUrl = result.url;
+      } catch (_cloudinaryError) {
+        const fallbackExt = req.file.mimetype === 'application/pdf' ? '.pdf' : '.jpg';
+        fileUrl = buildLocalUploadUrl({
+          directory: chatAttachmentDir,
+          publicPrefix: '/uploads/chat-attachments',
+          filePrefix: 'chat',
+          userId: req.user.id,
+          buffer: req.file.buffer,
+          extension: getSafeExtension(req.file.originalname, fallbackExt),
+        });
+      }
     } else {
       fileUrl = `/uploads/chat-attachments/${req.file.filename}`;
     }

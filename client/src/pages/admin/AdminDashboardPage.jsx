@@ -113,6 +113,7 @@ export function AdminDashboardPage() {
     { icon: UserCog,    label: 'Users',          path: '/admin/users',         variant: 'outline' },
     { icon: Calendar,   label: 'Bookings',       path: '/admin/bookings',      variant: 'ghost' },
     { icon: ShieldCheck, label: 'Verification',  path: '/admin/verification',  variant: 'ghost' },
+    { icon: Activity, label: 'AI Audit', path: '/admin/ai-audit', variant: 'ghost' },
   ];
 
   return (

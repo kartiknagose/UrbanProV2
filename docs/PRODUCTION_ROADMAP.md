@@ -1,8 +1,8 @@
-# UrbanPro V2 — Production Roadmap
+# ExpertsHub V2 — Production Roadmap
 
 > **From MVP to Real-Time Marketplace**
 >
-> This document outlines the complete development workflow to transform UrbanPro V2
+> This document outlines the complete development workflow to transform ExpertsHub V2
 > from a working prototype into a production-grade, scalable marketplace — comparable
 > to Urban Company, Amazon Home Services, Uber, and Blinkit.
 >
@@ -151,7 +151,7 @@ enum BackgroundCheckStatus {
 | ✅ ID Verified     | Aadhaar + PAN approved                | Shield   |
 | 🔒 Background OK  | Background check passed               | Lock     |
 | ⭐ Top Rated       | Rating ≥ 4.5 with 20+ reviews        | Star     |
-| 🏆 UrbanPro Pro    | All of the above + 100+ bookings     | Trophy   |
+| 🏆 ExpertsHub Pro    | All of the above + 100+ bookings     | Trophy   |
 
 ---
 
@@ -244,7 +244,7 @@ enum PhotoType {
 - Pressing SOS triggers:
   1. SMS to pre-registered emergency contacts
   2. GPS location shared with emergency contacts
-  3. Alert sent to UrbanPro support team
+  3. Alert sent to ExpertsHub support team
   4. Optional: connection to local emergency services
 
 **Schema Changes:**
@@ -1054,7 +1054,7 @@ Deployments are then triggered by platform hooks (Render auto-deploy for backend
 
 | Feature                | Implementation                                    |
 | ---------------------- | ------------------------------------------------- |
-| **UrbanPro Plus**      | Subscription: ₹199/month → priority booking, 10% off, free cancellation |
+| **ExpertsHub Plus**      | Subscription: ₹199/month → priority booking, 10% off, free cancellation |
 | **Loyalty Points**     | 1 point per ₹10 spent → redeem 100 points = ₹20 off |
 | **Service Packages**   | "Home Maintenance Pack" = cleaning + AC + plumbing at 25% off |
 | **Repeat Booking**     | One-click rebook with same worker                 |
@@ -1291,5 +1291,5 @@ Phase 7 (Ongoing): Growth — Referrals, subscriptions, multi-city
 
 ---
 
-*Document authored for UrbanPro V2 project.*
+*Document authored for ExpertsHub V2 project.*
 *For questions or to begin any phase, open a new conversation with the phase number.*

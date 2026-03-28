@@ -1,4 +1,4 @@
-# UrbanPro V2 Automated Skill Verification (AI/Video Analysis)
+# ExpertsHub V2 Automated Skill Verification (AI/Video Analysis)
 
 ## Overview
 This document outlines a plan for advanced, AI-driven skill verification for workers using video analysis, facial recognition, movement detection, object detection, and related technologies. The goal is to ensure authenticity and assess practical skills automatically.
@@ -55,7 +55,7 @@ This document outlines a plan for advanced, AI-driven skill verification for wor
 
 ## References
 - AWS Rekognition, Azure Face, Google Vision, OpenPose, MediaPipe, YOLO, TensorFlow
-- UrbanPro V2 current codebase
+- ExpertsHub V2 current codebase
 
 ---
 

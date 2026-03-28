@@ -1673,6 +1673,7 @@ async function refreshBookingOtp(bookingId, userId, otpType) {
 // Export all service functions so controllers can use them
 module.exports = {
   createBooking,
+  isWorkerAvailable,
   getBookingsByUser,
   getBookingById,
   updateBookingStatus,

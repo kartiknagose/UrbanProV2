@@ -11,6 +11,7 @@ const GlobalSOSButton = lazy(() => import('./components/features/safety/GlobalSO
 const GlobalSocketListener = lazy(() => import('./components/common/GlobalSocketListener').then(m => ({ default: m.GlobalSocketListener })));
 const PWAReloadPrompt = lazy(() => import('./components/features/pwa/PWAReloadPrompt').then(m => ({ default: m.PWAReloadPrompt })));
 const PWAInstallPrompt = lazy(() => import('./components/features/pwa/PWAInstallPrompt').then(m => ({ default: m.PWAInstallPrompt })));
+const AICommandWidget = lazy(() => import('./components/features/chat/AICommandWidget'));
 
 /**
  * SessionExpiredHandler
@@ -61,6 +62,7 @@ function App() {
               <Suspense fallback={null}>
                 {isAuthenticated && <GlobalSocketListener />}
                 {isAuthenticated && <GlobalSOSButton />}
+                {isAuthenticated && <AICommandWidget />}
                 <PWAReloadPrompt />
                 <PWAInstallPrompt />
               </Suspense>

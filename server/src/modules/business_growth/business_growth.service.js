@@ -254,6 +254,52 @@ async function depositCredits(userId, amount, description = 'Wallet Deposit', re
     }, tx);
 }
 
+/**
+ * Read wallet snapshot with latest transactions.
+ */
+async function getWalletSnapshot(userId, tx = prisma) {
+    const wallet = await tx.wallet.findUnique({
+        where: { userId },
+        include: {
+            user: {
+                select: {
+                    transactions: {
+                        orderBy: { createdAt: 'desc' },
+                        take: 50,
+                    },
+                },
+            },
+        },
+    });
+
+    return {
+        balance: wallet?.balance || 0,
+        currency: wallet?.currency || 'INR',
+        transactions: wallet?.user?.transactions || [],
+    };
+}
+
+/**
+ * Redeem amount from wallet with shared validation logic.
+ */
+async function redeemWalletBalance(userId, amount, description = 'Wallet redeem', tx = prisma) {
+    const normalizedAmount = Math.round(Number(amount) * 100) / 100;
+    const normalizedDescription = typeof description === 'string' ? description.trim() : '';
+
+    if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0 || normalizedAmount > 100000) {
+        throw new AppError(400, 'Invalid redeem amount.');
+    }
+
+    await initializeWallet(userId, tx);
+    return processWalletTransaction({
+        userId,
+        amount: -normalizedAmount,
+        type: 'WITHDRAWAL',
+        description: normalizedDescription || 'Wallet redeem',
+        referenceId: `WALLET_REDEEM:${Date.now()}`,
+    }, tx);
+}
+
 // Re-export specialized services for simplified access
 module.exports = {
     initializeWallet,
@@ -263,6 +309,8 @@ module.exports = {
     validateCoupon,
     awardReferralBonus,
     depositCredits,
+    getWalletSnapshot,
+    redeemWalletBalance,
 
     // Proxy to specialized services
     awardLoyaltyPoints: LoyaltyService.awardPoints,
