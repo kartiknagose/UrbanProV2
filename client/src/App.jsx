@@ -5,6 +5,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { SOSProvider } from './context/SOSContext';
 import { CityProvider } from './context/CityContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { OfflineBanner } from './components/common/OfflineBanner';
 import { useAuth } from './hooks/useAuth';
 
 const GlobalSOSButton = lazy(() => import('./components/features/safety/GlobalSOSButton').then(m => ({ default: m.GlobalSOSButton })));
@@ -57,6 +58,7 @@ function App() {
         <BrowserRouter>
           <CityProvider>
             <SOSProvider>
+              <OfflineBanner />
               <SessionExpiredHandler />
               <AppRoutes />
               <Suspense fallback={null}>

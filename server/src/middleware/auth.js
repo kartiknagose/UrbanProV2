@@ -9,8 +9,10 @@
 // - `verifyJwt` should return the decoded payload (e.g., { id, role }) or
 //   null/false if verification fails.
 const { verifyJwt } = require('../common/utils/jwt');
+const { getTokenVersion } = require('../common/utils/tokenVersion');
+const prisma = require('../config/prisma');
 
-module.exports = (req, res, next) => {
+module.exports = async (req, res, next) => {
   const cookieToken = req.cookies?.token;
   const authHeader = req.get('authorization') || '';
   const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
@@ -22,6 +24,26 @@ module.exports = (req, res, next) => {
   const payload = verifyJwt(token);
   if (!payload || !payload.id || !payload.role) {
     return res.status(401).json({ error: 'Invalid or expired token', statusCode: 401 });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: payload.id },
+      select: { isActive: true, deletedAt: true },
+    });
+
+    if (!user || user.deletedAt || !user.isActive) {
+      return res.status(401).json({ error: 'Account unavailable', statusCode: 401 });
+    }
+
+    const currentVersion = await getTokenVersion(payload.id);
+    const tokenVersion = Number.isInteger(Number(payload.tv)) ? Number(payload.tv) : 0;
+
+    if (tokenVersion !== currentVersion) {
+      return res.status(401).json({ error: 'Session expired. Please log in again.', statusCode: 401 });
+    }
+  } catch (_error) {
+    return res.status(503).json({ error: 'Authentication service unavailable', statusCode: 503 });
   }
 
   // Attach the authenticated user's payload to the request so downstream

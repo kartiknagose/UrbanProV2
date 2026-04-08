@@ -38,6 +38,8 @@ export function RegisterPage() {
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(registerSchema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
   });
 
   const onSubmit = async (data) => {

@@ -48,8 +48,8 @@ async function upsertCustomerProfile(userId, { name, line1, line2, city, state, 
 }
 
 async function getCustomerProfile(userId) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
+  const user = await prisma.user.findFirst({
+    where: { id: userId, deletedAt: null },
     select: {
       id: true,
       name: true,

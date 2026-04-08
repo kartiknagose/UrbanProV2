@@ -46,15 +46,15 @@ export function LoadingOverlay({ message, blur = true }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
     >
-      {/* Gradient spinner ring */}
-      <div className="relative w-16 h-16">
-        <div className="absolute inset-0 rounded-full border-4 border-neutral-200 dark:border-dark-700" />
-        <div
-          className="absolute inset-0 rounded-full border-4 border-transparent border-t-brand-500 animate-spin"
-          style={{ borderTopColor: 'theme(colors.brand.500)' }}
-        />
-        {/* Center dot */}
-        <div className="absolute inset-[30%] rounded-full gradient-brand" />
+      <div className="w-full max-w-md px-6">
+        <div className="rounded-2xl border border-neutral-200 bg-white/90 p-5 shadow-sm dark:border-dark-700 dark:bg-dark-900/80">
+          <div className="mb-4 h-5 w-40 animate-pulse rounded bg-neutral-200 dark:bg-dark-700" />
+          <div className="space-y-3">
+            <div className="h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-dark-700" />
+            <div className="h-4 w-5/6 animate-pulse rounded bg-neutral-200 dark:bg-dark-700" />
+            <div className="h-4 w-2/3 animate-pulse rounded bg-neutral-200 dark:bg-dark-700" />
+          </div>
+        </div>
       </div>
 
       {message && (
@@ -73,36 +73,26 @@ export function FullPageSpinner({ message = 'Loading...' }) {
   return (
     <div className="flex items-center justify-center min-h-screen bg-neutral-50 dark:bg-dark-950">
       <Motion.div
-        className="flex flex-col items-center gap-5"
+        className="w-full max-w-xl px-6"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* Animated brand logo spinner */}
-        <div className="relative w-16 h-16">
-          {/* Outer ring */}
-          <div className="absolute inset-0 rounded-full border-4 border-brand-100 dark:border-brand-500/20" />
-          {/* Spinning gradient arc */}
-          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-brand-500 border-r-accent-500 animate-spin" />
-          {/* Center gradient square (logo mark) */}
-          <div className="absolute inset-[26%] rounded-lg bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center shadow-brand-sm">
-            <span className="text-white font-black text-sm leading-none">U</span>
+        <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-dark-700 dark:bg-dark-900">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="h-11 w-11 animate-pulse rounded-2xl bg-neutral-200 dark:bg-dark-700" />
+            <div className="space-y-2">
+              <div className="h-4 w-40 animate-pulse rounded bg-neutral-200 dark:bg-dark-700" />
+              <div className="h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-dark-700" />
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-dark-700" />
+            <div className="h-4 w-5/6 animate-pulse rounded bg-neutral-200 dark:bg-dark-700" />
+            <div className="h-4 w-2/3 animate-pulse rounded bg-neutral-200 dark:bg-dark-700" />
           </div>
         </div>
-
-        <div className="text-center">
-          <p className="text-base font-semibold text-neutral-700 dark:text-neutral-200">{message}</p>
-          <div className="flex justify-center gap-1 mt-2">
-            {[0, 1, 2].map((i) => (
-              <Motion.div
-                key={i}
-                className="w-1.5 h-1.5 rounded-full bg-brand-500"
-                animate={{ scale: [1, 1.5, 1], opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
-              />
-            ))}
-          </div>
-        </div>
+        <p className="mt-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-300">{message}</p>
       </Motion.div>
     </div>
   );

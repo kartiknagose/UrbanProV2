@@ -30,6 +30,8 @@ export function LoginPage() {
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(loginSchema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: { email: defaultEmail || '' },
   });
 

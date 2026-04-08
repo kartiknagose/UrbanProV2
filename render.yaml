@@ -1,0 +1,94 @@
+services:
+  - type: web
+    name: expertshub-api
+    env: node
+    rootDir: server
+    plan: starter
+    region: oregon
+    buildCommand: npm ci && npx prisma generate && npx prisma migrate deploy
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: JWT_ISSUER
+        value: expertshub
+      - key: JWT_AUDIENCE
+        value: expertshub-users
+      - key: REQUIRE_EMAIL_VERIFICATION
+        value: true
+      - key: GROQ_MODEL
+        value: llama3-8b-8192
+      - key: GROQ_TIMEOUT_MS
+        value: 20000
+      - key: AI_TOOL_TIMEOUT_MS
+        value: 12000
+      - key: AI_VOICE_MAX_BYTES
+        value: 15728640
+      - key: INTERNAL_API_BASE_URL
+        value: http://127.0.0.1:5000
+      - key: SMTP_DISABLED
+        value: true
+      - key: EMAIL_HEALTH_PROBE_PUBLIC
+        value: false
+      - key: RAZORPAY_PAYOUT_MODE
+        value: SIMULATED
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: FROM_EMAIL
+        sync: false
+      - key: FROM_NAME
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: SENDGRID_FROM
+        sync: false
+      - key: GOOGLE_GEOCODING_API_KEY
+        sync: false

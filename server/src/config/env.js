@@ -1,5 +1,33 @@
+const fs = require('fs');
+const path = require('path');
 const dotenv = require('dotenv');
-dotenv.config();
+
+const loadEnvironment = () => {
+    const nodeEnv = process.env.NODE_ENV || 'development';
+    const serverRoot = path.resolve(__dirname, '../..');
+
+    // Keep shell/platform-provided variables (Render, CI, etc.) as highest priority.
+    const externallyDefinedKeys = new Set(Object.keys(process.env));
+    const envFileOrder = [
+        '.env',
+        `.env.${nodeEnv}`,
+        '.env.local',
+        `.env.${nodeEnv}.local`,
+    ];
+
+    for (const fileName of envFileOrder) {
+        const filePath = path.join(serverRoot, fileName);
+        if (!fs.existsSync(filePath)) continue;
+
+        const parsed = dotenv.parse(fs.readFileSync(filePath));
+        for (const [key, value] of Object.entries(parsed)) {
+            if (externallyDefinedKeys.has(key)) continue;
+            process.env[key] = value;
+        }
+    }
+};
+
+loadEnvironment();
 
 const toNumber = (value, fallback) => {
     const parsed = Number(value);

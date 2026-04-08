@@ -21,6 +21,7 @@ const { create, list, getOne, getWorkers, update, remove } = require('./service.
 const authenticate = require('../../middleware/auth'); // Check if user is logged in
 const { requireAdmin } = require('../../middleware/requireRole'); // Check if user is admin
 const validate = require('../../middleware/validation'); // Check if request data is valid
+const adminAudit = require('../../middleware/adminAudit');
 const {
   createServiceSchema,
   serviceIdParamSchema,
@@ -72,6 +73,7 @@ router.post(
   '/',
   authenticate,          // Step 1: Check if user is logged in
   requireAdmin,          // Step 2: Check if user is admin
+  adminAudit('CREATE_SERVICE', 'Service'),
   createServiceSchema,   // Step 3: Validate request body
   validate,              // Step 4: Check for validation errors
   withServiceCatalogInvalidation(create) // Step 5: Execute create controller
@@ -141,14 +143,14 @@ router.get('/:id/workers', serviceIdParamSchema, validate, getWorkers);
  * Endpoint: PATCH /api/services/:id
  * Access: Admin Only
  */
-router.patch('/:id', authenticate, requireAdmin, updateServiceSchema, validate, withServiceCatalogInvalidation(update));
+router.patch('/:id', authenticate, requireAdmin, adminAudit('UPDATE_SERVICE', 'Service'), updateServiceSchema, validate, withServiceCatalogInvalidation(update));
 
 /**
  * ROUTE 6: DELETE A SERVICE
  * Endpoint: DELETE /api/services/:id
  * Access: Admin Only
  */
-router.delete('/:id', authenticate, requireAdmin, serviceIdParamSchema, validate, withServiceCatalogInvalidation(remove));
+router.delete('/:id', authenticate, requireAdmin, adminAudit('DELETE_SERVICE', 'Service'), serviceIdParamSchema, validate, withServiceCatalogInvalidation(remove));
 
 // Export the router so index.js can mount it at /api/services
 module.exports = router;

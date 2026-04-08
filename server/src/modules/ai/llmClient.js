@@ -1,4 +1,11 @@
 const axios = require('axios');
+const CircuitBreaker = require('../../common/utils/circuitBreaker');
+
+const groqBreaker = new CircuitBreaker('groq', {
+  failureThreshold: 5,
+  resetTimeout: 60000,
+  successThreshold: 2,
+});
 
 function clampGroqTimeout(value) {
   const numeric = Number(value);
@@ -7,40 +14,42 @@ function clampGroqTimeout(value) {
 }
 
 async function callGroqChatOnce({ systemPrompt, userPrompt }) {
-  const apiKey = String(process.env.GROQ_API_KEY || '').trim();
-  if (!apiKey) {
-    throw new Error('GROQ_API_KEY is not configured.');
-  }
-
-  const model = String(process.env.GROQ_MODEL || 'llama3-8b-8192').trim();
-  const timeoutMs = clampGroqTimeout(process.env.GROQ_TIMEOUT_MS || 4000);
-
-  const response = await axios.post(
-    'https://api.groq.com/openai/v1/chat/completions',
-    {
-      model,
-      temperature: 0,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    },
-    {
-      timeout: timeoutMs,
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
+  return groqBreaker.execute(async () => {
+    const apiKey = String(process.env.GROQ_API_KEY || '').trim();
+    if (!apiKey) {
+      throw new Error('GROQ_API_KEY is not configured.');
     }
-  );
 
-  const content = String(response?.data?.choices?.[0]?.message?.content || '').trim();
-  if (!content) {
-    throw new Error('Invalid Groq response content.');
-  }
+    const model = String(process.env.GROQ_MODEL || 'llama3-8b-8192').trim();
+    const timeoutMs = clampGroqTimeout(process.env.GROQ_TIMEOUT_MS || 4000);
 
-  return content;
+    const response = await axios.post(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        model,
+        temperature: 0,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      },
+      {
+        timeout: timeoutMs,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const content = String(response?.data?.choices?.[0]?.message?.content || '').trim();
+    if (!content) {
+      throw new Error('Invalid Groq response content.');
+    }
+
+    return content;
+  });
 }
 
 async function callGroqChatWithSingleRetry({ systemPrompt, userPrompt }) {

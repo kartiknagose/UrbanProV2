@@ -1,6 +1,8 @@
 const messageStore = require('./messageStore');
 const logger = require('../../config/logger');
 
+const SMS_ENABLED = Boolean(process.env.SMS_PROVIDER_API_KEY);
+
 /**
  * Service to handle SMS Notifications
  * Currently implemented as a FREE Mock Service to avoid Twilio/MSG91 costs.
@@ -17,6 +19,12 @@ class SMSService {
         if (!to) return null;
 
         try {
+            if (!SMS_ENABLED) {
+                logger.info(`[SMS_STUB] Would send to ${to}: ${message}`);
+                const record = messageStore.add('SMS', to, message);
+                return { success: true, messageId: record.id, status: 'DELIVERED_STUB', stubbed: true };
+            }
+
             // FREE MOCK IMPLEMENTATION
             logger.info(`[MOCK SMS] Sending to ${to}: ${message}`);
 

@@ -1,6 +1,7 @@
 const asyncHandler = require('../../common/utils/asyncHandler');
 const parsePagination = require('../../common/utils/parsePagination');
 const { listMyPayments, listAllPayments } = require('./payment.service');
+const prisma = require('../../config/prisma');
 
 exports.listMine = asyncHandler(async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query);
@@ -16,6 +17,31 @@ exports.listAll = asyncHandler(async (req, res) => {
 
 const crypto = require('crypto');
 const bookingService = require('../bookings/booking.service');
+
+async function createPaymentIfNotExists({ bookingId, customerId, amount, status, reference }) {
+  if (!reference) return;
+
+  const existing = await prisma.payment.findFirst({
+    where: {
+      bookingId,
+      status,
+      reference,
+    },
+    select: { id: true },
+  });
+
+  if (existing) return;
+
+  await prisma.payment.create({
+    data: {
+      bookingId,
+      customerId,
+      amount,
+      status,
+      reference,
+    },
+  });
+}
 
 exports.razorpayWebhook = asyncHandler(async (req, res) => {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -80,6 +106,62 @@ exports.razorpayWebhook = asyncHandler(async (req, res) => {
         if (!(err && err.statusCode === 400 && String(err.message).toLowerCase().includes('already paid'))) {
           console.error('Razorpay Webhook payBooking error:', err.message);
         }
+      }
+    }
+  }
+
+  if (event.event === 'payment.failed') {
+    const paymentEntity = event?.payload?.payment?.entity;
+    const bookingId = Number(paymentEntity?.notes?.bookingId);
+
+    if (Number.isInteger(bookingId) && bookingId > 0) {
+      const booking = await prisma.booking.findUnique({ where: { id: bookingId }, select: { customerId: true } });
+
+      await prisma.booking.updateMany({
+        where: { id: bookingId, paymentStatus: 'PENDING' },
+        data: {
+          paymentStatus: 'FAILED',
+          updatedAt: new Date(),
+        },
+      });
+
+      if (booking?.customerId && paymentEntity?.id) {
+        await createPaymentIfNotExists({
+          bookingId,
+          customerId: booking.customerId,
+          amount: Number(paymentEntity?.amount || 0) / 100,
+          status: 'FAILED',
+          reference: paymentEntity.id,
+        });
+      }
+    }
+  }
+
+  if (event.event === 'refund.processed') {
+    const refundEntity = event?.payload?.refund?.entity;
+    const bookingIdFromNotes = Number(refundEntity?.notes?.bookingId);
+    const paymentReference = refundEntity?.payment_id;
+
+    const booking = Number.isInteger(bookingIdFromNotes) && bookingIdFromNotes > 0
+      ? await prisma.booking.findUnique({ where: { id: bookingIdFromNotes }, select: { id: true, customerId: true } })
+      : (paymentReference
+        ? await prisma.booking.findFirst({ where: { paymentReference }, select: { id: true, customerId: true } })
+        : null);
+
+    if (booking?.id) {
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: { paymentStatus: 'REFUNDED', updatedAt: new Date() },
+      });
+
+      if (refundEntity?.id) {
+        await createPaymentIfNotExists({
+          bookingId: booking.id,
+          customerId: booking.customerId,
+          amount: Number(refundEntity?.amount || 0) / 100,
+          status: 'REFUNDED',
+          reference: refundEntity.id,
+        });
       }
     }
   }

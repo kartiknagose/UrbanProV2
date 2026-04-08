@@ -4,6 +4,61 @@ const prisma = require('../../config/prisma');
 const AppError = require('../../common/errors/AppError');
 
 /**
+ * Create and store invoice record in database
+ * Called automatically when booking is completed
+ */
+exports.createInvoiceForBooking = async (bookingId) => {
+    const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        include: {
+            customer: true,
+            workerProfile: true,
+            service: true,
+        },
+    });
+
+    if (!booking) {
+        throw new AppError(404, `Booking ${bookingId} not found`);
+    }
+
+    // Check if invoice already exists
+    const existingInvoice = await prisma.invoice.findUnique({
+        where: { bookingId },
+    });
+
+    if (existingInvoice) {
+        return existingInvoice; // Already created
+    }
+
+    // Generate unique invoice number
+    const invoiceNumber = `INV-${booking.id}-${Date.now()}`;
+
+    // Decimal amounts
+    const amount = booking.totalPrice || 0;
+    const platformCut = booking.platformCommission || 0;
+    const workerCut = booking.workerPayoutAmount || 0;
+
+    // Create invoice record
+    const invoice = await prisma.invoice.create({
+        data: {
+            bookingId,
+            customerId: booking.customerId,
+            workerProfileId: booking.workerProfileId,
+            amount,
+            platformCut,
+            workerCut,
+            invoiceNumber,
+            invoiceDate: new Date(),
+            dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+            status: 'GENERATED',
+        },
+    });
+
+    console.log(`✅ Invoice created: ${invoiceNumber} for booking ${bookingId}`);
+    return invoice;
+};
+
+/**
  * Generate PDF Invoice for Customer
  */
 exports.generateBookingInvoicePDF = async ({ bookingId, requesterId, requesterRole, res }) => {

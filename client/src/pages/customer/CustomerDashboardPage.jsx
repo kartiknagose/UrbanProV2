@@ -96,8 +96,44 @@ export function CustomerDashboardPage() {
 
   const cancelMutation = useMutation({
     mutationFn: (id) => cancelBooking(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.bookings.customer() });
+      const previous = queryClient.getQueryData(queryKeys.bookings.customer());
+
+      queryClient.setQueryData(queryKeys.bookings.customer(), (current) => {
+        if (!current) return current;
+
+        const patchBooking = (booking) =>
+          booking?.id === id
+            ? {
+                ...booking,
+                status: 'CANCELLED',
+              }
+            : booking;
+
+        if (Array.isArray(current)) {
+          return current.map(patchBooking);
+        }
+
+        if (Array.isArray(current?.bookings)) {
+          return {
+            ...current,
+            bookings: current.bookings.map(patchBooking),
+          };
+        }
+
+        return current;
+      });
+
+      return { previous };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings.customer() });
+    },
+    onError: (_error, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.bookings.customer(), context.previous);
+      }
     },
   });
 

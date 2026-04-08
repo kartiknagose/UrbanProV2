@@ -155,6 +155,8 @@ export function CustomerProfilePage() {
     formState: { errors, isSubmitting, isDirty },
   } = useForm({
     resolver: zodResolver(customerProfileSchema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     shouldUnregister: false, // CRITICAL: Keep data of hidden tabs preserved
     defaultValues: {
       name: '',

@@ -7,7 +7,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 enum Role {
@@ -63,6 +63,7 @@ model User {
   profilePhotoUrl   String?
   isProfileComplete Boolean   @default(false)
   isActive          Boolean   @default(true)
+  deletedAt         DateTime?
   lastActiveAt      DateTime  @default(now())
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -91,6 +92,7 @@ model User {
   messages                       Message[]
   statusChanges                  BookingStatusHistory[]
   aiActionAudits                 AIActionAudit[]
+  invoices                       Invoice[]                       @relation("CustomerInvoices")
 
   // Business Growth (Sprint 17)
   referralCode   String?             @unique
@@ -219,6 +221,7 @@ model WorkerProfile {
   location       WorkerLocation?
   payouts        Payout[]
   favoritedBy    FavoriteWorker[]
+  invoices       Invoice[]
 
   // Payout Details
   bankAccountNumber String?
@@ -371,6 +374,7 @@ model Booking {
   conversation  Conversation?
   sessions      BookingSession[]
   statusHistory BookingStatusHistory[]
+  invoice       Invoice?
 
   // Recurring Bookings (Sprint 17 - #78)
   frequency    BookingFrequency @default(ONE_TIME)
@@ -553,6 +557,7 @@ model Message {
 
   @@index([conversationId])
   @@index([senderId])
+  @@index([conversationId, createdAt])
 }
 
 enum MessageType {
@@ -837,6 +842,43 @@ model FraudAlert {
 
   @@index([type])
   @@index([userId])
+}
+
+model Invoice {
+  id               Int      @id @default(autoincrement())
+  bookingId        Int      @unique
+  booking          Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  customerId       Int
+  customer         User     @relation("CustomerInvoices", fields: [customerId], references: [id])
+  workerProfileId  Int?
+  workerProfile    WorkerProfile? @relation(fields: [workerProfileId], references: [id], onDelete: SetNull)
+  
+  amount           Decimal
+  platformCut      Decimal
+  workerCut        Decimal
+  
+  invoiceNumber    String   @unique
+  invoiceDate      DateTime @default(now())
+  dueDate          DateTime?
+  status           InvoiceStatus @default(GENERATED)
+  
+  pdfUrl           String?  // S3 or Cloudinary URL
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  @@index([customerId])
+  @@index([workerProfileId])
+  @@index([status])
+  @@index([invoiceDate])
+}
+
+enum InvoiceStatus {
+  GENERATED
+  SENT
+  VIEWED
+  PAID
+  CANCELLED
 }
 
 enum FraudAlertType {

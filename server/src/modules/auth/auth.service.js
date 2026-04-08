@@ -3,9 +3,11 @@ const { hashPassword, comparePassword } = require('../../common/utils/bcrypt');
 const { signJwt } = require('../../common/utils/jwt');
 const { generateEmailVerificationToken, generatePasswordResetToken } = require('../../common/utils/tokenGenerator');
 const AppError = require('../../common/errors/AppError');
+const { getTokenVersion, incrementTokenVersion } = require('../../common/utils/tokenVersion');
+const { sanitizeText } = require('../../common/utils/sanitize');
 
 async function registerUser({ name, email, mobile, password, role = 'CUSTOMER', referralCode = null }) {
-  const normalizedName = String(name || '').trim();
+  const normalizedName = sanitizeText(String(name || '').trim());
   const normalizedEmail = String(email || '').trim().toLowerCase();
   const normalizedMobile = String(mobile || '').trim();
   const validRoles = ['CUSTOMER', 'WORKER'];
@@ -61,7 +63,8 @@ async function registerUser({ name, email, mobile, password, role = 'CUSTOMER', 
     timeout: 15000,
   });
 
-  const jwtToken = signJwt({ id: user.id, role: user.role });
+  const tokenVersion = await getTokenVersion(user.id);
+  const jwtToken = signJwt({ id: user.id, role: user.role, tv: tokenVersion });
   return {
     user: { id: user.id, name: user.name, email: user.email, role: user.role },
     token: jwtToken,
@@ -75,13 +78,14 @@ async function loginUser({ email, password }) {
 
   const user = await prisma.user.findUnique({
     where: { email: normalizedEmail },
+    // Soft-deleted users cannot log in.
     include: {
       workerProfile: {
         select: { isVerified: true }
       }
     }
   });
-  if (!user) throw new AppError(401, 'Invalid credentials');
+  if (!user || user.deletedAt) throw new AppError(401, 'Invalid credentials');
   const ok = await comparePassword(password, user.passwordHash);
   if (!ok) throw new AppError(401, 'Invalid credentials');
   if (requireEmailVerification && !user.emailVerified && process.env.NODE_ENV !== 'development') {
@@ -89,7 +93,8 @@ async function loginUser({ email, password }) {
   }
   if (!user.isActive) throw new AppError(403, 'Account suspended. Please contact support.');
 
-  const token = signJwt({ id: user.id, role: user.role });
+  const tokenVersion = await getTokenVersion(user.id);
+  const token = signJwt({ id: user.id, role: user.role, tv: tokenVersion });
 
   // Flatten verification status for workers
   const userData = {
@@ -207,6 +212,8 @@ async function resetPasswordWithToken({ token, password }) {
       data: { used: true },
     });
   });
+
+  await incrementTokenVersion(resetToken.userId);
 }
 
 async function changePassword(userId, { currentPassword, newPassword }) {
@@ -222,6 +229,8 @@ async function changePassword(userId, { currentPassword, newPassword }) {
     where: { id: userId },
     data: { passwordHash: newPasswordHash },
   });
+
+  await incrementTokenVersion(userId);
 }
 
 module.exports = {

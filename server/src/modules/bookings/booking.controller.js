@@ -571,6 +571,23 @@ const acceptBooking = asyncHandler(async (req, res) => {
   emitBookingStatusUpdated(booking);
 });
 
+const rejectBooking = asyncHandler(async (req, res) => {
+  const bookingId = parseId(req.params.id, 'Booking ID');
+  const userId = req.user.id;
+  const userRole = req.user.role;
+  const reason = req.body?.reason;
+
+  if (userRole !== 'WORKER') {
+    throw new AppError(403, 'Only workers can reject booking offers.');
+  }
+
+  await bookingService.rejectBooking(bookingId, userId, reason);
+
+  res.status(200).json({
+    message: 'Booking offer rejected successfully.',
+  });
+});
+
 /**
  * VERIFY OTP TO START JOB
  * 
@@ -792,6 +809,7 @@ module.exports = {
   payBooking,
   getOpenBookings,
   acceptBooking,
+  rejectBooking,
   verifyBookingStart,
   verifyBookingCompletion,
   refreshBookingOtp,

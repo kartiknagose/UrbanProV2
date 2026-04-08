@@ -3,8 +3,8 @@ const AppError = require('../../common/errors/AppError');
 
 async function getDashboardStats() {
   const [users, workers, services, bookings, pendingBookings, pendingVerifications] = await Promise.all([
-    prisma.user.count(),
-    prisma.user.count({ where: { role: 'WORKER' } }),
+    prisma.user.count({ where: { deletedAt: null } }),
+    prisma.user.count({ where: { role: 'WORKER', deletedAt: null } }),
     prisma.service.count(),
     prisma.booking.count(),
     prisma.booking.count({ where: { status: 'PENDING' } }),
@@ -22,7 +22,10 @@ async function getDashboardStats() {
 }
 
 async function listUsers(role, { skip = 0, limit = 20 } = {}) {
-  const where = role ? { role } : undefined;
+  const where = {
+    deletedAt: null,
+    ...(role ? { role } : {}),
+  };
   const [data, total] = await Promise.all([
     prisma.user.findMany({
       where,
@@ -49,6 +52,11 @@ async function listUsers(role, { skip = 0, limit = 20 } = {}) {
 async function listWorkers({ skip = 0, limit = 20 } = {}) {
   const [data, total] = await Promise.all([
     prisma.workerProfile.findMany({
+      where: {
+        user: {
+          deletedAt: null,
+        },
+      },
       include: {
         user: {
           select: {
@@ -69,7 +77,13 @@ async function listWorkers({ skip = 0, limit = 20 } = {}) {
       skip,
       take: limit,
     }),
-    prisma.workerProfile.count(),
+    prisma.workerProfile.count({
+      where: {
+        user: {
+          deletedAt: null,
+        },
+      },
+    }),
   ]);
   return { data, total };
 }
@@ -90,8 +104,29 @@ async function updateUserStatus(userId, isActive) {
 
 async function deleteUser(userId) {
   try {
-    return await prisma.user.delete({
+    const user = await prisma.user.findUnique({
       where: { id: userId },
+      select: { id: true, email: true, mobile: true, deletedAt: true },
+    });
+
+    if (!user || user.deletedAt) {
+      throw new AppError(404, 'User not found.');
+    }
+
+    const ts = Date.now();
+    const tombstoneEmail = `deleted_${user.id}_${ts}_${user.email}`;
+    const tombstoneMobile = `deleted_${user.id}_${ts}`;
+
+    return await prisma.user.update({
+      where: { id: userId },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+        emailVerified: false,
+        email: tombstoneEmail,
+        mobile: tombstoneMobile,
+        referralCode: null,
+      },
     });
   } catch (error) {
     if (error.code === 'P2025') {

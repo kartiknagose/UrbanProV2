@@ -78,32 +78,10 @@ async function offerBookingToWorker(bookingId, workerId) {
   }
 }
 
-// Wait for worker acceptance by polling DB
-async function waitForWorkerAcceptance(bookingId, workerId, timeoutMs) {
-  const prisma = require('../../config/prisma');
-  const pollInterval = 5000; // 5 seconds
-  const deadline = Date.now() + timeoutMs;
-
-  while (Date.now() < deadline) {
-    const booking = await prisma.booking.findUnique({
-      where: { id: bookingId },
-      select: { status: true, workerProfileId: true }
-    });
-
-    // Worker accepted (status changed to CONFIRMED and assigned to this worker)
-    if (booking && booking.status === 'CONFIRMED' && booking.workerProfileId === workerId) {
-      return true;
-    }
-
-    // Booking cancelled or already assigned to someone else
-    if (booking && (booking.status === 'CANCELLED' || (booking.workerProfileId && booking.workerProfileId !== workerId))) {
-      return false;
-    }
-
-    // Wait before next poll
-    await new Promise(resolve => setTimeout(resolve, pollInterval));
-  }
-  return false; // Timed out
+// Wait for worker acceptance using isolated event manager.
+async function waitForWorkerAcceptance(bookingId, workerId, timeoutMs = 5 * 60 * 1000) {
+  const bookingEvents = require('./booking-events');
+  return bookingEvents.waitForWorkerDecision(bookingId, workerId, timeoutMs);
 }
 /**
  * BOOKING SERVICE - BUSINESS LOGIC LAYER
@@ -135,6 +113,8 @@ const SMSService = require('../notifications/sms.service');
 const WhatsAppService = require('../notifications/whatsapp.service');
 const { createNotification } = require('../notifications/notification.service');
 const GrowthService = require('../business_growth/business_growth.service');
+const { sanitizeOptionalText } = require('../../common/utils/sanitize');
+const { getRazorpayClient } = require('../payments/payment.service');
 
 /**
  * Fetch worker profile by userId. Throws AppError if not found.
@@ -292,6 +272,10 @@ const { calculateDynamicPrice } = require('../pricing/pricing.service');
 async function createBooking(customerId, bookingData) {
   let { workerProfileId, serviceId, scheduledDate, addressDetails, latitude, longitude, estimatedPrice, notes, estimatedDuration, couponCode, frequency } = bookingData;
 
+  const safeAddressDetails = sanitizeOptionalText(addressDetails);
+  const safeNotes = sanitizeOptionalText(notes);
+  const safeCouponCode = typeof couponCode === 'string' ? couponCode.trim() : couponCode;
+
   serviceId = Number(serviceId);
   if (!Number.isInteger(serviceId) || serviceId <= 0) {
     throw new AppError(400, 'Service ID must be a valid number.');
@@ -348,7 +332,7 @@ async function createBooking(customerId, bookingData) {
 
   // BUSINESS GROWTH: Coupon Validation (Sprint 17)
   let appliedCoupon = null;
-  if (couponCode) {
+  if (safeCouponCode) {
     // Fetch service for category info
     const service = await prisma.service.findUnique({ where: { id: serviceId } });
     if (!service) throw new AppError(404, 'Service not found.');
@@ -357,18 +341,18 @@ async function createBooking(customerId, bookingData) {
       ? estimatedPrice
       : Number(service.basePrice || 0);
 
-    appliedCoupon = await GrowthService.validateCoupon(couponCode, customerId, {
+    appliedCoupon = await GrowthService.validateCoupon(safeCouponCode, customerId, {
       bookingAmount: couponBookingAmount,
       serviceCategory: service.category
     });
   }
 
   // Geocode address if lat/lng missing and addressDetails present
-  if ((!latitude || !longitude) && addressDetails && GOOGLE_GEOCODING_API_KEY) {
+  if ((!latitude || !longitude) && safeAddressDetails && GOOGLE_GEOCODING_API_KEY) {
     try {
       const geoResp = await axios.get(GOOGLE_GEOCODING_URL, {
         params: {
-          address: addressDetails,
+          address: safeAddressDetails,
           key: GOOGLE_GEOCODING_API_KEY,
           language: 'en',
           region: 'IN',
@@ -533,6 +517,13 @@ async function createBooking(customerId, bookingData) {
       basePriceOverride: Number(estimatedPrice) || 0
     });
 
+    const totalAfterCoupon = appliedCoupon
+      ? Math.max(0, Number(pricing.totalPrice) - appliedCoupon.discountAmount)
+      : Number(pricing.totalPrice);
+    const commissionRate = Number(service.commissionRate) || 15.0;
+    const platformCommission = Math.max(0, (totalAfterCoupon * commissionRate) / 100);
+    const workerPayoutAmount = Math.max(0, totalAfterCoupon - platformCommission);
+
     // Create the booking
     return await tx.booking.create({
       data: {
@@ -540,15 +531,13 @@ async function createBooking(customerId, bookingData) {
         workerProfileId: isDirectBooking ? workerProfileId : null,
         serviceId: serviceId,
         scheduledAt: scheduledDateObj,
-        address: addressDetails,
+        address: safeAddressDetails,
         latitude: latitude ? Number(latitude) : null,
         longitude: longitude ? Number(longitude) : null,
-        notes: notes,
+        notes: safeNotes,
         estimatedDuration: estimatedDuration || null,
         status: 'PENDING',
-        totalPrice: appliedCoupon
-          ? Math.max(0, Number(pricing.totalPrice) - appliedCoupon.discountAmount)
-          : pricing.totalPrice,
+        totalPrice: totalAfterCoupon,
         basePrice: pricing.basePrice,
         timeMultiplier: pricing.timeMultiplier,
         surgeMultiplier: pricing.surgeMultiplier,
@@ -556,6 +545,8 @@ async function createBooking(customerId, bookingData) {
         workerTierMultiplier: pricing.workerTierMultiplier,
         distanceSurcharge: pricing.distanceSurcharge,
         gstAmount: pricing.gstAmount,
+        platformCommission,
+        workerPayoutAmount,
         couponId: appliedCoupon?.couponId || null,
         couponAmount: appliedCoupon?.discountAmount || 0,
         frequency: frequency || 'ONE_TIME',
@@ -857,6 +848,29 @@ async function updateBookingStatus(bookingId, newStatus, userId, role) {
     console.warn('Worker stats broadcast error:', err.message);
   }
 
+  if (newStatus === 'COMPLETED') {
+    try {
+      const invoiceService = require('../invoices/invoice.service');
+      await invoiceService.createInvoiceForBooking(bookingId);
+    } catch (invoiceError) {
+      console.warn(`Failed to create invoice for booking ${bookingId}:`, invoiceError.message);
+      // Don't fail booking completion if invoice creation fails
+    }
+
+    try {
+      const { getIo } = require('../../socket');
+      const io = getIo();
+      if (updatedBooking.customer?.id) {
+        io.to(`user:${updatedBooking.customer.id}`).emit('invoice:ready', {
+          bookingId,
+          invoiceUrl: `/api/invoices/booking/${bookingId}`,
+        });
+      }
+    } catch (_error) {
+      // Invoice endpoint is still available even if realtime emit fails.
+    }
+  }
+
   return updatedBooking;
 }
 
@@ -877,6 +891,7 @@ async function updateBookingStatus(bookingId, newStatus, userId, role) {
  * @throws {Error} - If booking not found or user doesn't have permission
  */
 async function cancelBooking(bookingId, userId, role, cancellationReason) {
+  const safeCancellationReason = sanitizeOptionalText(cancellationReason);
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
   });
@@ -912,7 +927,7 @@ async function cancelBooking(bookingId, userId, role, cancellationReason) {
       where: { id: bookingId },
       data: {
         status: 'CANCELLED',
-        cancellationReason: cancellationReason || 'No reason provided',
+        cancellationReason: safeCancellationReason || 'No reason provided',
         cancellationPenaltyPercent: isAdmin ? 0 : policy.penaltyPercent,
         updatedAt: new Date(),
       },
@@ -929,7 +944,7 @@ async function cancelBooking(bookingId, userId, role, cancellationReason) {
         customer: { select: { id: true, name: true, email: true } },
       },
     });
-    await recordStatusChange(bookingId, booking.status, 'CANCELLED', userId, cancellationReason, tx);
+    await recordStatusChange(bookingId, booking.status, 'CANCELLED', userId, safeCancellationReason, tx);
 
     // Process Automated Refund if already PAID
     if (booking.paymentStatus === 'PAID' && booking.paymentReference && !!booking.totalPrice) {
@@ -941,14 +956,18 @@ async function cancelBooking(bookingId, userId, role, cancellationReason) {
         const refundAmount = rawAmount * (refundPercent / 100);
 
         try {
-          // const Razorpay = require('razorpay');
-          // const rzp = new Razorpay({
-          //   key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_xxxxxxxx',
-          //   key_secret: process.env.RAZORPAY_KEY_SECRET || 'xxxxxxxx'
-          // });
+          const amountInPaise = Math.round(refundAmount * 100);
+          if (amountInPaise > 0 && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+            const razorpay = getRazorpayClient();
+            await razorpay.payments.refund(booking.paymentReference, {
+              amount: amountInPaise,
+              notes: {
+                bookingId: String(bookingId),
+                reason: safeCancellationReason || 'Booking cancelled',
+              },
+            });
+          }
 
-          // In production, execute the refund via Razorpay APIs
-          // await rzp.payments.refund(booking.paymentReference, { amount: Math.round(refundAmount * 100) });
           console.log(`[REFUND] Processed ₹${refundAmount.toFixed(2)} refund for Cancelled Booking #${bookingId}`);
 
           // Create payment record for local ledger tracking
@@ -1359,7 +1378,7 @@ async function acceptBooking(bookingId, userId) {
   }
 
   // Transaction to ensure no two workers accept the same job at the exact same millisecond
-  return prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx) => {
     const booking = await tx.booking.findUnique({
       where: { id: bookingId }
     });
@@ -1416,6 +1435,57 @@ async function acceptBooking(bookingId, userId) {
 
     return updated;
   });
+
+  try {
+    const bookingEvents = require('./booking-events');
+    bookingEvents.emitAcceptance(bookingId, updated.workerProfileId);
+  } catch (_error) {
+    // Event emission may fail in tests; booking acceptance should still succeed.
+  }
+
+  return updated;
+}
+
+async function rejectBooking(bookingId, userId, reason) {
+  const worker = await requireWorkerProfile(userId, 'Only registered workers can reject bookings.', 403);
+  const safeReason = sanitizeOptionalText(reason) || 'Worker rejected offer';
+
+  await prisma.$transaction(async (tx) => {
+    const booking = await tx.booking.findUnique({
+      where: { id: bookingId },
+      select: {
+        id: true,
+        status: true,
+        offeredToWorkerId: true,
+      },
+    });
+
+    if (!booking) throw new AppError(404, 'Booking not found.');
+    if (booking.status !== 'PENDING') {
+      throw new AppError(409, 'Booking is no longer available.');
+    }
+
+    if (booking.offeredToWorkerId && booking.offeredToWorkerId !== worker.id) {
+      throw new AppError(403, 'This booking offer is not assigned to you.');
+    }
+
+    await tx.booking.update({
+      where: { id: bookingId },
+      data: {
+        offeredToWorkerId: null,
+        updatedAt: new Date(),
+      },
+    });
+
+    await recordStatusChange(bookingId, booking.status, booking.status, userId, safeReason, tx);
+  });
+
+  try {
+    const bookingEvents = require('./booking-events');
+    bookingEvents.emitRejection(bookingId, worker.id);
+  } catch (_error) {
+    // Event emission may fail in tests; rejection should still succeed.
+  }
 }
 
 const LocationService = require('../location/location.service'); // Added for geo-fencing
@@ -1703,6 +1773,7 @@ module.exports = {
   payBooking,
   getOpenBookingsForWorker,
   acceptBooking,
+  rejectBooking,
   verifyBookingStart,
   verifyBookingCompletion,
   refreshBookingOtp,
@@ -1779,7 +1850,7 @@ async function createSession(bookingId, userId, { sessionDate, notes }) {
       bookingId,
       sessionDate: sessionDateObj,
       startOtp: otp,
-      notes: notes || null,
+      notes: sanitizeOptionalText(notes),
     },
   });
 }

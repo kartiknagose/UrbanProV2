@@ -107,6 +107,8 @@ const chatAttachmentStorage = cloudinaryEnabled
 const SAFE_IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff']);
 const SAFE_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff']);
 const SAFE_DOC_EXTENSIONS = new Set(['.pdf', ...SAFE_IMAGE_EXTENSIONS]);
+const CHAT_AUDIO_EXTENSIONS = new Set(['.mp3', '.webm', '.wav', '.ogg', '.m4a']);
+const CHAT_AUDIO_MIME_TYPES = new Set(['audio/mpeg', 'audio/webm', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a']);
 
 // Only allow safe raster image uploads (NO SVG)
 const imageFileFilter = (_req, file, cb) => {
@@ -147,6 +149,25 @@ const docFileFilter = (_req, file, cb) => {
   cb(null, true);
 };
 
+const chatAttachmentFileFilter = (_req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  const mime = String(file.mimetype || '').toLowerCase();
+
+  if (mime === 'application/pdf' && ext === '.pdf') {
+    return cb(null, true);
+  }
+
+  if (SAFE_IMAGE_MIME_TYPES.has(mime) && SAFE_DOC_EXTENSIONS.has(ext)) {
+    return cb(null, true);
+  }
+
+  if (CHAT_AUDIO_MIME_TYPES.has(mime) && CHAT_AUDIO_EXTENSIONS.has(ext)) {
+    return cb(null, true);
+  }
+
+  return cb(new Error('Only images, PDF, and supported audio files are allowed for chat attachments.'), false);
+};
+
 const uploadProfile = multer({
   storage: profilePhotoStorage,
   fileFilter: imageFileFilter,
@@ -167,8 +188,8 @@ const uploadBooking = multer({
 
 const uploadChatAttachment = multer({
   storage: chatAttachmentStorage,
-  fileFilter: docFileFilter, // Allows images + PDF
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: chatAttachmentFileFilter,
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
 });
 
 // POST /api/uploads/profile-photo
@@ -403,7 +424,7 @@ router.use((err, _req, res, next) => {
     return res.status(400).json({ message: err.message || 'Invalid upload request.' });
   }
 
-  if (typeof err?.message === 'string' && /Only image files|extension|not allowed|No file uploaded/i.test(err.message)) {
+  if (typeof err?.message === 'string' && /Only image files|images, PDF, and supported audio|extension|not allowed|No file uploaded/i.test(err.message)) {
     return res.status(400).json({ message: err.message });
   }
 

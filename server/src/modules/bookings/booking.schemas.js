@@ -160,6 +160,17 @@ const cancelBookingSchema = [
     .isLength({ max: 500 }).withMessage('Cancellation reason cannot exceed 500 characters'),
 ];
 
+const rejectBookingSchema = [
+  param('id')
+    .isInt({ min: 1 }).withMessage('Booking ID must be a valid number'),
+
+  body('reason')
+    .optional()
+    .isString().withMessage('Rejection reason must be text')
+    .trim()
+    .isLength({ max: 500 }).withMessage('Rejection reason cannot exceed 500 characters'),
+];
+
 /**
  * VALIDATION RULES FOR PAYING A BOOKING
  * 
@@ -265,6 +276,7 @@ module.exports = {
   createBookingSchema,
   updateBookingStatusSchema,
   cancelBookingSchema,
+  rejectBookingSchema,
   payBookingSchema,
   bookingOtpSchema,
   createSessionSchema,

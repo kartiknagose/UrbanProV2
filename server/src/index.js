@@ -20,11 +20,15 @@ const { PORT, CORS_ORIGIN } = require('./config/env');
 const { corsOptions } = require('./config/cors');
 const i18n = require('./config/i18n');
 const logger = require('./config/logger');
+const prisma = require('./config/prisma');
+const redis = require('./config/redis');
 const { register, metricsMiddleware } = require('./config/monitoring');
 const { globalLimiter } = require('./config/rateLimit');
 
 // ── Middleware ──
 const requestIdMiddleware = require('./middleware/requestId');
+const timeoutMiddleware = require('./middleware/timeout');
+const apiResponseMiddleware = require('./middleware/apiResponse');
 const notFoundHandler = require('./middleware/notFoundHandler');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -55,6 +59,7 @@ const { verifySmtpConnection, isResendConfigured, isSendGridConfigured, sendVeri
 
 // Create Express application instance
 const app = express();
+app.set('etag', 'strong');
 
 // Security & parsing
 // Apply middleware in a clear order:
@@ -85,6 +90,8 @@ app.use(
 );
 app.use(cookieParser());
 app.use(requestIdMiddleware);
+app.use(apiResponseMiddleware);
+app.use(timeoutMiddleware(30000));
 app.use(metricsMiddleware); // PROMETHEUS METRICS (Sprint 15)
 app.use(i18n);
 
@@ -133,11 +140,33 @@ app.use('/uploads/chat-attachments', authenticate, express.static(path.resolve(_
 
 // Health check
 // Simple healthcheck used by monitoring or manual smoke tests.
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
+  const checks = {};
+
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    checks.database = { status: 'ok' };
+  } catch (err) {
+    checks.database = { status: 'error', message: err.message };
+  }
+
+  try {
+    if (typeof redis?.ping === 'function') {
+      await redis.ping();
+      checks.redis = { status: 'ok' };
+    } else {
+      checks.redis = { status: 'disabled' };
+    }
+  } catch (err) {
+    checks.redis = { status: 'error', message: err.message };
+  }
+
+  const hasError = Object.values(checks).some((item) => item.status === 'error');
   const payload = {
-    status: 'ok',
+    status: hasError ? 'degraded' : 'healthy',
     timestamp: new Date().toISOString(),
     id: req.id,
+    checks,
   };
 
   if (process.env.NODE_ENV !== 'production') {
@@ -146,7 +175,7 @@ app.get('/health', (req, res) => {
     payload.node = process.version;
   }
 
-  res.json(payload);
+  res.status(hasError ? 503 : 200).json(payload);
 });
 
 // SMTP health probe (safe diagnostics for production)
@@ -237,30 +266,35 @@ app.get('/metrics', async (req, res) => {
 // Mount modularized route handlers under `/api/*`.
 // Each route module keeps its own validation and controller logic.
 const registerCacheRoutes = require('./modules/cache');
-registerCacheRoutes(app);
-app.use('/api/auth', authRoutes);
-app.use('/api/workers', workerRoutes);
-app.use('/api/services', serviceRoutes);
-app.use('/api/bookings', bookingRoutes); // Mount booking routes at /api/bookings
-app.use('/api/customers', customerRoutes);
-app.use('/api/uploads', uploadRoutes);
-app.use('/api/availability', availabilityRoutes);
-app.use('/api/reviews', reviewRoutes);
-app.use('/api/verification', verificationRoutes);
-// Mount admin-scoped subroutes for specific modules to avoid misrouting
-app.use('/api/admin/verification', verificationAdminRoutes);
-app.use('/api/admin/payments', paymentAdminRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/safety', safetyRoutes);
-app.use('/api/location', locationRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/growth', growthRoutes);
-app.use('/api/payouts', payoutRoutes);
-app.use('/api/invoices', invoiceRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/ai', aiRoutes);
+
+function mountApiRoutes(basePath) {
+  registerCacheRoutes(app, basePath);
+  app.use(`${basePath}/auth`, authRoutes);
+  app.use(`${basePath}/workers`, workerRoutes);
+  app.use(`${basePath}/services`, serviceRoutes);
+  app.use(`${basePath}/bookings`, bookingRoutes);
+  app.use(`${basePath}/customers`, customerRoutes);
+  app.use(`${basePath}/uploads`, uploadRoutes);
+  app.use(`${basePath}/availability`, availabilityRoutes);
+  app.use(`${basePath}/reviews`, reviewRoutes);
+  app.use(`${basePath}/verification`, verificationRoutes);
+  app.use(`${basePath}/admin/verification`, verificationAdminRoutes);
+  app.use(`${basePath}/admin/payments`, paymentAdminRoutes);
+  app.use(`${basePath}/admin`, adminRoutes);
+  app.use(`${basePath}/payments`, paymentRoutes);
+  app.use(`${basePath}/safety`, safetyRoutes);
+  app.use(`${basePath}/location`, locationRoutes);
+  app.use(`${basePath}/notifications`, notificationRoutes);
+  app.use(`${basePath}/chat`, chatRoutes);
+  app.use(`${basePath}/growth`, growthRoutes);
+  app.use(`${basePath}/payouts`, payoutRoutes);
+  app.use(`${basePath}/invoices`, invoiceRoutes);
+  app.use(`${basePath}/analytics`, analyticsRoutes);
+  app.use(`${basePath}/ai`, aiRoutes);
+}
+
+mountApiRoutes('/api');
+mountApiRoutes('/api/v1');
 
 // 404 and error handlers
 app.use(notFoundHandler);
@@ -340,7 +374,6 @@ if (require.main === module) {
   });
 
   // Graceful shutdown — close HTTP server, disconnect Prisma, close Socket.IO
-  const prisma = require('./config/prisma');
   const shutdown = async (signal) => {
     logger.info('%s received. Shutting down gracefully...', signal);
     server.close(async () => {

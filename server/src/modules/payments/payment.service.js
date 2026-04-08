@@ -2,6 +2,14 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const AppError = require('../../common/errors/AppError');
 const prisma = require('../../config/prisma');
+const CircuitBreaker = require('../../common/utils/circuitBreaker');
+
+// Circuit breaker for Razorpay API calls (4.4)
+const razorpayBreaker = new CircuitBreaker('razorpay', {
+  failureThreshold: 5,
+  resetTimeout: 60000, // 60 seconds
+  successThreshold: 2,
+});
 
 function toPaiseAmount(amount) {
   const normalizedAmount = Number(amount);
@@ -17,20 +25,22 @@ function toPaiseAmount(amount) {
   return paise;
 }
 
-function getRazorpayClient() {
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+async function getRazorpayClient() {
+  return razorpayBreaker.execute(async () => {
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
-  if (!keyId || !keySecret) {
-    throw new AppError(500, 'Payment gateway is not configured.');
-  }
+    if (!keyId || !keySecret) {
+      throw new AppError(500, 'Payment gateway is not configured.');
+    }
 
-  return new Razorpay({ key_id: keyId, key_secret: keySecret });
+    return new Razorpay({ key_id: keyId, key_secret: keySecret });
+  });
 }
 
 // Create Razorpay order for booking
 async function createRazorpayOrder(bookingId, amount, currency = 'INR') {
-  const razorpay = getRazorpayClient();
+  const razorpay = await getRazorpayClient();
   const options = {
     amount: toPaiseAmount(amount), // Razorpay expects paise
     currency,
@@ -43,7 +53,7 @@ async function createRazorpayOrder(bookingId, amount, currency = 'INR') {
 }
 
 async function createRazorpayWalletTopupOrder(userId, amount, currency = 'INR') {
-  const razorpay = getRazorpayClient();
+  const razorpay = await getRazorpayClient();
   const options = {
     amount: toPaiseAmount(amount),
     currency,
@@ -77,12 +87,12 @@ function verifyRazorpayPaymentSignature({ orderId, paymentId, signature }) {
 }
 
 async function fetchRazorpayOrder(orderId) {
-  const razorpay = getRazorpayClient();
+  const razorpay = await getRazorpayClient();
   return razorpay.orders.fetch(orderId);
 }
 
 async function fetchRazorpayPayment(paymentId) {
-  const razorpay = getRazorpayClient();
+  const razorpay = await getRazorpayClient();
   return razorpay.payments.fetch(paymentId);
 }
 

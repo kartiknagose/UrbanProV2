@@ -7,6 +7,7 @@
 
 const prisma = require('../../config/prisma');
 const AppError = require('../../common/errors/AppError');
+const { sanitizeOptionalText } = require('../../common/utils/sanitize');
 
 /**
  * CREATE A REVIEW (Two-Way)
@@ -18,7 +19,8 @@ const AppError = require('../../common/errors/AppError');
 async function createReview(userId, userRole, data) {
   const bookingId = Number(data.bookingId);
   const rating = Number(data.rating);
-  const comment = typeof data.comment === 'string' ? data.comment.trim() : undefined;
+  const rawComment = typeof data.comment === 'string' ? data.comment.trim() : undefined;
+  const comment = sanitizeOptionalText(rawComment) || undefined;
 
   if (!Number.isInteger(bookingId) || bookingId < 1) {
     throw new AppError(400, 'Booking ID must be a positive integer.');

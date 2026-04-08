@@ -1,9 +1,7 @@
 // Redis client setup for ExpertsHub V2
 const Redis = require('ioredis');
 
-const nodeEnv = process.env.NODE_ENV || 'development';
-const fallbackLocalUrl = nodeEnv === 'production' ? '' : 'redis://localhost:6379';
-const redisUrl = process.env.REDIS_URL || fallbackLocalUrl;
+const redisUrl = String(process.env.REDIS_URL || '').trim();
 
 const createNoopRedisClient = () => ({
   status: 'disabled',

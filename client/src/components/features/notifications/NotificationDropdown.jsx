@@ -28,12 +28,51 @@ export function NotificationDropdown() {
 
     const readMutation = useMutation({
         mutationFn: markNotificationAsRead,
+        onMutate: async (id) => {
+            await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all() });
+            const previous = queryClient.getQueryData(queryKeys.notifications.all());
+
+            queryClient.setQueryData(queryKeys.notifications.all(), (current) => {
+                if (!current) return current;
+
+                const notifications = asArray(current.notifications).map((n) =>
+                    n.id === id ? { ...n, read: true } : n
+                );
+
+                const unreadCount = notifications.filter((n) => !n.read).length;
+                return { ...current, notifications, unreadCount };
+            });
+
+            return { previous };
+        },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all() }),
+        onError: (_error, _id, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(queryKeys.notifications.all(), context.previous);
+            }
+        },
     });
 
     const readAllMutation = useMutation({
         mutationFn: markAllNotificationsAsRead,
+        onMutate: async () => {
+            await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all() });
+            const previous = queryClient.getQueryData(queryKeys.notifications.all());
+
+            queryClient.setQueryData(queryKeys.notifications.all(), (current) => {
+                if (!current) return current;
+                const notifications = asArray(current.notifications).map((n) => ({ ...n, read: true }));
+                return { ...current, notifications, unreadCount: 0 };
+            });
+
+            return { previous };
+        },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all() }),
+        onError: (_error, _vars, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(queryKeys.notifications.all(), context.previous);
+            }
+        },
     });
 
     const handleNotificationClick = (n) => {

@@ -24,7 +24,7 @@ export { ErrorBoundary } from './ErrorBoundary';
 export { StatCard } from './StatCard';
 export { SimpleBarChart, SimpleDonutChart } from './SimpleChart';
 export { AsyncState } from './AsyncState';
-export { Pagination, usePagination } from './Pagination';
+export { Pagination } from '../ui/Pagination';
 export { Breadcrumbs } from './Breadcrumbs';
 export { ImageUpload } from './ImageUpload';
 export { Avatar } from './Avatar';

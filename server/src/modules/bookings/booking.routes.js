@@ -17,6 +17,7 @@ const {
   createBookingSchema,
   updateBookingStatusSchema,
   cancelBookingSchema,
+  rejectBookingSchema,
   payBookingSchema,
   bookingOtpSchema,
   createSessionSchema,
@@ -122,6 +123,15 @@ router.post(
   authenticate,
   requireWorker,
   bookingController.acceptBooking
+);
+
+router.post(
+  '/:id/reject',
+  authenticate,
+  requireWorker,
+  rejectBookingSchema,
+  validate,
+  bookingController.rejectBooking
 );
 
 /**

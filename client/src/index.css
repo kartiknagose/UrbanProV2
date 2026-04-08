@@ -12,12 +12,27 @@
     /* Smooth scroll */
     scroll-behavior: smooth;
 
+    /* Theme tokens */
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --border-color: #e2e8f0;
+    --accent: #2563eb;
+
     /* Custom scrollbar colors */
     --scrollbar-thumb: theme('colors.neutral.300');
     --scrollbar-track: theme('colors.neutral.100');
   }
 
   .dark {
+    --bg-primary: #090f1a;
+    --bg-secondary: #111827;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --border-color: #243041;
+    --accent: #60a5fa;
+
     --scrollbar-thumb: theme('colors.dark.600');
     --scrollbar-track: theme('colors.dark.800');
   }
@@ -30,6 +45,8 @@
 
   body {
     @apply bg-neutral-50 text-neutral-900 antialiased;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
     font-feature-settings: 'cv11', 'ss01', 'rlig' 1, 'calt' 1;
     background-image:
@@ -39,6 +56,8 @@
 
   .dark body {
     @apply bg-dark-950 text-neutral-50;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     background-image:
       radial-gradient(ellipse 80% 50% at 20% -20%, rgba(59, 130, 246, 0.08) 0%, transparent 60%),
       radial-gradient(ellipse 60% 50% at 80% 110%, rgba(217, 70, 239, 0.06) 0%, transparent 60%);

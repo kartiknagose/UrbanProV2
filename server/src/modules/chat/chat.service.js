@@ -2,6 +2,7 @@ const prisma = require('../../config/prisma');
 const AppError = require('../../common/errors/AppError');
 const { getIo } = require('../../socket');
 const notificationService = require('../notifications/notification.service');
+const { sanitizeText } = require('../../common/utils/sanitize');
 
 /**
  * Get or create a conversation for a booking
@@ -77,7 +78,7 @@ async function sendMessage(conversationId, senderId, { content, type = 'TEXT', m
     };
 
     if (normalizedContent) {
-        messageData.content = normalizedContent;
+        messageData.content = sanitizeText(normalizedContent);
         
         // FRAUD DETECTION: Off-platform sharing (Sprint 17 - #226)
         const lowerContent = normalizedContent.toLowerCase();
@@ -93,7 +94,7 @@ async function sendMessage(conversationId, senderId, { content, type = 'TEXT', m
         }
     }
     if (normalizedMediaUrl) messageData.mediaUrl = normalizedMediaUrl;
-    if (normalizedFileName) messageData.fileName = normalizedFileName;
+    if (normalizedFileName) messageData.fileName = sanitizeText(normalizedFileName);
     if (normalizedFileSize !== undefined && Number.isInteger(normalizedFileSize) && normalizedFileSize > 0) {
         messageData.fileSize = normalizedFileSize;
     }

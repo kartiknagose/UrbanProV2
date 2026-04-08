@@ -1,6 +1,8 @@
 const messageStore = require('./messageStore');
 const logger = require('../../config/logger');
 
+const WHATSAPP_ENABLED = Boolean(process.env.WHATSAPP_PROVIDER_API_KEY);
+
 /**
  * Service to handle WhatsApp Notifications
  * Implemented as a FREE Mock Service to avoid Twilio WhatsApp API costs.
@@ -35,6 +37,12 @@ class WhatsAppService {
         }
 
         try {
+            if (!WHATSAPP_ENABLED) {
+                logger.info(`[WHATSAPP_STUB] Would send to ${to}: ${message}`);
+                const record = messageStore.add('WHATSAPP', to, message);
+                return { success: true, messageId: record.id, status: 'DELIVERED_STUB', stubbed: true };
+            }
+
             // FREE MOCK IMPLEMENTATION
             logger.info(`[MOCK WHATSAPP] Sending to ${to}: ${message}`);
 

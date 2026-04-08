@@ -6,7 +6,7 @@
  * Provides consistent UI and state management.
  */
 
-import { Button } from '../../ui/Button';
+import { Button } from './Button';
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { useMemo } from 'react';
 

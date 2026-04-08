@@ -189,6 +189,8 @@ export function WorkerProfilePage() {
     formState: { errors, isSubmitting, isDirty },
   } = useForm({
     resolver: zodResolver(workerProfileSchema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: {
       bio: '',
       skills: '',
