@@ -86,7 +86,21 @@ async function loginUser({ email, password }) {
     }
   });
   if (!user || user.deletedAt) throw new AppError(401, 'Invalid credentials');
-  const ok = await comparePassword(password, user.passwordHash);
+
+  const storedHash = String(user.passwordHash || '').trim();
+  if (!storedHash) {
+    // Guard against bad legacy/imported records that would otherwise throw and return 500.
+    throw new AppError(401, 'Invalid credentials');
+  }
+
+  let ok;
+  try {
+    ok = await comparePassword(password, storedHash);
+  } catch (_error) {
+    // Treat hash format issues as auth failure, not server failure.
+    throw new AppError(401, 'Invalid credentials');
+  }
+
   if (!ok) throw new AppError(401, 'Invalid credentials');
   if (requireEmailVerification && !user.emailVerified && process.env.NODE_ENV !== 'development') {
     throw new AppError(403, 'Email not verified. Please check your inbox.');
