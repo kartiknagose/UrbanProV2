@@ -1,6 +1,6 @@
 const asyncHandler = require('../../common/utils/asyncHandler');
 const AppError = require('../../common/errors/AppError');
-const { processChatInput, resetSession } = require('./service');
+const { processChatInput, resetSession, getAiUsageAnalytics } = require('./service');
 
 function extractAuthToken(req) {
   const cookieToken = String(req.cookies?.token || '').trim();
@@ -9,6 +9,15 @@ function extractAuthToken(req) {
   const authHeader = String(req.get('authorization') || '').trim();
   const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
   return bearerMatch?.[1]?.trim() || '';
+}
+
+function resolveLocale(req) {
+  const explicit = String(req.body?.locale || req.query?.locale || req.locale || '').trim().toLowerCase();
+  if (explicit) return explicit;
+
+  const acceptLanguage = String(req.get('accept-language') || '').trim();
+  const first = acceptLanguage.split(',')[0]?.trim().toLowerCase() || '';
+  return first || 'en';
 }
 
 const chat = asyncHandler(async (req, res) => {
@@ -23,7 +32,7 @@ const chat = asyncHandler(async (req, res) => {
     user: req.user,
     message,
     sessionId,
-    locale: req.locale,
+    locale: resolveLocale(req),
     source: 'chat',
     token: extractAuthToken(req),
   });
@@ -47,7 +56,7 @@ const voice = asyncHandler(async (req, res) => {
     user: req.user,
     message: transcript,
     sessionId,
-    locale: req.locale,
+    locale: resolveLocale(req),
     source: 'voice',
     token: extractAuthToken(req),
   });
@@ -70,8 +79,16 @@ const clearSession = asyncHandler(async (req, res) => {
   res.json({ success: true, rebuildMode: true });
 });
 
+const usageAnalytics = asyncHandler(async (req, res) => {
+  const requestedDays = Number.parseInt(String(req.query?.days || '7'), 10);
+  const days = Number.isFinite(requestedDays) ? Math.min(Math.max(requestedDays, 1), 30) : 7;
+  const analytics = await getAiUsageAnalytics({ days });
+  res.json({ days, ...analytics });
+});
+
 module.exports = {
   chat,
   voice,
   clearSession,
+  usageAnalytics,
 };

@@ -8,7 +8,12 @@ async function resetSession(userId, sessionId) {
   return coreService.resetSession(userId, sessionId);
 }
 
+async function getAiUsageAnalytics(options) {
+  return coreService.getAiUsageAnalytics(options);
+}
+
 module.exports = {
   processChatInput,
   resetSession,
+  getAiUsageAnalytics,
 };

@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const multer = require('multer');
 const auth = require('../../middleware/auth');
+const { requireRole } = require('../../middleware/requireRole');
 const { aiChatLimiter, aiVoiceLimiter } = require('../../config/rateLimit');
 const controller = require('./ai.controller');
 
@@ -22,5 +23,6 @@ const uploadVoiceAudio = multer({
 router.post('/chat', auth, aiChatLimiter, controller.chat);
 router.post('/voice', auth, aiVoiceLimiter, uploadVoiceAudio.single('audio'), controller.voice);
 router.post('/session/reset', auth, aiChatLimiter, controller.clearSession);
+router.get('/analytics/usage', auth, requireRole('ADMIN'), controller.usageAnalytics);
 
 module.exports = router;

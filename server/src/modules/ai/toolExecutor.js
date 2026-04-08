@@ -4,6 +4,59 @@ const { getTool } = require('./toolRegistry');
 
 const INTERNAL_API_BASE_URL = process.env.INTERNAL_API_BASE_URL || `http://127.0.0.1:${PORT}`;
 const UNAUTHORIZED_ERROR_MESSAGE = 'Unauthorized or invalid request';
+const READ_TOOL_CACHE_TTL_MS = Number(process.env.AI_READ_TOOL_CACHE_TTL_MS || 30 * 1000);
+const READ_TOOL_CACHEABLE_TOOLS = new Set([
+  'getWallet',
+  'getBookings',
+  'getNotifications',
+  'getEmergencyContacts',
+  'getVerificationStatus',
+]);
+const readToolCache = new Map();
+
+function getReadToolCacheKey(toolName, userId, params) {
+  const sortedEntries = Object.entries(params || {}).sort(([a], [b]) => a.localeCompare(b));
+  return JSON.stringify({ toolName, userId, params: sortedEntries });
+}
+
+function getCachedReadToolResult(toolName, userId, params) {
+  if (!READ_TOOL_CACHEABLE_TOOLS.has(toolName) || READ_TOOL_CACHE_TTL_MS <= 0) {
+    return null;
+  }
+
+  const key = getReadToolCacheKey(toolName, userId, params);
+  const cached = readToolCache.get(key);
+  if (!cached) return null;
+
+  if (cached.expiresAt <= Date.now()) {
+    readToolCache.delete(key);
+    return null;
+  }
+
+  return cached.result;
+}
+
+function setCachedReadToolResult(toolName, userId, params, result) {
+  if (!READ_TOOL_CACHEABLE_TOOLS.has(toolName) || READ_TOOL_CACHE_TTL_MS <= 0 || !result?.success) {
+    return;
+  }
+
+  const key = getReadToolCacheKey(toolName, userId, params);
+  readToolCache.set(key, {
+    result,
+    expiresAt: Date.now() + READ_TOOL_CACHE_TTL_MS,
+  });
+}
+
+function clearUserReadToolCache(userId) {
+  if (!userId) return;
+  const userToken = `"userId":${JSON.stringify(userId)}`;
+  for (const key of readToolCache.keys()) {
+    if (key.includes(userToken)) {
+      readToolCache.delete(key);
+    }
+  }
+}
 
 function unauthorizedResult() {
   return {
@@ -155,6 +208,13 @@ async function executeTool({ toolName, params = {}, userContext = {} }) {
       }
     }
 
+    if (tool.method === 'GET') {
+      const cachedResult = getCachedReadToolResult(tool.name, userId, params);
+      if (cachedResult) {
+        return cachedResult;
+      }
+    }
+
     let response;
     if (tool.method === 'GET') {
       response = await axios.get(url, axiosConfig);
@@ -170,11 +230,19 @@ async function executeTool({ toolName, params = {}, userContext = {} }) {
       return { success: false, data: null, error: `Unsupported method: ${tool.method}` };
     }
 
-    return {
+    const result = {
       success: true,
       data: response?.data ?? null,
       error: null,
     };
+
+    if (tool.method === 'GET') {
+      setCachedReadToolResult(tool.name, userId, params, result);
+    } else {
+      clearUserReadToolCache(userId);
+    }
+
+    return result;
   } catch (error) {
     console.log(`[ai-tool] error tool=${toolName} userId=${userContext?.userId || 'unknown'} message=${error?.message || error}`);
     const message = error?.response?.data?.error

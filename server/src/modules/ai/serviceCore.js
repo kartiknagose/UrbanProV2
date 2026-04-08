@@ -4056,7 +4056,106 @@ async function resetSession(userId, sessionId) {
   return true;
 }
 
+async function getAiUsageAnalytics({ days = 7 } = {}) {
+  const auditModel = prisma?.aIActionAudit || prisma?.aiActionAudit || prisma?.AIActionAudit;
+  if (!auditModel?.count) {
+    return {
+      totals: {
+        total: 0,
+        successful: 0,
+        failed: 0,
+        declined: 0,
+      },
+      byIntent: [],
+      byStatus: [],
+      byChannel: [],
+      daily: [],
+      averageDurationMs: 0,
+    };
+  }
+
+  const effectiveDays = Number.isFinite(Number(days)) ? Math.min(Math.max(Number(days), 1), 30) : 7;
+  const fromDate = new Date(Date.now() - effectiveDays * 24 * 60 * 60 * 1000);
+  const where = { createdAt: { gte: fromDate } };
+
+  const [
+    total,
+    successful,
+    failed,
+    declined,
+    byIntentRows,
+    byStatusRows,
+    byChannelRows,
+    latestRows,
+  ] = await Promise.all([
+    auditModel.count({ where }),
+    auditModel.count({ where: { ...where, status: 'SUCCESS' } }),
+    auditModel.count({ where: { ...where, status: 'FAILED' } }),
+    auditModel.count({ where: { ...where, status: 'DECLINED' } }),
+    auditModel.groupBy({
+      by: ['intent'],
+      where,
+      _count: { _all: true },
+      orderBy: { _count: { intent: 'desc' } },
+      take: 10,
+    }),
+    auditModel.groupBy({
+      by: ['status'],
+      where,
+      _count: { _all: true },
+      orderBy: { _count: { status: 'desc' } },
+    }),
+    auditModel.groupBy({
+      by: ['channel'],
+      where,
+      _count: { _all: true },
+      orderBy: { _count: { channel: 'desc' } },
+    }),
+    auditModel.findMany({
+      where,
+      select: { createdAt: true, durationMs: true },
+      orderBy: { createdAt: 'asc' },
+      take: 2000,
+    }),
+  ]);
+
+  const dailyCounts = new Map();
+  let durationTotal = 0;
+  let durationCount = 0;
+  for (const row of latestRows) {
+    const dayKey = new Date(row.createdAt).toISOString().slice(0, 10);
+    dailyCounts.set(dayKey, (dailyCounts.get(dayKey) || 0) + 1);
+
+    if (Number.isFinite(Number(row.durationMs)) && Number(row.durationMs) >= 0) {
+      durationTotal += Number(row.durationMs);
+      durationCount += 1;
+    }
+  }
+
+  const daily = [];
+  for (let i = effectiveDays - 1; i >= 0; i -= 1) {
+    const current = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+    const key = current.toISOString().slice(0, 10);
+    daily.push({ date: key, count: dailyCounts.get(key) || 0 });
+  }
+
+  return {
+    totals: {
+      total,
+      successful,
+      failed,
+      declined,
+    },
+    byIntent: byIntentRows.map((row) => ({ intent: row.intent, count: row._count._all })),
+    byStatus: byStatusRows.map((row) => ({ status: row.status, count: row._count._all })),
+    byChannel: byChannelRows.map((row) => ({ channel: row.channel, count: row._count._all })),
+    daily,
+    averageDurationMs: durationCount > 0 ? Math.round(durationTotal / durationCount) : 0,
+  };
+}
+
 module.exports = {
   processChatInput,
   resetSession,
+  getAiUsageAnalytics,
 };
