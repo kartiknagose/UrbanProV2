@@ -32,6 +32,9 @@ const {
 const LLM_PARSE_FALLBACK_MESSAGE = 'I can help with bookings, wallet, or notifications. What do you want to do?';
 const FAILSAFE_MESSAGE = "Something went wrong. Let's try that again.";
 const DUPLICATE_ACTION_MESSAGE = 'A similar action is already in progress. Please wait a few seconds and try again.';
+const PROMPT_INJECTION_MESSAGE = 'I can only help with bookings, services, payments, and account actions. Please ask using normal service requests.';
+const CONVERSATION_MEMORY_MAX_TURNS = 10;
+const conversationMemoryStore = new Map();
 
 const intentPatterns = {
   wallet: ['wallet', 'balance', 'money', 'amount', 'remaining', 'funds', 'transaction', 'transactions', 'history', 'statement', 'payment', 'payments', 'due'],
@@ -79,6 +82,54 @@ function sanitizeLlmInput(text) {
     .replace(/\b(ignore|disregard|override)\s+(all|previous|earlier)\s+(instructions?|prompts?)\b/gi, '[redacted]')
     .replace(/\b(system|developer|assistant)\s*:/gi, '[redacted]:')
     .slice(0, 2000);
+}
+
+function detectPromptInjection(text) {
+  const input = String(text || '');
+  if (!input) return false;
+
+  const patterns = [
+    /ignore\s+(all\s+)?previous/i,
+    /disregard\s+(all\s+)?instructions?/i,
+    /you\s+are\s+now\s+a/i,
+    /pretend\s+(to\s+be|you\s+are)/i,
+    /switch\s+to\s+.*mode/i,
+    /\bDAN\b/i,
+    /act\s+as\s+(if|a)/i,
+    /override\s+(system|safety)/i,
+    /reveal\s+(your|the)\s+(system|instructions)/i,
+  ];
+
+  return patterns.some((pattern) => pattern.test(input));
+}
+
+function getConversationMemoryKey(userId, sessionId) {
+  return `${String(userId)}:${String(sessionId)}`;
+}
+
+function getConversationMemoryHistory(userId, sessionId) {
+  const key = getConversationMemoryKey(userId, sessionId);
+  const turns = conversationMemoryStore.get(key);
+  return Array.isArray(turns) ? [...turns] : [];
+}
+
+function addConversationMemoryTurn(userId, sessionId, userMessage, assistantMessage) {
+  const key = getConversationMemoryKey(userId, sessionId);
+  const turns = getConversationMemoryHistory(userId, sessionId);
+  turns.push({
+    intent: 'memory',
+    action: null,
+    status: 'SUCCESS',
+    requiresConfirmation: false,
+    userMessage: sanitizeLlmInput(userMessage),
+    assistantMessage: sanitizeLlmInput(assistantMessage),
+  });
+
+  if (turns.length > CONVERSATION_MEMORY_MAX_TURNS) {
+    turns.splice(0, turns.length - CONVERSATION_MEMORY_MAX_TURNS);
+  }
+
+  conversationMemoryStore.set(key, turns);
 }
 
 function nowIso() {
@@ -396,16 +447,15 @@ async function resolveLatestBookingId({ user, token }) {
 
 function detectIntent(message) {
   const text = normalizeText(message).toLowerCase();
-  const scores = {
-    wallet: 0,
-    bookings: 0,
-    notifications: 0,
-  };
+  if (!text) return { intent: null, score: 0, confidence: 'none' };
+
+  const wordCount = text.split(/\s+/).filter(Boolean).length || 1;
+  const scores = Object.fromEntries(Object.keys(intentPatterns).map((key) => [key, 0]));
 
   for (const [intent, keywords] of Object.entries(intentPatterns)) {
     for (const keyword of keywords) {
       if (text.includes(keyword)) {
-        scores[intent] += 1;
+        scores[intent] += 1 / wordCount;
       }
     }
   }
@@ -414,12 +464,19 @@ function detectIntent(message) {
   const [bestIntent, bestScore] = entries[0] || [null, 0];
 
   if (!bestIntent || bestScore <= 0) {
-    return { intent: null, score: 0 };
+    return { intent: null, score: 0, confidence: 'none' };
   }
+
+  if (bestScore < 0.15) {
+    return { intent: null, score: bestScore, confidence: 'low' };
+  }
+
+  const confidence = bestScore >= 0.4 ? 'high' : 'medium';
 
   return {
     intent: bestIntent,
     score: bestScore,
+    confidence,
   };
 }
 
@@ -1787,8 +1844,10 @@ function buildSystemPrompt(tools, role, locale = 'en') {
 async function runAgentLoop({ user, message, sessionId, token, locale }) {
   const promptTools = listPromptToolsForRole(user?.role);
   const recentHistory = await getRecentConversationHistory(user.id, sessionId);
+  const memoryHistory = getConversationMemoryHistory(user.id, sessionId);
   const sanitizedMessage = sanitizeLlmInput(message);
-  const sanitizedHistory = recentHistory.map((entry) => ({
+  const mergedHistory = [...recentHistory, ...memoryHistory].slice(-CONVERSATION_MEMORY_MAX_TURNS);
+  const sanitizedHistory = mergedHistory.map((entry) => ({
     ...entry,
     intent: sanitizeLlmInput(entry?.intent),
     action: sanitizeLlmInput(entry?.action),
@@ -3712,6 +3771,10 @@ async function processChatInput({ user, message, sessionId: rawSessionId, source
     const finalizeResponse = async (response, { toolUsed = null, success = undefined, error = null, fallbackUsed = false, requiresConfirmation = false } = {}) => {
       const enhanced = enhanceOutgoingResponse(response);
       const status = inferAuditStatus({ response: enhanced, success: success === undefined ? inferResponseSuccess(enhanced) : Boolean(success), error, fallbackUsed });
+      const assistantMessage = String(enhanced?.message || enhanced?.reply || '').trim();
+      if (assistantMessage) {
+        addConversationMemoryTurn(user.id, sessionId, text, assistantMessage);
+      }
       logAiAgent({
         userId: user?.id,
         message: text,
@@ -3752,6 +3815,13 @@ async function processChatInput({ user, message, sessionId: rawSessionId, source
         sessionId,
         message: 'I need a message to help you. Try something like "book cleaning tomorrow 5pm".',
       }), { success: false, error: 'empty_input' });
+    }
+
+    if (detectPromptInjection(text)) {
+      return finalizeResponse(toTextResponse({
+        sessionId,
+        message: PROMPT_INJECTION_MESSAGE,
+      }), { success: false, error: 'prompt_injection_detected' });
     }
 
     const sessionKey = getSessionKey(user.id, sessionId);
@@ -3974,7 +4044,9 @@ async function processChatInput({ user, message, sessionId: rawSessionId, source
 
 async function resetSession(userId, sessionId) {
   const key = getSessionKey(userId, sessionId);
+  const memoryKey = getConversationMemoryKey(userId, sessionId);
   pendingConfirmations.delete(key);
+  conversationMemoryStore.delete(memoryKey);
   userContextStore.delete(String(userId));
   userJourneyStore.delete(String(userId));
   userPreferenceStore.delete(String(userId));
