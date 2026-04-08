@@ -3,10 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Bot, RefreshCw } from 'lucide-react';
 import { MainLayout } from '../../components/layout/MainLayout';
 import { getPageLayout } from '../../constants/layout';
+import { IMAGES } from '../../constants/images';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { getAiAuditSummary, getAiAudits } from '../../api/admin';
 import { queryKeys } from '../../utils/queryKeys';
-import { AsyncState, Badge, Button, Card, CardDescription, CardTitle, Modal, PageHeader, Spinner, StatCard } from '../../components/common';
+import { Badge, Button, Card, CardDescription, CardTitle, Modal, PageHeader, Spinner, StatCard } from '../../components/common';
 
 function formatDateTime(value) {
   if (!value) return 'N/A';
@@ -27,8 +28,15 @@ export function AdminAIAuditPage() {
 
   const summaryQuery = useQuery({
     queryKey: queryKeys.admin.aiAuditSummary(),
-    queryFn: getAiAuditSummary,
+    queryFn: async () => {
+      try {
+        return await getAiAuditSummary();
+      } catch {
+        return { summary: null, softError: true };
+      }
+    },
     refetchInterval: 30000,
+    retry: 1,
   });
 
   const auditParams = useMemo(() => {
@@ -49,7 +57,45 @@ export function AdminAIAuditPage() {
   });
 
   const summary = summaryQuery.data?.summary;
-  const audits = auditsQuery.data?.audits || [];
+  const isSummaryFallbackMode = Boolean(summaryQuery.data?.softError);
+  const audits = Array.isArray(auditsQuery.data?.audits) ? auditsQuery.data.audits : [];
+
+  const fallbackSummary = (() => {
+    if (!Array.isArray(audits) || audits.length === 0) {
+      return {
+        total: 0,
+        failed: 0,
+        declined: 0,
+        byIntent: [],
+      };
+    }
+
+    const intentCounter = new Map();
+    let failed = 0;
+    let declined = 0;
+
+    for (const row of audits) {
+      const status = String(row?.status || '').toUpperCase();
+      if (status === 'FAILED') failed += 1;
+      if (status === 'DECLINED') declined += 1;
+
+      const intent = String(row?.intent || '').trim() || 'unknown';
+      intentCounter.set(intent, (intentCounter.get(intent) || 0) + 1);
+    }
+
+    const byIntent = [...intentCounter.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([intent, count]) => ({ intent, count }));
+
+    return {
+      total: audits.length,
+      failed,
+      declined,
+      byIntent,
+    };
+  })();
+
+  const displaySummary = summary || fallbackSummary;
 
   const formatJsonValue = (value) => {
     if (value == null) return '-';
@@ -122,26 +168,48 @@ export function AdminAIAuditPage() {
           </Button>
         </div>
 
-        <AsyncState
-          isLoading={summaryQuery.isLoading}
-          isError={summaryQuery.isError}
-          error={summaryQuery.error}
-          onRetry={summaryQuery.refetch}
-        >
-          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard title="Total Actions" value={summary?.total || 0} icon={Bot} color="brand" />
-            <StatCard title="Failures" value={summary?.failed || 0} icon={Bot} color="error" />
-            <StatCard title="Declined" value={summary?.declined || 0} icon={Bot} color="warning" />
-            <Card className="p-4">
-              <CardTitle className="mb-1 text-sm">Top Intent</CardTitle>
-              <CardDescription>
-                {summary?.byIntent?.[0]
-                  ? `${summary.byIntent[0].intent} (${summary.byIntent[0].count})`
-                  : 'No data yet'}
-              </CardDescription>
-            </Card>
+        {summaryQuery.isLoading ? (
+          <div className="mb-6 flex justify-center py-6">
+            <Spinner size="md" />
           </div>
-        </AsyncState>
+        ) : null}
+
+        {isSummaryFallbackMode ? (
+          <Card className="mb-6 border border-warning-200 bg-warning-50/60 p-3 dark:border-warning-700/30 dark:bg-warning-900/10">
+            <p className="text-xs font-medium text-warning-800 dark:text-warning-300">
+              Summary API is temporarily unavailable. Showing live stats from the table below.
+            </p>
+          </Card>
+        ) : null}
+
+        <Card className="mb-6 overflow-hidden p-0">
+          <div className="relative h-36 w-full">
+            <img
+              src={IMAGES.CATEGORY_ELECTRICAL}
+              alt="AI audit monitoring"
+              className="h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-dark-950/70 via-dark-900/40 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-white/80">Admin Monitoring</p>
+              <h3 className="text-sm font-bold text-white">AI Audit Timeline and Action Trace</h3>
+            </div>
+          </div>
+        </Card>
+
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatCard title="Total Actions" value={displaySummary?.total || 0} icon={Bot} color="brand" />
+          <StatCard title="Failures" value={displaySummary?.failed || 0} icon={Bot} color="error" />
+          <StatCard title="Declined" value={displaySummary?.declined || 0} icon={Bot} color="warning" />
+          <Card className="p-4">
+            <CardTitle className="mb-1 text-sm">Top Intent</CardTitle>
+            <CardDescription>
+              {displaySummary?.byIntent?.[0]
+                ? `${displaySummary.byIntent[0].intent} (${displaySummary.byIntent[0].count})`
+                : 'No data yet'}
+            </CardDescription>
+          </Card>
+        </div>
 
         <Card className="mb-6 p-4">
           <div className="flex flex-wrap items-center gap-3">
