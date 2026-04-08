@@ -21,6 +21,52 @@ const hasDeletedAtFilter = (where) => {
   });
 };
 
+const USER_READ_ACTIONS = new Set([
+  'findFirst',
+  'findFirstOrThrow',
+  'findMany',
+  'count',
+  'aggregate',
+  'groupBy',
+]);
+
+const isMissingDeletedAtError = (error) => {
+  if (!error || error.code !== 'P2022') return false;
+  const metaColumn = String(error?.meta?.column || '').toLowerCase();
+  return metaColumn.includes('deletedat') || metaColumn.includes('deleted_at');
+};
+
+const stripDeletedAtFilter = (where) => {
+  if (!where || typeof where !== 'object') return where;
+
+  if (Array.isArray(where)) {
+    return where.map((item) => stripDeletedAtFilter(item)).filter(Boolean);
+  }
+
+  const next = {};
+  for (const [key, value] of Object.entries(where)) {
+    if (key === 'deletedAt') continue;
+    if (key === 'AND' || key === 'OR' || key === 'NOT') {
+      const normalized = stripDeletedAtFilter(value);
+      if (Array.isArray(normalized) && normalized.length === 0) continue;
+      if (normalized && typeof normalized === 'object' && !Array.isArray(normalized) && Object.keys(normalized).length === 0) continue;
+      next[key] = normalized;
+      continue;
+    }
+    next[key] = value;
+  }
+
+  return next;
+};
+
+const removeDeletedAtFromArgs = (args = {}) => {
+  const nextArgs = { ...args };
+  if (nextArgs.where && typeof nextArgs.where === 'object') {
+    nextArgs.where = stripDeletedAtFilter(nextArgs.where);
+  }
+  return nextArgs;
+};
+
 const injectActiveUserFilter = (args = {}) => {
   const nextArgs = { ...args };
   const where = nextArgs.where && typeof nextArgs.where === 'object' ? { ...nextArgs.where } : {};
@@ -78,7 +124,18 @@ prisma.$use(async (params, next) => {
     };
   }
 
-  return next(params);
+  try {
+    return await next(params);
+  } catch (error) {
+    if (USER_READ_ACTIONS.has(params.action) && isMissingDeletedAtError(error)) {
+      const fallbackParams = {
+        ...params,
+        args: removeDeletedAtFromArgs(params.args),
+      };
+      return next(fallbackParams);
+    }
+    throw error;
+  }
 });
 
 // Log slow queries in development

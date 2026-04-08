@@ -197,29 +197,60 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
+function isSchemaDriftError(error) {
+    const code = String(error?.code || '').toUpperCase();
+    return code === 'P2021' || code === 'P2022';
+}
+
 /**
  * CITY MANAGEMENT (Sprint 17 - #83)
  */
 
 async function getCities() {
-    return prisma.city.findMany({
-        where: { isActive: true },
-        orderBy: { name: 'asc' }
-    });
+    try {
+        return await prisma.city.findMany({
+            where: { isActive: true },
+            orderBy: { name: 'asc' }
+        });
+    } catch (error) {
+        if (isSchemaDriftError(error)) {
+            // Backward-compat fallback when city tables/columns are not yet migrated.
+            return [];
+        }
+        throw error;
+    }
 }
 
 async function getCityServices(citySlug) {
-    const city = await prisma.city.findUnique({
-        where: { slug: citySlug },
-        include: {
-            services: {
-                where: { isActive: true },
-                include: {
-                    service: true
+    let city;
+    try {
+        city = await prisma.city.findUnique({
+            where: { slug: citySlug },
+            include: {
+                services: {
+                    where: { isActive: true },
+                    include: {
+                        service: true
+                    }
                 }
             }
+        });
+    } catch (error) {
+        if (!isSchemaDriftError(error)) {
+            throw error;
         }
-    });
+
+        // Backward-compat fallback: return global active services if city linkage isn't migrated yet.
+        const services = await prisma.service.findMany({
+            where: { isActive: true },
+            orderBy: { name: 'asc' },
+        });
+
+        return services.map((service) => ({
+            ...service,
+            citySpecific: false,
+        }));
+    }
 
     if (!city) throw new AppError(404, 'City not found');
 
