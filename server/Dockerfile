@@ -1,6 +1,11 @@
-FROM node:22-alpine
+FROM node:20-bookworm-slim
 
 WORKDIR /app
+
+# Prisma query engine needs OpenSSL runtime libraries in production.
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends openssl ca-certificates \
+	&& rm -rf /var/lib/apt/lists/*
 
 # Install deps first for better layer caching
 COPY package*.json ./
