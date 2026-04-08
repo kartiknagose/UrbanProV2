@@ -14,5 +14,5 @@ RUN npx prisma generate
 
 EXPOSE 5000
 
-# Apply migrations at startup, then launch API
-CMD ["sh", "-c", "npx prisma migrate deploy && node src/index.js"]
+# Apply migrations with the direct database URL when available, then launch API
+CMD ["sh", "-c", "set -e; MIGRATION_DATABASE_URL=${DIRECT_DATABASE_URL:-$DATABASE_URL}; DATABASE_URL=\"$MIGRATION_DATABASE_URL\" npx prisma migrate deploy; exec node src/index.js"]
