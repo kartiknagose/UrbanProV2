@@ -1,7 +1,17 @@
 const prisma = require('../../config/prisma');
 const AppError = require('../../common/errors/AppError');
 
+const DASHBOARD_CACHE_TTL_MS = 10000;
+let dashboardCache = {
+  data: null,
+  expiresAt: 0,
+};
+
 async function getDashboardStats() {
+  if (dashboardCache.data && dashboardCache.expiresAt > Date.now()) {
+    return dashboardCache.data;
+  }
+
   const [users, workers, services, bookings, pendingBookings, pendingVerifications] = await Promise.all([
     prisma.user.count({ where: { deletedAt: null } }),
     prisma.user.count({ where: { role: 'WORKER', deletedAt: null } }),
@@ -11,7 +21,7 @@ async function getDashboardStats() {
     prisma.workerVerificationApplication.count({ where: { status: 'PENDING' } }),
   ]);
 
-  return {
+  const result = {
     users,
     workers,
     services,
@@ -19,6 +29,13 @@ async function getDashboardStats() {
     pendingBookings,
     pendingVerifications,
   };
+
+  dashboardCache = {
+    data: result,
+    expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS,
+  };
+
+  return result;
 }
 
 async function listUsers(role, { skip = 0, limit = 20 } = {}) {

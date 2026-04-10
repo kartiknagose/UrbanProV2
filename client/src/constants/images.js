@@ -6,7 +6,7 @@ export const IMAGES = {
     // Auth & Marketing
     AUTH_LOGIN_BG: 'https://images.unsplash.com/photo-1556910103-1c02745a30bf?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
     AUTH_REGISTER_BG: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
-    HERO_LANDING: 'https://images.unsplash.com/photo-1581578731117-104f2a412727?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
+    HERO_LANDING: 'https://tse4.mm.bing.net/th/id/OIP.m5keiSbkHU176I74w32CNgHaEK?rs=1&pid=ImgDetMain&o=7&rm=3',
 
     // Service Categories (user-provided sources)
     CATEGORY_CLEANING: 'https://tse1.mm.bing.net/th/id/OIP.XTpGpugbZ3NTl6zyT7bAiwHaEU?rs=1&pid=ImgDetMain&o=7&rm=3',

@@ -4,6 +4,7 @@ import { UserMiniProfile } from '../../../components/features/bookings/UserMiniP
 import { ChatToggle } from '../../../components/features/chat/ChatWindow';
 import { StarRating } from '../../../components/features/reviews/StarRating';
 import { BookingReportCard } from '../../../components/features/safety/BookingReportCard';
+import { SafetyGuidelinesCard } from '../../../components/features/safety/SafetyGuidelinesCard';
 
 export function CustomerWorkerSection({ booking, user, activeReview, setActiveReview, reviewMutation }) {
     const isActive = ['CONFIRMED', 'IN_PROGRESS'].includes(booking.status);
@@ -90,6 +91,13 @@ export function CustomerWorkerSection({ booking, user, activeReview, setActiveRe
                         reporterRole="CUSTOMER"
                         className="mt-4"
                     />
+
+                    {isActive && (
+                        <SafetyGuidelinesCard
+                            role="CUSTOMER"
+                            className="mt-4"
+                        />
+                    )}
 
                     {booking.status === 'IN_PROGRESS' && (
                         <div className="p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/50">

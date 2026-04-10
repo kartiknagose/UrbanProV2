@@ -32,26 +32,6 @@ const updateLocation = asyncHandler(async (req, res) => {
                 lastUpdated: location.lastUpdated
             });
 
-            // Also broadcast to active booking rooms for live tracking
-            const prisma = require('../../config/prisma');
-            const activeBookings = await prisma.booking.findMany({
-                where: {
-                    workerProfileId: location.workerProfileId,
-                    status: { in: ['IN_PROGRESS', 'CONFIRMED'] }
-                },
-                select: { id: true }
-            });
-
-            activeBookings.forEach((booking) => {
-                io.to(`booking:${booking.id}`).emit('worker:location_updated', {
-                    workerProfileId: location.workerProfileId,
-                    latitude: location.latitude,
-                    longitude: location.longitude,
-                    isOnline: location.isOnline,
-                    lastUpdated: location.lastUpdated
-                });
-            });
-
             // Optionally broadcast to admin room if it's a critical update or for health monitoring
             if (location.isOnline === false) {
                 io.to('admin').emit('worker:offline', { workerId: userId });

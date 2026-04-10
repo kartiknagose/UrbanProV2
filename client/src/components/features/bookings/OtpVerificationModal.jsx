@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal, Button, Input, ImageUpload } from '../../common';
 import { verifyBookingStart, verifyBookingCompletion, refreshBookingOtp } from '../../../api/bookings';
 import { uploadBookingPhoto } from '../../../api/uploads';
+import { SafetyGuidelinesCard } from '../safety/SafetyGuidelinesCard';
 
 /**
  * Shared OTP Verification Modal used across worker pages.
@@ -139,6 +140,10 @@ export function OtpVerificationModal({ isOpen, onClose, otpAction, bookingId, in
       size="sm"
     >
       <div className="space-y-3 max-h-[68vh] overflow-y-auto pr-1 custom-scrollbar">
+        {otpAction === 'start' && (
+          <SafetyGuidelinesCard role="WORKER" compact />
+        )}
+
         {/* Step 1: Photo Evidence */}
         <div className="p-3 rounded-xl border bg-brand-50 dark:bg-brand-900/10 border-brand-100 dark:border-brand-800">
           <p className="text-xs font-black uppercase tracking-widest text-brand-800 dark:text-brand-300">

@@ -39,7 +39,7 @@ const customerIcon = createSemanticMarker({
 
 // Calculate distance logic
 function calculateDistance(lat1, lon1, lat2, lon2) {
-    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    if (![lat1, lon1, lat2, lon2].every(Number.isFinite)) return null;
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -57,7 +57,7 @@ function MapController({ workerPos, customerLocation, triggerRecenter }) {
 
     useEffect(() => {
         if (!workerPos || !customerLocation) return;
-        if (!workerPos.lat || !workerPos.lng || !customerLocation.lat || !customerLocation.lng) return;
+        if (![workerPos.lat, workerPos.lng, customerLocation.lat, customerLocation.lng].every(Number.isFinite)) return;
 
         if (isFirstLoad.current) {
             const bounds = L.latLngBounds([
@@ -70,7 +70,7 @@ function MapController({ workerPos, customerLocation, triggerRecenter }) {
     }, [workerPos, customerLocation, map]);
 
     useEffect(() => {
-        if (triggerRecenter && workerPos && workerPos.lat && workerPos.lng) {
+        if (triggerRecenter && workerPos && Number.isFinite(workerPos.lat) && Number.isFinite(workerPos.lng)) {
             map.flyTo([workerPos.lat, workerPos.lng], 16, { animate: true, duration: 1.5 });
         }
     }, [triggerRecenter, workerPos, map]);
@@ -128,7 +128,7 @@ export function LiveTrackingMap({
     useEffect(() => {
         let mounted = true;
         async function fetchEta() {
-            if (!workerPos || !customerLocation || !workerPos.lat || !customerLocation.lat) {
+            if (!workerPos || !customerLocation || !Number.isFinite(workerPos.lat) || !Number.isFinite(customerLocation.lat)) {
                 if (mounted) setEta(null);
                 return;
             }

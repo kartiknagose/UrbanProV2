@@ -1,6 +1,6 @@
 import {
     TrendingUp, DollarSign, Users, Briefcase,
-    ArrowUpRight, ArrowDownRight, Clock, Star,
+    ArrowUpRight, ArrowDownRight, Clock, Star, Activity,
     BarChart3, PieChart, Download, RefreshCw
 } from 'lucide-react';
 import {

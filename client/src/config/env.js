@@ -22,7 +22,7 @@ const readNumberEnv = (key, fallback) => {
 };
 
 export const clientEnv = Object.freeze({
-  apiUrl: readEnv('VITE_API_URL', 'http://localhost:3000/api'),
+  apiUrl: readEnv('VITE_API_URL', '/api'),
   apiTimeoutMs: readNumberEnv(
     'VITE_API_TIMEOUT_MS',
     (import.meta.env.MODE || 'development') === 'production' ? 45000 : 15000

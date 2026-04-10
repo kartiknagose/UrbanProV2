@@ -100,6 +100,9 @@ async function registerUser({ name, email, mobile, password, role = 'CUSTOMER', 
   });
 
   const tokenVersion = await getTokenVersion(user.id);
+  if (tokenVersion < 0) {
+    throw new AppError(503, 'Authentication service unavailable.');
+  }
   const jwtToken = signJwt({ id: user.id, role: user.role, tv: tokenVersion });
   return {
     user: { id: user.id, name: user.name, email: user.email, role: user.role },
@@ -136,6 +139,9 @@ async function loginUser({ email, password }) {
   if (user.isActive === false) throw new AppError(403, 'Account suspended. Please contact support.');
 
   const tokenVersion = await getTokenVersion(user.id);
+  if (tokenVersion < 0) {
+    throw new AppError(503, 'Authentication service unavailable.');
+  }
   const token = signJwt({ id: user.id, role: user.role, tv: tokenVersion });
 
   // Flatten verification status for workers

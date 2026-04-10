@@ -8,8 +8,8 @@ async function getTokenVersion(userId) {
     const parsed = Number(raw);
     return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
   } catch (_err) {
-    // Graceful fallback when Redis is unavailable.
-    return 0;
+    // Fail closed when Redis is unavailable so stale tokens cannot silently pass.
+    return -1;
   }
 }
 

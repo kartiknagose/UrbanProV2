@@ -2,6 +2,7 @@
 // Handles conversations, messages, and booking-based chat
 
 import axiosInstance from './axios';
+import { normalizeQueryInput } from './queryContext';
 
 // Chat API endpoints
 const CHAT_ENDPOINTS = {
@@ -16,7 +17,11 @@ const CHAT_ENDPOINTS = {
  * @returns {Promise<{ conversations, pagination }>}
  */
 export const getUserConversations = async (params) => {
-  const response = await axiosInstance.get(CHAT_ENDPOINTS.CONVERSATIONS, { params });
+  const normalized = normalizeQueryInput(params);
+  const response = await axiosInstance.get(CHAT_ENDPOINTS.CONVERSATIONS, {
+    params: normalized.params,
+    signal: normalized.signal,
+  });
   return response.data;
 };
 

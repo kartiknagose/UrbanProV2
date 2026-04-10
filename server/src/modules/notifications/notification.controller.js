@@ -6,9 +6,11 @@ const messageStore = require('./messageStore');
 
 const getNotifications = asyncHandler(async (req, res) => {
     const { page, limit, skip } = parsePagination(req.query);
-    const { data: notifications, total } = await notificationService.getUserNotifications(req.user.id, { skip, limit });
-    const unreadCount = await notificationService.getUnreadCount(req.user.id);
-    res.json({ notifications, unreadCount, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
+    const [{ data: notifications, total, degraded }, unreadCount] = await Promise.all([
+        notificationService.getUserNotifications(req.user.id, { skip, limit }),
+        notificationService.getUnreadCount(req.user.id),
+    ]);
+    res.json({ notifications, unreadCount, degraded: !!degraded, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
 });
 
 const readNotification = asyncHandler(async (req, res) => {

@@ -39,6 +39,10 @@ module.exports = async (req, res, next) => {
     const currentVersion = await getTokenVersion(payload.id);
     const tokenVersion = Number.isInteger(Number(payload.tv)) ? Number(payload.tv) : 0;
 
+    if (currentVersion < 0) {
+      return res.status(503).json({ error: 'Authentication service unavailable', statusCode: 503 });
+    }
+
     if (tokenVersion !== currentVersion) {
       return res.status(401).json({ error: 'Session expired. Please log in again.', statusCode: 401 });
     }

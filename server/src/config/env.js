@@ -38,6 +38,7 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const PORT = clamp(Math.trunc(toNumber(process.env.PORT, 3000)), 1, 65535);
+const isProduction = NODE_ENV === 'production';
 
 const JWT_SECRET = process.env.JWT_SECRET || (NODE_ENV === 'development' ? 'dev_only_secret_do_not_use_in_production' : undefined);
 
@@ -46,11 +47,11 @@ if (!JWT_SECRET) {
     process.exit(1);
 }
 
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
+const CORS_ORIGIN = process.env.CORS_ORIGIN || (isProduction ? '' : 'http://localhost:5173');
 
 const FRONTEND_URL = process.env.FRONTEND_URL
     || (CORS_ORIGIN.includes(',') ? CORS_ORIGIN.split(',')[0].trim() : CORS_ORIGIN)
-    || 'http://localhost:5173';
+    || (isProduction ? '' : 'http://localhost:5173');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';

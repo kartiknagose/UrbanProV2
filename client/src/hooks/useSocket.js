@@ -34,14 +34,6 @@ export default function useSocket(user = null) {
       reconnectionDelay: 800,
     };
 
-    const joinRooms = (socket) => {
-      if (!socket || !user?.id) return;
-      socket.emit('joinRoom', `user:${user.id}`);
-      if (user.role === 'WORKER') socket.emit('joinRoom', `worker:${user.id}`);
-      if (user.role === 'CUSTOMER') socket.emit('joinRoom', `customer:${user.id}`);
-      if (user.role === 'ADMIN') socket.emit('joinRoom', 'admin');
-    };
-
     const socket = io(baseUrl, socketOptions);
     socketRef.current = socket;
     try { window.__UPRO_SOCKET = socketRef; } catch { /* ignore */ }
@@ -49,7 +41,6 @@ export default function useSocket(user = null) {
     if (import.meta.env.DEV) {
       socket.on('connect', () => {
         console.log('Socket connected', socket.id);
-        joinRooms(socket);
         try { window.dispatchEvent(new Event('upro:socket-ready')); } catch { /* ignore */ }
       });
       socket.on('disconnect', (reason) => console.log('Socket disconnected', reason));
@@ -57,7 +48,6 @@ export default function useSocket(user = null) {
       socket.on('error', (err) => console.warn('Socket error', err?.message || err));
     } else {
       socket.on('connect', () => {
-        joinRooms(socket);
         try { window.dispatchEvent(new Event('upro:socket-ready')); } catch { /* ignore */ }
       });
     }
@@ -81,7 +71,6 @@ export default function useSocket(user = null) {
     });
 
     if (socket.connected) {
-      joinRooms(socket);
       try { window.dispatchEvent(new Event('upro:socket-ready')); } catch { /* ignore */ }
     }
 
@@ -108,7 +97,7 @@ export function useSocketEvent(event, callback, deps = []) {
 
   useEffect(() => {
     callbackRef.current = callback;
-  }, [callback, ...deps]);
+  }, [callback, deps]);
 
   useEffect(() => {
     let activeSocket = null;

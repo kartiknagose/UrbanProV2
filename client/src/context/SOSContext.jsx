@@ -23,9 +23,10 @@ export function SOSProvider({ children }) {
     const [activeBooking, setActiveBooking] = useState(null); // { id, status, service }
     const [isLoading, setIsLoading] = useState(false);
     const intervalRef = useRef(null);
+    const isSafetyRole = user?.role === 'CUSTOMER' || user?.role === 'WORKER';
 
     const fetchActiveBooking = useCallback(async () => {
-        if (!isAuthenticated || !user) {
+        if (!isAuthenticated || !user || !isSafetyRole) {
             setActiveBooking(null);
             return;
         }
@@ -39,11 +40,11 @@ export function SOSProvider({ children }) {
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated, user]);
+    }, [isAuthenticated, user, isSafetyRole]);
 
     // Poll when auth changes, pause when tab is hidden
     useEffect(() => {
-        if (!isAuthenticated || !user) {
+        if (!isAuthenticated || !user || !isSafetyRole) {
             setActiveBooking(null);
             if (intervalRef.current) clearInterval(intervalRef.current);
             return;
@@ -77,7 +78,7 @@ export function SOSProvider({ children }) {
             stopPolling();
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
-    }, [isAuthenticated, user, fetchActiveBooking]);
+    }, [isAuthenticated, user, isSafetyRole, fetchActiveBooking]);
 
     // Listen to socket events for instant updates (no need to wait for poll)
     useSocketEvent('booking:status_updated', fetchActiveBooking, [fetchActiveBooking]);

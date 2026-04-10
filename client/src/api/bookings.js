@@ -2,6 +2,7 @@
 // Handles booking creation, listing, status updates, and cancellation
 
 import axiosInstance from './axios';
+import { normalizeQueryInput } from './queryContext';
 
 const BOOKINGS_ENDPOINTS = {
   BASE: '/bookings',
@@ -57,7 +58,11 @@ export const previewPrice = async (data) => {
  * @returns {Promise} Response with array of bookings
  */
 export const getAllBookings = async (params) => {
-  const response = await axiosInstance.get(BOOKINGS_ENDPOINTS.BASE, { params });
+  const normalized = normalizeQueryInput(params);
+  const response = await axiosInstance.get(BOOKINGS_ENDPOINTS.BASE, {
+    params: normalized.params,
+    signal: normalized.signal,
+  });
   return response.data;
 };
 

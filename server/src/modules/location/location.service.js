@@ -3,6 +3,25 @@ const AppError = require('../../common/errors/AppError');
 const Redis = require('ioredis');
 
 let redisClient = null;
+const workerProfileCache = new Map();
+const WORKER_PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
+
+function getCachedWorkerProfileId(userId) {
+    const cached = workerProfileCache.get(userId);
+    if (!cached) return null;
+    if (cached.expiresAt < Date.now()) {
+        workerProfileCache.delete(userId);
+        return null;
+    }
+    return cached.workerProfileId;
+}
+
+function setCachedWorkerProfileId(userId, workerProfileId) {
+    workerProfileCache.set(userId, {
+        workerProfileId,
+        expiresAt: Date.now() + WORKER_PROFILE_CACHE_TTL_MS,
+    });
+}
 try {
     redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
         maxRetriesPerRequest: 1,
@@ -27,38 +46,46 @@ try {
  * @param {Object} data - { latitude, longitude, isOnline }
  */
 async function updateLocation(userId, data) {
-    const profile = await prisma.workerProfile.findUnique({
-        where: { userId },
-        select: { id: true }
-    });
+    let workerProfileId = getCachedWorkerProfileId(userId);
 
-    if (!profile) {
-        throw new AppError(404, 'Worker profile not found');
+    if (!workerProfileId) {
+        const profile = await prisma.workerProfile.findUnique({
+            where: { userId },
+            select: { id: true }
+        });
+
+        if (!profile) {
+            throw new AppError(404, 'Worker profile not found');
+        }
+
+        workerProfileId = profile.id;
+        setCachedWorkerProfileId(userId, workerProfileId);
     }
 
+    const nextOnlineState = data.isOnline ?? true;
+    const now = new Date();
+
     const location = await prisma.workerLocation.upsert({
-        where: { workerProfileId: profile.id },
+        where: { workerProfileId },
         create: {
-            workerProfileId: profile.id,
+            workerProfileId,
             latitude: data.latitude,
             longitude: data.longitude,
-            isOnline: data.isOnline ?? true,
-            lastUpdated: new Date()
+            isOnline: nextOnlineState,
+            lastUpdated: now
         },
         update: {
             latitude: data.latitude,
             longitude: data.longitude,
-            isOnline: data.isOnline ?? true,
-            lastUpdated: new Date()
+            isOnline: nextOnlineState,
+            lastUpdated: now
         },
-        include: {
-            workerProfile: {
-                include: {
-                    user: {
-                        select: { id: true, name: true }
-                    }
-                }
-            }
+        select: {
+            workerProfileId: true,
+            latitude: true,
+            longitude: true,
+            isOnline: true,
+            lastUpdated: true,
         }
     });
 
@@ -66,7 +93,7 @@ async function updateLocation(userId, data) {
     if (redisClient) {
         try {
             await redisClient.set(
-                `worker_location:${profile.id}`,
+                `worker_location:${workerProfileId}`,
                 JSON.stringify({
                     latitude: location.latitude,
                     longitude: location.longitude,

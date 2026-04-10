@@ -139,11 +139,6 @@ export const GlobalSocketListener = () => {
         });
     }, [user?.id, user?.role, navigate]);
 
-    useSocketEvent('worker:location_updated', (payload) => {
-        const event = new CustomEvent('upro:worker-location-updated', { detail: payload });
-        window.dispatchEvent(event);
-    });
-
     useSocketEvent('notification:new', (notification) => {
         if (!user?.id) return;
         if (notification.priority === 'HIGH' || notification.type === 'BOOKING_UPDATE') {

@@ -26,6 +26,26 @@ const DEFAULT_GATEWAY = '@jiomail.com';
 const REPORT_CATEGORIES = ['SAFETY', 'HARASSMENT', 'NO_SHOW', 'PROPERTY_DAMAGE', 'PAYMENT_DISPUTE', 'MISCONDUCT', 'FRAUD', 'OTHER'];
 const REPORT_STATUSES = ['OPEN', 'UNDER_REVIEW', 'RESOLVED', 'DISMISSED'];
 const REPORT_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH'];
+const SOS_RETRIGGER_COOLDOWN_MS = 2 * 60 * 1000;
+const SOS_NOTIFY_TIMEOUT_MS = 10 * 1000;
+
+const withTimeout = (promise, timeoutMs, timeoutValue = null) => Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => resolve(timeoutValue), timeoutMs)),
+]);
+
+function isSchemaDriftError(error) {
+    const code = String(error?.code || '').toUpperCase();
+    return code === 'P2021' || code === 'P2022';
+}
+
+function throwBookingReportsUnavailable(error) {
+    if (isSchemaDriftError(error)) {
+        throw new AppError(503, 'Booking reports are temporarily unavailable. Please apply the latest database migration and try again.');
+    }
+
+    throw error;
+}
 
 const bookingReportSelect = {
     id: true,
@@ -186,7 +206,11 @@ async function notifyReportReporter(report, message, url) {
  */
 async function sendSMSViaEmail(phone, message, carrier = 'default') {
     // Clean phone number — strip spaces, dashes, +91 prefix
-    const cleanPhone = phone.replace(/[\s\-+]/g, '').replace(/^91/, '').slice(-10);
+    const cleanPhone = String(phone || '').replace(/[^\d]/g, '').replace(/^91/, '').slice(-10);
+    if (cleanPhone.length < 10) {
+        return { sent: false, reason: 'invalid_phone' };
+    }
+
     const gateway = SMS_GATEWAYS[carrier] || DEFAULT_GATEWAY;
     const smsEmail = `${cleanPhone}${gateway}`;
 
@@ -209,17 +233,39 @@ async function sendSMSViaEmail(phone, message, carrier = 'default') {
  * Send email alert to emergency contact (free Gmail)
  */
 async function sendEmailAlert(to, subject, body) {
+    const recipient = String(to || '').trim();
+    if (!recipient || !recipient.includes('@')) return;
+
     try {
         await sendEmail({
-            to,
+            to: recipient,
             logContext: 'SOS Email Alert',
             subject,
             text: body
         });
-        console.log(`[SOS] Email sent to ${to}`);
+        console.log(`[SOS] Email sent to ${recipient}`);
     } catch (err) {
-        console.error(`[SOS] Email failed to ${to}:`, err.message);
+        console.error(`[SOS] Email failed to ${recipient}:`, err.message);
     }
+}
+
+function triggerEmergencyFanout(contacts, smsMessage, emailBody) {
+    if (!Array.isArray(contacts) || contacts.length === 0) return;
+
+    Promise.allSettled(
+        contacts.map(async (contact) => {
+            await Promise.allSettled([
+                withTimeout(sendSMSViaEmail(contact.phone, smsMessage), SOS_NOTIFY_TIMEOUT_MS),
+                // EmergencyContact currently stores phone/name/relation only.
+                // Keep email path for forward compatibility if schema adds it.
+                contact.email
+                    ? withTimeout(sendEmailAlert(contact.email, '🚨 SOS ALERT — ExpertsHub Emergency', emailBody), SOS_NOTIFY_TIMEOUT_MS)
+                    : Promise.resolve(),
+            ]);
+        })
+    ).catch((error) => {
+        console.warn('[SOS] Emergency contact fanout failed:', error.message);
+    });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -276,6 +322,25 @@ async function triggerSOS(userId, bookingId, location) {
         ? `GPS: ${normalizedLocation.latitude.toFixed(5)}, ${normalizedLocation.longitude.toFixed(5)}\nhttps://maps.google.com/?q=${normalizedLocation.latitude},${normalizedLocation.longitude}`
         : 'Location not shared';
 
+    // Avoid duplicate alert storms from repeated taps/retries.
+    const recentAlert = await prisma.sOSAlert.findFirst({
+        where: {
+            bookingId,
+            triggeredBy: userId,
+            status: { in: ['ACTIVE', 'ACKNOWLEDGED'] },
+            createdAt: { gte: new Date(Date.now() - SOS_RETRIGGER_COOLDOWN_MS) },
+        },
+        orderBy: { createdAt: 'desc' },
+    });
+
+    if (recentAlert) {
+        return {
+            sosAlert: recentAlert,
+            message: 'SOS was already triggered recently. Admin team is already notified.',
+            contactsNotified: [],
+        };
+    }
+
     // 3. Create SOS Alert in DB
     const sosAlert = await prisma.sOSAlert.create({
         data: {
@@ -312,16 +377,8 @@ async function triggerSOS(userId, bookingId, location) {
         `⚠️ Please contact them IMMEDIATELY and ensure their safety.\n\n` +
         `— ExpertsHub Safety Team`;
 
-    // 6. Notify emergency contacts via SMS + email (async, non-blocking)
-    const notifyPromises = contacts.map(async (contact) => {
-        await Promise.allSettled([
-            sendSMSViaEmail(contact.phone, smsMessage),
-            // If contact has email field, send email too (fallback)
-            contact.email ? sendEmailAlert(contact.email, '🚨 SOS ALERT — ExpertsHub Emergency', emailBody) : Promise.resolve(),
-        ]);
-        return { name: contact.name, phone: contact.phone };
-    });
-    const notifiedContacts = await Promise.all(notifyPromises);
+    // 6. Notify emergency contacts in background (non-blocking for API response)
+    triggerEmergencyFanout(contacts, smsMessage, emailBody);
 
     // 7. Emit real-time Socket.IO alerts
     try {
@@ -367,7 +424,7 @@ async function triggerSOS(userId, bookingId, location) {
         message: contacts.length > 0
             ? `SOS triggered! ${contacts.length} emergency contact(s) notified via SMS and the admin team has been alerted.`
             : `SOS triggered! Admin team notified. Add emergency contacts in your profile for wider coverage.`,
-        contactsNotified: notifiedContacts,
+        contactsNotified: contacts.map((contact) => ({ name: contact.name, phone: contact.phone })),
     };
 }
 
@@ -539,32 +596,42 @@ async function createBookingReport({ bookingId, reporterId, reporterRole, catego
         throw new AppError(403, 'Only customers and workers can file booking reports.');
     }
 
-    const existingOpenReport = await prisma.bookingReport.findFirst({
-        where: {
-            bookingId,
-            reporterId,
-            status: { in: ['OPEN', 'UNDER_REVIEW'] },
-        },
-        select: { id: true, status: true },
-    });
+    let existingOpenReport;
+    try {
+        existingOpenReport = await prisma.bookingReport.findFirst({
+            where: {
+                bookingId,
+                reporterId,
+                status: { in: ['OPEN', 'UNDER_REVIEW'] },
+            },
+            select: { id: true, status: true },
+        });
+    } catch (error) {
+        throwBookingReportsUnavailable(error);
+    }
 
     if (existingOpenReport) {
         throw new AppError(409, 'You already have an open report for this booking.');
     }
 
-    const report = await prisma.bookingReport.create({
-        data: {
-            bookingId,
-            reporterId,
-            reportedUserId: reportTarget.reportedUserId,
-            reportedRole: reportTarget.reportedRole,
-            category: normalizedCategory,
-            priority: resolveReportPriority(normalizedCategory),
-            details: cleanedDetails,
-            evidenceUrl: cleanedEvidenceUrl,
-        },
-        select: bookingReportSelect,
-    });
+    let report;
+    try {
+        report = await prisma.bookingReport.create({
+            data: {
+                bookingId,
+                reporterId,
+                reportedUserId: reportTarget.reportedUserId,
+                reportedRole: reportTarget.reportedRole,
+                category: normalizedCategory,
+                priority: resolveReportPriority(normalizedCategory),
+                details: cleanedDetails,
+                evidenceUrl: cleanedEvidenceUrl,
+            },
+            select: bookingReportSelect,
+        });
+    } catch (error) {
+        throwBookingReportsUnavailable(error);
+    }
 
     await Promise.allSettled([
         notifyReportAdmins(report, reporterRoleUpper.toLowerCase()),
@@ -592,16 +659,23 @@ async function getMyBookingReports(userId, { bookingId, skip = 0, limit = 20 } =
         ...(bookingId ? { bookingId } : {}),
     };
 
-    const [data, total] = await Promise.all([
-        prisma.bookingReport.findMany({
-            where,
-            orderBy: { createdAt: 'desc' },
-            skip,
-            take: limit,
-            select: bookingReportSelect,
-        }),
-        prisma.bookingReport.count({ where }),
-    ]);
+    let data;
+    let total;
+
+    try {
+        [data, total] = await Promise.all([
+            prisma.bookingReport.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit,
+                select: bookingReportSelect,
+            }),
+            prisma.bookingReport.count({ where }),
+        ]);
+    } catch (error) {
+        throwBookingReportsUnavailable(error);
+    }
 
     return { data, total };
 }
@@ -609,33 +683,52 @@ async function getMyBookingReports(userId, { bookingId, skip = 0, limit = 20 } =
 async function getAdminBookingReports(filters = {}, { skip = 0, limit = 20 } = {}) {
     const where = buildReportWhere(filters);
 
-    const [data, total] = await Promise.all([
-        prisma.bookingReport.findMany({
-            where,
-            orderBy: { createdAt: 'desc' },
-            skip,
-            take: limit,
-            select: bookingReportSelect,
-        }),
-        prisma.bookingReport.count({ where }),
-    ]);
+    let data;
+    let total;
+
+    try {
+        [data, total] = await Promise.all([
+            prisma.bookingReport.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit,
+                select: bookingReportSelect,
+            }),
+            prisma.bookingReport.count({ where }),
+        ]);
+    } catch (error) {
+        throwBookingReportsUnavailable(error);
+    }
 
     return { data, total };
 }
 
 async function getBookingReportSummary() {
-    const [total, open, underReview, resolved, dismissed, urgent, byCategory] = await Promise.all([
-        prisma.bookingReport.count(),
-        prisma.bookingReport.count({ where: { status: 'OPEN' } }),
-        prisma.bookingReport.count({ where: { status: 'UNDER_REVIEW' } }),
-        prisma.bookingReport.count({ where: { status: 'RESOLVED' } }),
-        prisma.bookingReport.count({ where: { status: 'DISMISSED' } }),
-        prisma.bookingReport.count({ where: { priority: 'HIGH' } }),
-        prisma.bookingReport.groupBy({
-            by: ['category'],
-            _count: { category: true },
-        }),
-    ]);
+    let total;
+    let open;
+    let underReview;
+    let resolved;
+    let dismissed;
+    let urgent;
+    let byCategory;
+
+    try {
+        [total, open, underReview, resolved, dismissed, urgent, byCategory] = await Promise.all([
+            prisma.bookingReport.count(),
+            prisma.bookingReport.count({ where: { status: 'OPEN' } }),
+            prisma.bookingReport.count({ where: { status: 'UNDER_REVIEW' } }),
+            prisma.bookingReport.count({ where: { status: 'RESOLVED' } }),
+            prisma.bookingReport.count({ where: { status: 'DISMISSED' } }),
+            prisma.bookingReport.count({ where: { priority: 'HIGH' } }),
+            prisma.bookingReport.groupBy({
+                by: ['category'],
+                _count: { category: true },
+            }),
+        ]);
+    } catch (error) {
+        throwBookingReportsUnavailable(error);
+    }
 
     return {
         total,
@@ -653,25 +746,35 @@ async function getBookingReportSummary() {
 
 async function updateBookingReportStatus({ reportId, adminId, status, adminNotes }) {
     const normalizedStatus = normalizeReportStatus(status);
-    const report = await prisma.bookingReport.findUnique({
-        where: { id: reportId },
-        select: bookingReportSelect,
-    });
+    let report;
+    try {
+        report = await prisma.bookingReport.findUnique({
+            where: { id: reportId },
+            select: bookingReportSelect,
+        });
+    } catch (error) {
+        throwBookingReportsUnavailable(error);
+    }
 
     if (!report) {
         throw new AppError(404, 'Report not found.');
     }
 
-    const updated = await prisma.bookingReport.update({
-        where: { id: reportId },
-        data: {
-            status: normalizedStatus,
-            adminNotes: adminNotes ? String(adminNotes).trim() : report.adminNotes,
-            reviewedById: adminId,
-            reviewedAt: new Date(),
-        },
-        select: bookingReportSelect,
-    });
+    let updated;
+    try {
+        updated = await prisma.bookingReport.update({
+            where: { id: reportId },
+            data: {
+                status: normalizedStatus,
+                adminNotes: adminNotes ? String(adminNotes).trim() : report.adminNotes,
+                reviewedById: adminId,
+                reviewedAt: new Date(),
+            },
+            select: bookingReportSelect,
+        });
+    } catch (error) {
+        throwBookingReportsUnavailable(error);
+    }
 
     await Promise.allSettled([
         notifyReportReporter(

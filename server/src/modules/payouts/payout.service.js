@@ -250,7 +250,7 @@ async function processRazorpayTransfer(profile, deductBalance, payoutAmount) {
             profile.razorpayAccountId.startsWith('acc_');
 
         if (canUseLiveTransfer) {
-            const razorpay = getRazorpayClient();
+            const razorpay = await getRazorpayClient();
             const transfer = await razorpay.transfers.create({
                 account: profile.razorpayAccountId,
                 amount: toPaise(roundedPayoutAmount),

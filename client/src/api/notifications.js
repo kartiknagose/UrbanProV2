@@ -2,6 +2,7 @@
 // Handles fetching, reading, and bulk-read of user notifications
 
 import axiosInstance from './axios';
+import { normalizeQueryInput } from './queryContext';
 
 // Notification API endpoints
 const NOTIFICATION_ENDPOINTS = {
@@ -21,7 +22,11 @@ const NOTIFICATION_ENDPOINTS = {
  * @returns {Promise<{ notifications, unreadCount, pagination }>}
  */
 export const getNotifications = async (params) => {
-  const response = await axiosInstance.get(NOTIFICATION_ENDPOINTS.BASE, { params });
+  const normalized = normalizeQueryInput(params);
+  const response = await axiosInstance.get(NOTIFICATION_ENDPOINTS.BASE, {
+    params: normalized.params,
+    signal: normalized.signal,
+  });
   return response.data;
 };
 

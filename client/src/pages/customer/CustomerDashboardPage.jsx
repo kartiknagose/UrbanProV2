@@ -545,7 +545,7 @@ export function CustomerDashboardPage() {
 
             {/* Support widget */}
             <div className="p-2">
-              <button onClick={() => toastInfo(t('Support center coming soon! For urgent help, email support@expertshub.tech'))} className="w-full p-6 rounded-3xl border-2 border-dashed flex items-center justify-between group transition-all border-gray-200 hover:border-brand-500/30 dark:border-dark-700 dark:hover:border-brand-500/50">
+              <button onClick={() => navigate('/contact')} className="w-full p-6 rounded-3xl border-2 border-dashed flex items-center justify-between group transition-all border-gray-200 hover:border-brand-500/30 dark:border-dark-700 dark:hover:border-brand-500/50">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-dark-800 flex items-center justify-center">
                     <Clock size={18} className="text-gray-400" />

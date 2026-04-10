@@ -1,4 +1,5 @@
 import axiosInstance from './axios';
+import { normalizeQueryInput } from './queryContext';
 
 /**
  * TRIGGER SOS ALERT
@@ -58,7 +59,11 @@ export const createBookingReport = async (data) => {
  * @param {Object} params - optional { bookingId, page, limit }
  */
 export const getMyBookingReports = async (params = {}) => {
-    const response = await axiosInstance.get('/safety/reports/me', { params });
+    const normalized = normalizeQueryInput(params);
+    const response = await axiosInstance.get('/safety/reports/me', {
+        params: normalized.params,
+        signal: normalized.signal,
+    });
     return response.data;
 };
 
@@ -74,7 +79,11 @@ export const getBookingReportSummary = async () => {
  * ADMIN: GET BOOKING REPORTS
  */
 export const getBookingReports = async (params = {}) => {
-    const response = await axiosInstance.get('/safety/reports', { params });
+    const normalized = normalizeQueryInput(params);
+    const response = await axiosInstance.get('/safety/reports', {
+        params: normalized.params,
+        signal: normalized.signal,
+    });
     return response.data;
 };
 

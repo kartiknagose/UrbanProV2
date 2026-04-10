@@ -2,6 +2,7 @@ const asyncHandler = require('../../common/utils/asyncHandler');
 const parsePagination = require('../../common/utils/parsePagination');
 const { listMyPayments, listAllPayments } = require('./payment.service');
 const prisma = require('../../config/prisma');
+const redis = require('../../config/redis');
 
 exports.listMine = asyncHandler(async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query);
@@ -18,28 +19,66 @@ exports.listAll = asyncHandler(async (req, res) => {
 const crypto = require('crypto');
 const bookingService = require('../bookings/booking.service');
 
+const WEBHOOK_EVENT_TTL_SECONDS = 60 * 60 * 6;
+const localWebhookEventCache = new Map();
+
+function cleanupLocalWebhookCache(now = Date.now()) {
+  if (localWebhookEventCache.size === 0) return;
+  for (const [key, expiresAt] of localWebhookEventCache.entries()) {
+    if (expiresAt <= now) {
+      localWebhookEventCache.delete(key);
+    }
+  }
+}
+
+async function claimWebhookEvent(eventId) {
+  if (!eventId) return true;
+
+  const cacheKey = `razorpay:webhook:event:${eventId}`;
+
+  try {
+    if (typeof redis?.set === 'function' && redis?.status === 'ready') {
+      const claimed = await redis.set(cacheKey, '1', 'EX', WEBHOOK_EVENT_TTL_SECONDS, 'NX');
+      return claimed === 'OK';
+    }
+  } catch (error) {
+    console.warn('Razorpay Webhook: redis dedupe unavailable:', error.message);
+  }
+
+  const now = Date.now();
+  cleanupLocalWebhookCache(now);
+  if (localWebhookEventCache.has(cacheKey)) {
+    return false;
+  }
+
+  localWebhookEventCache.set(cacheKey, now + WEBHOOK_EVENT_TTL_SECONDS * 1000);
+  return true;
+}
+
 async function createPaymentIfNotExists({ bookingId, customerId, amount, status, reference }) {
   if (!reference) return;
 
-  const existing = await prisma.payment.findFirst({
-    where: {
-      bookingId,
-      status,
-      reference,
-    },
-    select: { id: true },
-  });
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.payment.findFirst({
+      where: {
+        bookingId,
+        status,
+        reference,
+      },
+      select: { id: true },
+    });
 
-  if (existing) return;
+    if (existing) return;
 
-  await prisma.payment.create({
-    data: {
-      bookingId,
-      customerId,
-      amount,
-      status,
-      reference,
-    },
+    await tx.payment.create({
+      data: {
+        bookingId,
+        customerId,
+        amount,
+        status,
+        reference,
+      },
+    });
   });
 }
 
@@ -79,6 +118,14 @@ exports.razorpayWebhook = asyncHandler(async (req, res) => {
     event = typeof req.body === 'object' ? req.body : JSON.parse(bodyString);
   } catch (_err) {
     return res.status(400).send('Invalid payload');
+  }
+
+  const headerEventId = String(req.headers['x-razorpay-event-id'] || '').trim();
+  const payloadEventId = String(event?.payload?.payment?.entity?.id || event?.payload?.refund?.entity?.id || '').trim();
+  const dedupeEventId = headerEventId || (payloadEventId ? `${event.event}:${payloadEventId}` : '');
+  const isFirstDelivery = await claimWebhookEvent(dedupeEventId);
+  if (!isFirstDelivery) {
+    return res.status(200).send('Duplicate event ignored');
   }
 
   if (event.event === 'order.paid' || event.event === 'payment.captured') {

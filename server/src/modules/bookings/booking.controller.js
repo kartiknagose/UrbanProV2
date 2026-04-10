@@ -604,7 +604,11 @@ const verifyBookingStart = asyncHandler(async (req, res) => {
   }
 
   // Pass coordinates if provided for geo-fencing (Sprint 14)
-  const workerCoords = (latitude && longitude) ? { latitude: Number(latitude), longitude: Number(longitude) } : null;
+  const parsedLatitude = latitude === undefined || latitude === null || latitude === '' ? null : Number(latitude);
+  const parsedLongitude = longitude === undefined || longitude === null || longitude === '' ? null : Number(longitude);
+  const workerCoords = Number.isFinite(parsedLatitude) && Number.isFinite(parsedLongitude)
+    ? { latitude: parsedLatitude, longitude: parsedLongitude }
+    : null;
 
   const updatedBooking = await bookingService.verifyBookingStart(bookingId, otp, userId, workerCoords);
 

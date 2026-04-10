@@ -1,7 +1,7 @@
 // AppRoutes — centralized routing configuration with lazy loading
 // HMR Refresh Trigger - Standard Imports Reinstated
 import { lazy, Suspense, useEffect, useRef } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { PublicRoute, WorkerRoute, CustomerRoute, AdminRoute, ProtectedRoute } from './ProtectedRoute';
 import { LoadingOverlay } from '../components/common';
 import { useAuth } from '../hooks/useAuth';
@@ -156,6 +156,29 @@ function BookingsRedirect() {
   return <Navigate to="/customer/bookings" replace />;
 }
 
+function BookingDetailRedirect() {
+  const { id } = useParams();
+  const { user, isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!id) {
+    return <Navigate to="/bookings" replace />;
+  }
+
+  if (user?.role === 'WORKER') {
+    return <Navigate to={`/worker/bookings/${id}`} replace />;
+  }
+
+  if (user?.role === 'ADMIN') {
+    return <Navigate to="/admin/bookings" replace />;
+  }
+
+  return <Navigate to={`/customer/bookings/${id}`} replace />;
+}
+
 /**
  * AppRoutes Component
  * 
@@ -199,6 +222,7 @@ export function AppRoutes() {
         <Route path="/customer/wallet" element={<CustomerRoute><CustomerWalletPage /></CustomerRoute>} />
         <Route path="/customer/referrals" element={<CustomerRoute><CustomerReferralsPage /></CustomerRoute>} />
         <Route path="/bookings" element={<BookingsRedirect />} />
+        <Route path="/bookings/:id" element={<ProtectedRoute><BookingDetailRedirect /></ProtectedRoute>} />
         <Route path="/customer/bookings" element={<CustomerRoute><CustomerBookingsPage /></CustomerRoute>} />
         <Route path="/customer/bookings/wizard" element={<CustomerRoute><BookingWizardPage /></CustomerRoute>} />
         <Route path="/customer/bookings/:id" element={<CustomerRoute><CustomerBookingDetailPage /></CustomerRoute>} />

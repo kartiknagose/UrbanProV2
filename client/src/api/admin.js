@@ -1,4 +1,5 @@
 import axiosInstance from './axios';
+import { normalizeQueryInput } from './queryContext';
 
 const ADMIN_ENDPOINTS = {
   DASHBOARD: '/admin/dashboard',
@@ -18,7 +19,11 @@ export const getAiAuditSummary = async () => {
 };
 
 export const getAiAudits = async (params) => {
-  const response = await axiosInstance.get(ADMIN_ENDPOINTS.AI_AUDITS, { params });
+  const normalized = normalizeQueryInput(params);
+  const response = await axiosInstance.get(ADMIN_ENDPOINTS.AI_AUDITS, {
+    params: normalized.params,
+    signal: normalized.signal,
+  });
   return response.data;
 };
 

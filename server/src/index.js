@@ -61,6 +61,22 @@ const { verifySmtpConnection, isResendConfigured, isSendGridConfigured, sendVeri
 const app = express();
 app.set('etag', 'strong');
 
+// Required behind Render/Nginx/CDN so req.ip, secure cookies and rate-limit behave correctly.
+const parseTrustProxy = (value) => {
+  const raw = String(value ?? '').trim().toLowerCase();
+  if (!raw) return null;
+  if (raw === 'true') return true;
+  if (raw === 'false') return false;
+  const numeric = Number(raw);
+  if (Number.isInteger(numeric) && numeric >= 0) return numeric;
+  return value;
+};
+
+if (process.env.NODE_ENV === 'production') {
+  const configuredTrustProxy = parseTrustProxy(process.env.TRUST_PROXY);
+  app.set('trust proxy', configuredTrustProxy ?? 1);
+}
+
 // Security & parsing
 // Apply middleware in a clear order:
 // 1) Security headers (helmet)
@@ -82,7 +98,7 @@ app.use(
   express.json({
     limit: '1mb',
     verify: (req, _res, buf) => {
-      if (req.originalUrl?.startsWith('/api/payments/webhook')) {
+      if (/^\/api(?:\/v1)?\/payments\/webhook(?:$|\?)/.test(String(req.originalUrl || ''))) {
         req.rawBody = buf.toString('utf8');
       }
     },
@@ -236,9 +252,14 @@ app.post('/health/email/send-test', async (req, res) => {
   }
 
   try {
+    const frontendBaseUrl = String(process.env.FRONTEND_URL || req.get('origin') || '').trim().replace(/\/+$/, '');
+    if (process.env.NODE_ENV === 'production' && !frontendBaseUrl) {
+      return res.status(500).json({ ok: false, message: 'FRONTEND_URL is required in production for email test links.' });
+    }
+
     await sendVerificationEmail({
       to,
-      link: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=test-health-token`,
+      link: `${frontendBaseUrl || 'http://localhost:5173'}/verify-email?token=test-health-token`,
     });
     return res.status(200).json({ ok: true, message: 'Test verification email sent' });
   } catch (error) {

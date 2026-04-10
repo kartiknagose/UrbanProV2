@@ -5,7 +5,7 @@
 //  const io = init(httpServer);
 //  // In controllers: const { getIo } = require('./socket'); getIo().emit(...)
 
-const { CORS_ORIGIN } = require('./config/env');
+const { allowedOrigins, matchesAllowedOrigin } = require('./config/cors');
 const { verifyJwt } = require('./common/utils/jwt');
 const { getTokenVersion } = require('./common/utils/tokenVersion');
 let ioInstance = null;
@@ -23,20 +23,24 @@ function init(server) {
   const { Server } = require('socket.io');
   const isDev = process.env.NODE_ENV !== 'production';
 
-  // Allow `CORS_ORIGIN` to be a single origin or a comma-separated list
-  // (eg. "http://localhost:5173,http://localhost:5174"). Socket.IO accepts
-  // either a string or an array for the `origin` option; normalize here.
-  const configuredOrigins = String(CORS_ORIGIN || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const origin = configuredOrigins.length > 0
-    ? configuredOrigins
-    : (isDev ? '*' : false);
+  const hasConfiguredOrigins = Array.isArray(allowedOrigins) && allowedOrigins.length > 0;
+  const socketCorsOrigin = (origin, callback) => {
+    if (!hasConfiguredOrigins) {
+      callback(null, true);
+      return;
+    }
+
+    if (matchesAllowedOrigin(origin, allowedOrigins)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error('Not allowed by CORS'));
+  };
 
   ioInstance = new Server(server, {
     cors: {
-      origin,
+      origin: socketCorsOrigin,
       credentials: true,
     },
     allowRequest: isDev ? (_req, callback) => callback(null, true) : undefined,
@@ -73,6 +77,9 @@ function init(server) {
 
       const currentVersion = await getTokenVersion(payload.id);
       const tokenVersion = Number.isInteger(Number(payload.tv)) ? Number(payload.tv) : 0;
+      if (currentVersion < 0) {
+        return next(new Error('Authentication service unavailable.'));
+      }
       if (tokenVersion !== currentVersion) {
         return next(new Error('Authentication required — session expired.'));
       }

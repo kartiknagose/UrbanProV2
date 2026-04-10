@@ -290,7 +290,10 @@ export function WorkerOnboardingWizard({ onComplete }) {
 
       if (onComplete) onComplete();
     } catch (err) {
-      const msg = err?.response?.data?.error || err?.message || t('Failed to submit application');
+      const isTimeout = err?.code === 'ECONNABORTED' || /timeout/i.test(String(err?.message || ''));
+      const msg = isTimeout
+        ? t('Submission is taking longer than expected. Please try again in a moment.')
+        : (err?.response?.data?.error || err?.message || t('Failed to submit application'));
       toast.error(msg);
     } finally {
       setSubmitting(false);

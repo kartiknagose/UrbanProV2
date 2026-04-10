@@ -138,7 +138,10 @@ async function requireWorkerProfile(userId, errorMessage = 'Worker profile not f
  * Returns true/false without throwing.
  */
 async function isWorkerForBooking(userId, booking) {
-  const profile = await prisma.workerProfile.findUnique({ where: { userId } });
+  const profile = await prisma.workerProfile.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
   return !!(profile && booking.workerProfileId === profile.id);
 }
 
@@ -332,13 +335,13 @@ async function createBooking(customerId, bookingData) {
     frequency = frequency.trim().toUpperCase();
   }
 
+  // Fetch service once and reuse for coupon validation, pricing and commissions.
+  const service = await prisma.service.findUnique({ where: { id: serviceId } });
+  if (!service) throw new AppError(404, 'Service not found.');
+
   // BUSINESS GROWTH: Coupon Validation (Sprint 17)
   let appliedCoupon = null;
   if (safeCouponCode) {
-    // Fetch service for category info
-    const service = await prisma.service.findUnique({ where: { id: serviceId } });
-    if (!service) throw new AppError(404, 'Service not found.');
-
     const couponBookingAmount = Number.isFinite(estimatedPrice)
       ? estimatedPrice
       : Number(service.basePrice || 0);
@@ -350,7 +353,7 @@ async function createBooking(customerId, bookingData) {
   }
 
   // Geocode address if lat/lng missing and addressDetails present
-  if ((!latitude || !longitude) && safeAddressDetails && GOOGLE_GEOCODING_API_KEY) {
+  if ((!Number.isFinite(latitude) || !Number.isFinite(longitude)) && safeAddressDetails && GOOGLE_GEOCODING_API_KEY) {
     try {
       const geoResp = await axios.get(GOOGLE_GEOCODING_URL, {
         params: {
@@ -422,6 +425,25 @@ async function createBooking(customerId, bookingData) {
     throw new AppError(400, 'Estimated price seems too high. Please check and try again.');
   }
 
+  const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
+
+  // Calculate pricing outside transaction to keep the critical write section short.
+  const pricing = await calculateDynamicPrice({
+    serviceId,
+    workerProfileId: isDirectBooking ? workerProfileId : null,
+    scheduledAt: scheduledDateObj,
+    latitude: hasCoordinates ? latitude : null,
+    longitude: hasCoordinates ? longitude : null,
+    basePriceOverride: Number(estimatedPrice) || 0
+  });
+
+  const totalAfterCoupon = appliedCoupon
+    ? Math.max(0, Number(pricing.totalPrice) - appliedCoupon.discountAmount)
+    : Number(pricing.totalPrice);
+  const commissionRate = Number(service.commissionRate) || 15.0;
+  const platformCommission = Math.max(0, (totalAfterCoupon * commissionRate) / 100);
+  const workerPayoutAmount = Math.max(0, totalAfterCoupon - platformCommission);
+
   // VALIDATE: Worker specific checks (ONLY IF WORKER IS SELECTED)
   // All DB reads + the booking create are wrapped in a transaction to prevent
   // race conditions (two customers booking the same worker/slot simultaneously).
@@ -437,7 +459,7 @@ async function createBooking(customerId, bookingData) {
       }
 
       // CHECK 1: DISTANCE-BASED FILTERING (Haversine)
-      if (latitude && longitude) {
+      if (hasCoordinates) {
         const nearbyWorkers = await filterWorkersByDistance(latitude, longitude, serviceId, workerProfile.serviceRadius || 10);
         const isNearby = nearbyWorkers.some(w => w.id === workerProfileId);
         if (!isNearby) {
@@ -457,7 +479,7 @@ async function createBooking(customerId, bookingData) {
         )
         : [];
 
-      if (polygonAreas.length >= 3 && latitude && longitude) {
+      if (polygonAreas.length >= 3 && hasCoordinates) {
         // serviceAreas is an array of [lat, lng] pairs forming a polygon
         // Use ray-casting point-in-polygon algorithm
         const pointInPolygon = (point, polygon) => {
@@ -484,15 +506,6 @@ async function createBooking(customerId, bookingData) {
       }
     }
 
-    // VALIDATE: Verify the service exists
-    const service = await tx.service.findUnique({
-      where: { id: serviceId },
-    });
-
-    if (!service) {
-      throw new AppError(404, 'Service not found. Please select a valid service.');
-    }
-
     // VALIDATE: Verify the worker actually offers this service (ONLY IF WORKER IS SELECTED)
     if (isDirectBooking) {
       const workerOffersService = await tx.workerService.findUnique({
@@ -509,23 +522,6 @@ async function createBooking(customerId, bookingData) {
       }
     }
 
-    // Calculate Dynamic Pricing Formula
-    const pricing = await calculateDynamicPrice({
-      serviceId,
-      workerProfileId: isDirectBooking ? workerProfileId : null,
-      scheduledAt: scheduledDateObj,
-      latitude: latitude ? Number(latitude) : null,
-      longitude: longitude ? Number(longitude) : null,
-      basePriceOverride: Number(estimatedPrice) || 0
-    });
-
-    const totalAfterCoupon = appliedCoupon
-      ? Math.max(0, Number(pricing.totalPrice) - appliedCoupon.discountAmount)
-      : Number(pricing.totalPrice);
-    const commissionRate = Number(service.commissionRate) || 15.0;
-    const platformCommission = Math.max(0, (totalAfterCoupon * commissionRate) / 100);
-    const workerPayoutAmount = Math.max(0, totalAfterCoupon - platformCommission);
-
     // Create the booking
     return await tx.booking.create({
       data: {
@@ -534,8 +530,8 @@ async function createBooking(customerId, bookingData) {
         serviceId: serviceId,
         scheduledAt: scheduledDateObj,
         address: safeAddressDetails,
-        latitude: latitude ? Number(latitude) : null,
-        longitude: longitude ? Number(longitude) : null,
+        latitude: hasCoordinates ? latitude : null,
+        longitude: hasCoordinates ? longitude : null,
         notes: safeNotes,
         estimatedDuration: estimatedDuration || null,
         status: 'PENDING',
@@ -570,10 +566,13 @@ async function createBooking(customerId, bookingData) {
         },
       },
     });
+  }, {
+    maxWait: 10_000,
+    timeout: 20_000,
   });
 
   // 5. If it's an OPEN booking (no worker selected), broadcast to matching workers
-  if (!isDirectBooking && latitude && longitude) {
+  if (!isDirectBooking && hasCoordinates) {
     // INTEGRATED PHASE 2.3: Intelligent Live Matching
     // 1. Find workers who are ONLINE and near the job
     const workersWithLiveLocation = await prisma.workerLocation.findMany({
@@ -649,7 +648,10 @@ async function getBookingsByUser(userId, role, { skip = 0, limit = 20 } = {}) {
   if (role === 'CUSTOMER') {
     whereClause = { customerId: userId };
   } else if (role === 'WORKER') {
-    const workerProfile = await prisma.workerProfile.findUnique({ where: { userId } });
+    const workerProfile = await prisma.workerProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
     whereClause = { workerProfileId: workerProfile ? workerProfile.id : -1 };
   }
 
@@ -960,7 +962,7 @@ async function cancelBooking(bookingId, userId, role, cancellationReason) {
         try {
           const amountInPaise = Math.round(refundAmount * 100);
           if (amountInPaise > 0 && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
-            const razorpay = getRazorpayClient();
+            const razorpay = await getRazorpayClient();
             await razorpay.payments.refund(booking.paymentReference, {
               amount: amountInPaise,
               notes: {
@@ -1176,9 +1178,40 @@ async function payBooking(bookingId, userId, userRole, reqOptions) {
   const reference = payWithWallet ? 'WALLET' : (paymentReference || 'CASH');
 
   return prisma.$transaction(async (tx) => {
-    const payableAmount = Number(booking.totalPrice) || Number(booking.estimatedPrice) || 0;
+    const lockedBooking = await tx.booking.findUnique({
+      where: { id: bookingId },
+      select: {
+        id: true,
+        customerId: true,
+        paymentStatus: true,
+        totalPrice: true,
+        estimatedPrice: true,
+        workerProfileId: true,
+      },
+    });
+
+    if (!lockedBooking) {
+      throw new AppError(404, 'Booking not found.');
+    }
+
+    if (lockedBooking.paymentStatus === 'PAID') {
+      if (isWebhook) {
+        return tx.booking.findUnique({
+          where: { id: bookingId },
+          include: {
+            service: { select: { id: true, name: true, category: true, commissionRate: true } },
+            workerProfile: { select: { id: true, userId: true, user: { select: { id: true, name: true, profilePhotoUrl: true, rating: true, totalReviews: true } } } },
+            customer: { select: { id: true, name: true, email: true, mobile: true, profilePhotoUrl: true, rating: true, totalReviews: true } },
+          },
+        });
+      }
+
+      throw new AppError(400, 'Booking is already paid.');
+    }
+
+    const payableAmount = Number(lockedBooking.totalPrice) || Number(lockedBooking.estimatedPrice) || 0;
     if (payWithWallet) {
-      if (userRole !== 'CUSTOMER' || booking.customerId !== userId) {
+      if (userRole !== 'CUSTOMER' || lockedBooking.customerId !== userId) {
         throw new AppError(403, 'Only the booking customer can pay from wallet.');
       }
       if (payableAmount <= 0) {
@@ -1186,8 +1219,8 @@ async function payBooking(bookingId, userId, userRole, reqOptions) {
       }
 
       const wallet = await tx.wallet.upsert({
-        where: { userId: booking.customerId },
-        create: { userId: booking.customerId, balance: 0, currency: 'INR' },
+        where: { userId: lockedBooking.customerId },
+        create: { userId: lockedBooking.customerId, balance: 0, currency: 'INR' },
         update: {},
       });
 
@@ -1204,7 +1237,7 @@ async function payBooking(bookingId, userId, userRole, reqOptions) {
 
       await tx.walletTransaction.create({
         data: {
-          userId: booking.customerId,
+          userId: lockedBooking.customerId,
           amount: -payableAmount,
           type: 'PAYMENT',
           description: `Booking payment via wallet (#${bookingId})`,
@@ -1228,17 +1261,28 @@ async function payBooking(bookingId, userId, userRole, reqOptions) {
       },
     });
 
-    await tx.payment.create({
-      data: {
-        bookingId: bookingId,
-        customerId: booking.customerId,
-        amount: updated.totalPrice || null,
+    const existingPayment = await tx.payment.findFirst({
+      where: {
+        bookingId,
         status: 'PAID',
         reference,
       },
+      select: { id: true },
     });
 
-    if (isCashPayment && booking.workerProfileId) {
+    if (!existingPayment) {
+      await tx.payment.create({
+        data: {
+          bookingId: bookingId,
+          customerId: lockedBooking.customerId,
+          amount: updated.totalPrice || null,
+          status: 'PAID',
+          reference,
+        },
+      });
+    }
+
+    if (isCashPayment && lockedBooking.workerProfileId) {
       // CASH: Worker keeps physical cash, so we deduct the platform's cut from their digital wallet
       const rawAmount = Number(updated.totalPrice) || 0;
       const commRate = Number(updated.service.commissionRate) || 15.0;
@@ -1254,7 +1298,7 @@ async function payBooking(bookingId, userId, userRole, reqOptions) {
       });
 
       await tx.workerProfile.update({
-        where: { id: booking.workerProfileId },
+        where: { id: lockedBooking.workerProfileId },
         data: {
           walletBalance: { decrement: platformCut }
         }
@@ -1511,7 +1555,12 @@ async function verifyBookingStart(bookingId, otp, userId, workerCoords = null) {
 
   // FRAUD DETECTION: Geo-fencing
   // Ensure worker is within 1km (1000m) of the booking location if both have coordinates
-  if (booking.latitude && booking.longitude && workerCoords?.latitude && workerCoords?.longitude) {
+  if (
+    Number.isFinite(booking.latitude)
+    && Number.isFinite(booking.longitude)
+    && Number.isFinite(workerCoords?.latitude)
+    && Number.isFinite(workerCoords?.longitude)
+  ) {
     const distance = LocationService.calculateDistance(
       booking.latitude,
       booking.longitude,

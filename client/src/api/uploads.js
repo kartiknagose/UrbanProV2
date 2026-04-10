@@ -3,6 +3,8 @@
 
 import axiosInstance from './axios';
 
+const VERIFICATION_UPLOAD_TIMEOUT_MS = 60_000;
+
 const UPLOAD_ENDPOINTS = {
   PROFILE_PHOTO: '/uploads/profile-photo',
   VERIFICATION_DOC: '/uploads/verification-doc',
@@ -35,6 +37,7 @@ export const uploadVerificationDocument = async (file) => {
 
   const response = await axiosInstance.post(UPLOAD_ENDPOINTS.VERIFICATION_DOC, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: VERIFICATION_UPLOAD_TIMEOUT_MS,
   });
 
   return response.data;

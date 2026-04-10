@@ -399,9 +399,8 @@ export function WorkerProfilePage() {
         serviceRadius: data.serviceRadius,
       };
 
-      // Backend currently validates profilePhotoUrl as local upload path only.
-      // Upload endpoint already persists cloud URLs on user profile, so skip sending
-      // external URLs here to avoid false validation failures during profile save.
+      // The profile endpoint only accepts local upload paths; the upload request
+      // already persists the photo URL on the user record.
       if (profilePhotoUrl && profilePhotoUrl.startsWith('/uploads/profile-photos/')) {
         payload.profilePhotoUrl = profilePhotoUrl;
       }

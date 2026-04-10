@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { updateWorkerLocation } from '../api/location';
 import { toast } from 'sonner';
-import { io } from 'socket.io-client';
-import { SOCKET_BASE_URL } from '../config/runtime';
 
 const ONLINE_STATE_KEY = 'upro.worker.online';
 const LAST_LOCATION_KEY = 'upro.worker.last_location';
@@ -197,12 +195,10 @@ export function useLiveWorkerLocation(workerProfileId) {
 
     useEffect(() => {
         if (!workerProfileId) return;
-        const socket = io(SOCKET_BASE_URL, {
-            withCredentials: true,
-        });
-        socket.emit('joinRoom', `worker_tracking:${workerProfileId}`);
-        socket.on('worker:location_updated', (data) => {
-            if (data.workerProfileId === workerProfileId) {
+
+        const handleLocationUpdate = (event) => {
+            const data = event.detail;
+            if (data?.workerProfileId === workerProfileId) {
                 setLocation({
                     latitude: data.latitude,
                     longitude: data.longitude,
@@ -210,9 +206,28 @@ export function useLiveWorkerLocation(workerProfileId) {
                     lastUpdated: data.lastUpdated,
                 });
             }
-        });
+        };
+
+        window.addEventListener('upro:worker-location-updated', handleLocationUpdate);
+
+        const handleSocketReady = () => {
+            const socketRef = typeof window !== 'undefined' ? window.__UPRO_SOCKET : null;
+            if (socketRef?.current) {
+                socketRef.current.emit('joinRoom', `worker_tracking:${workerProfileId}`);
+            }
+        };
+
+        window.addEventListener('upro:socket-ready', handleSocketReady);
+
+        handleSocketReady();
+
         return () => {
-            socket.disconnect();
+            window.removeEventListener('upro:worker-location-updated', handleLocationUpdate);
+            window.removeEventListener('upro:socket-ready', handleSocketReady);
+            const socketRef = typeof window !== 'undefined' ? window.__UPRO_SOCKET : null;
+            if (socketRef?.current) {
+                socketRef.current.emit('leaveRoom', `worker_tracking:${workerProfileId}`);
+            }
         };
     }, [workerProfileId]);
 

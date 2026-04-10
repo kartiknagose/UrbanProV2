@@ -1,5 +1,7 @@
 import axiosInstance from './axios';
 
+const VERIFICATION_REQUEST_TIMEOUT_MS = 60_000;
+
 const VERIFICATION_ENDPOINTS = {
   ME: '/verification/me',
   APPLY: '/verification/apply',
@@ -13,7 +15,9 @@ export const getMyVerification = async () => {
 };
 
 export const applyForVerification = async (data) => {
-  const response = await axiosInstance.post(VERIFICATION_ENDPOINTS.APPLY, data);
+  const response = await axiosInstance.post(VERIFICATION_ENDPOINTS.APPLY, data, {
+    timeout: VERIFICATION_REQUEST_TIMEOUT_MS,
+  });
   return response.data;
 };
 

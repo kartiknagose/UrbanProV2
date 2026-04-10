@@ -14,6 +14,34 @@ function isSchemaDriftError(error) {
 const isProduction = process.env.NODE_ENV === 'production';
 const requireEmailVerification = String(process.env.REQUIRE_EMAIL_VERIFICATION || '').toLowerCase() === 'true';
 const smtpSendTimeoutMs = Number(process.env.SMTP_SEND_TIMEOUT_MS || 20000);
+const normalizeSameSite = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (['lax', 'strict', 'none'].includes(normalized)) return normalized;
+  return isProduction ? 'none' : 'lax';
+};
+
+const resolveFrontendBaseUrl = (req) => {
+  const fromEnv = String(FRONTEND_URL || '').trim();
+  if (fromEnv) return fromEnv.replace(/\/+$/, '');
+
+  const origin = String(req.get('origin') || '').trim();
+  if (origin) return origin.replace(/\/+$/, '');
+
+  const referer = String(req.get('referer') || '').trim();
+  if (referer) {
+    try {
+      return new URL(referer).origin;
+    } catch (_err) {
+      // Ignore malformed referer.
+    }
+  }
+
+  if (!isProduction) {
+    return 'http://localhost:5173';
+  }
+
+  throw new AppError(500, 'FRONTEND_URL is not configured. Set FRONTEND_URL to generate email links in production.');
+};
 
 function normalizeCookieDomain(rawDomain) {
   const value = String(rawDomain || '').trim();
@@ -41,11 +69,15 @@ function normalizeCookieDomain(rawDomain) {
 
 const cookieDomain = normalizeCookieDomain(process.env.COOKIE_DOMAIN);
 const cookieMaxAgeMs = Number(process.env.AUTH_COOKIE_MAX_AGE_MS || 24 * 60 * 60 * 1000);
+const cookieSameSite = normalizeSameSite(process.env.AUTH_COOKIE_SAMESITE);
+const cookieSecure = String(process.env.AUTH_COOKIE_SECURE || '').trim().toLowerCase() === 'true'
+  ? true
+  : (String(process.env.AUTH_COOKIE_SECURE || '').trim().toLowerCase() === 'false' ? false : isProduction);
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  sameSite: isProduction ? 'none' : 'lax',
-  secure: isProduction,
+  sameSite: cookieSameSite,
+  secure: cookieSecure,
   maxAge: cookieMaxAgeMs,
   path: '/',
   ...(cookieDomain ? { domain: cookieDomain } : {}),
@@ -63,7 +95,7 @@ exports.register = asyncHandler(async (req, res) => {
   const { name, email, mobile, password, role } = req.body;
   const { user, verificationToken } = await registerUser({ name, email, mobile, password, role });
   // Use FRONTEND_URL (never comma-separated CORS_ORIGIN) to build a valid, clickable link
-  const baseUrl = FRONTEND_URL;
+  const baseUrl = resolveFrontendBaseUrl(req);
   const verificationLink = `${baseUrl}/verify-email?token=${encodeURIComponent(verificationToken)}`;
 
   const sendVerificationWithTimeout = async () => {
@@ -252,7 +284,7 @@ exports.verifyEmail = asyncHandler(async (req, res) => {
 
 exports.forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
-  const baseUrl = FRONTEND_URL;
+  const baseUrl = resolveFrontendBaseUrl(req);
 
   // NOTE: result contains { resetLink, message }
   const result = await requestPasswordReset({ email, baseUrl });

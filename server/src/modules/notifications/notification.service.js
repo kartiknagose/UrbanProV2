@@ -2,6 +2,7 @@ const prisma = require('../../config/prisma');
 const { pushToUser } = require('./push.service');
 const { shouldNotify } = require('./preference.service');
 const logger = require('../../config/logger');
+const NOTIFICATION_DELIVERY_TIMEOUT_MS = 8000;
 
 let getIo;
 try {
@@ -28,37 +29,57 @@ async function createNotification({ userId, type, title, message, data }) {
         return null;
     }
 
+    // Fanout should never slow down the request path that creates a notification.
+    setImmediate(() => {
+        Promise.allSettled([
+            deliverInAppNotification(userId, type, notification),
+            deliverPushNotification(userId, type, title, message, data, notification.id),
+        ]).catch(() => {});
+    });
+
+    return notification;
+}
+
+async function withTimeout(promise, timeoutMs) {
+    return Promise.race([
+        promise,
+        new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+    ]);
+}
+
+async function deliverInAppNotification(userId, type, notification) {
     try {
-        // Push via Socket.IO (in-app)
-        const sendInApp = await shouldNotify(userId, 'inApp', type);
-        if (sendInApp) {
-            const io = getIo ? getIo() : null;
-            if (io) {
-                io.to(`user:${userId}`).emit('notification:new', notification);
-            }
+        const sendInApp = await withTimeout(shouldNotify(userId, 'inApp', type), NOTIFICATION_DELIVERY_TIMEOUT_MS);
+        if (!sendInApp) return;
+
+        const io = getIo ? getIo() : null;
+        if (io) {
+            io.to(`user:${userId}`).emit('notification:new', notification);
         }
     } catch (error) {
         console.warn('In-app notification delivery failed:', error.message);
     }
+}
 
+async function deliverPushNotification(userId, type, title, message, data, notificationId) {
     try {
-        // Push via Web Push (browser notification)
-        const sendPush = await shouldNotify(userId, 'push', type);
-        if (sendPush) {
+        const sendPush = await withTimeout(shouldNotify(userId, 'push', type), NOTIFICATION_DELIVERY_TIMEOUT_MS);
+        if (!sendPush) return;
+
+        await withTimeout(
             pushToUser(userId, {
                 title,
                 body: message,
                 icon: '/pwa-192x192.png',
                 badge: '/pwa-64x64.png',
-                tag: `${type}-${notification.id}`,
+                tag: `${type}-${notificationId}`,
                 data: { url: data?.url || getNotificationUrl(type, data), ...(data || {}) },
-            }).catch(() => {}); // fire-and-forget — don't block the main flow
-        }
+            }),
+            NOTIFICATION_DELIVERY_TIMEOUT_MS
+        );
     } catch (error) {
         console.warn('Push notification delivery failed:', error.message);
     }
-
-    return notification;
 }
 
 /**

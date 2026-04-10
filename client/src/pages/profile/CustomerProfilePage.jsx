@@ -290,7 +290,9 @@ export function CustomerProfilePage() {
 
       const response = await saveCustomerProfile({
         ...data,
-        profilePhotoUrl,
+        ...(profilePhotoUrl && profilePhotoUrl.startsWith('/uploads/profile-photos/')
+          ? { profilePhotoUrl }
+          : {}),
       });
 
       // Backend now returns { user }

@@ -29,13 +29,17 @@ const matchesAllowedOrigin = (origin, allowedOrigins) => {
   });
 };
 
-const configuredOrigins = CORS_ORIGIN
-  ? CORS_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean)
+const configuredOrigins = (process.env.CORS_ORIGIN || CORS_ORIGIN)
+  ? (process.env.CORS_ORIGIN || CORS_ORIGIN).split(',').map((s) => s.trim()).filter(Boolean)
   : [];
 
 const allowedOriginsSet = new Set(configuredOrigins);
 
-if (FRONTEND_URL) {
+const explicitFrontendUrl = String(process.env.FRONTEND_URL || '').trim();
+if (explicitFrontendUrl) {
+  allowedOriginsSet.add(explicitFrontendUrl);
+} else if (FRONTEND_URL && NODE_ENV !== 'production') {
+  // Keep localhost/dev fallback only outside production.
   allowedOriginsSet.add(FRONTEND_URL);
 }
 
@@ -45,9 +49,19 @@ if (NODE_ENV !== 'production') {
 }
 
 const allowedOrigins = Array.from(allowedOriginsSet);
+const hasConfiguredOrigins = allowedOrigins.length > 0;
+
+if (NODE_ENV === 'production' && !hasConfiguredOrigins) {
+  console.warn('[CORS] No origins configured in production. Allowing all origins until CORS_ORIGIN/FRONTEND_URL is set.');
+}
 
 const corsOptions = {
   origin: function (origin, callback) {
+    if (!hasConfiguredOrigins) {
+      callback(null, true);
+      return;
+    }
+
     if (matchesAllowedOrigin(origin, allowedOrigins)) {
       callback(null, true);
     } else {
@@ -58,4 +72,8 @@ const corsOptions = {
   credentials: true,
 };
 
-module.exports = { corsOptions };
+module.exports = {
+  corsOptions,
+  allowedOrigins,
+  matchesAllowedOrigin,
+};
