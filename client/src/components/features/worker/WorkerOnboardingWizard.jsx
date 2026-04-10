@@ -1,7 +1,7 @@
 // Multi-step worker KYC onboarding wizard
-// Steps: 1. Personal Info → 2. Aadhaar Upload → 3. PAN Upload → 4. Selfie → 5. Address Proof → 6. Preview & Submit
+// Steps: 1. Personal Info → 2. Identity Proof → 3. Address Proof → 4. Selfie → 5. Preview & Submit
 
-import { useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -16,11 +16,10 @@ import { queryKeys } from '../../../utils/queryKeys';
 
 const STEPS_CONFIG = [
   { id: 1, title: 'Personal Info', description: 'Tell us about yourself', icon: User },
-  { id: 2, title: 'Aadhaar Card', description: 'Upload your Aadhaar card', icon: CreditCard },
-  { id: 3, title: 'PAN Card', description: 'Upload your PAN card', icon: CreditCard },
-  { id: 4, title: 'Selfie', description: 'Take a clear selfie photo', icon: Camera },
-  { id: 5, title: 'Address Proof', description: 'Utility bill or rent agreement', icon: MapPin },
-  { id: 6, title: 'Review & Submit', description: 'Preview and submit your application', icon: CheckCircle2 },
+  { id: 2, title: 'Identity Proof', description: 'Choose and upload one identity document', icon: CreditCard },
+  { id: 3, title: 'Address Proof', description: 'Utility bill or rent agreement', icon: MapPin },
+  { id: 4, title: 'Selfie', description: 'Capture a clear selfie photo', icon: Camera },
+  { id: 5, title: 'Review & Submit', description: 'Preview and submit your application', icon: CheckCircle2 },
 ];
 
 const ACCEPTED_DOC_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'application/pdf'];
@@ -74,7 +73,7 @@ function ProgressBar({ currentStep, totalSteps, steps }) {
   );
 }
 
-function FileUploadZone({ acceptTypes, file, preview, error, onFileChange, onRemove, helpText, t }) {
+function FileUploadZone({ acceptTypes, file, preview, error, onFileChange, onRemove, helpText, t, labelText = null }) {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDragOver = (e) => {
@@ -149,7 +148,7 @@ function FileUploadZone({ acceptTypes, file, preview, error, onFileChange, onRem
             <UploadCloud className="w-6 h-6 text-brand-500" />
           </div>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            <span className="font-semibold text-brand-600 dark:text-brand-400">{t('Click to upload')}</span> {t('or drag and drop')}
+            <span className="font-semibold text-brand-600 dark:text-brand-400">{labelText || t('Click to upload')}</span> {t('or drag and drop')}
           </p>
           <p className="text-xs text-gray-400 mt-1">{helpText || t('PNG, JPG, WebP, or PDF up to 10MB')}</p>
         </div>
@@ -160,6 +159,87 @@ function FileUploadZone({ acceptTypes, file, preview, error, onFileChange, onRem
           onChange={handleInputChange}
         />
       </label>
+      {error && (
+        <p className="text-sm text-error-500 flex items-center gap-1 mt-2">
+          <AlertCircle size={14} /> {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SelfieCaptureZone({ file, preview, error, onCapture, onRemove, helpText, t }) {
+  const inputRef = useRef(null);
+
+  return (
+    <div>
+      <div className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 dark:border-dark-600 dark:bg-dark-800/50 p-4">
+        <div className="flex items-center gap-4">
+          {file ? (
+            <>
+              {preview ? (
+                <img src={preview} alt={t('Selfie preview')} className="w-20 h-20 rounded-lg object-cover border border-gray-200 dark:border-dark-600 shadow-sm" />
+              ) : (
+                <div className="w-20 h-20 rounded-lg bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center border border-brand-100 dark:border-brand-800">
+                  <Camera size={24} className="text-brand-500" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate text-gray-800 dark:text-gray-200">{file.name}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <CheckCircle2 size={12} className="text-success-500" />
+                  <span className="text-xs text-success-600 font-medium">{t('Selfie captured')}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onRemove}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-full transition-colors"
+              >
+                <X size={18} className="text-gray-400" />
+              </button>
+            </>
+          ) : (
+            <div className="w-full text-center py-8">
+              <div className="w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center mx-auto mb-3">
+                <Camera className="w-7 h-7 text-brand-500" />
+              </div>
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{t('Capture selfie from camera')}</p>
+              <p className="text-xs text-gray-400 mt-1">{helpText || t('Use your front camera and keep your face centered.')}</p>
+              <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  type="button"
+                  icon={Camera}
+                  onClick={() => inputRef.current?.click()}
+                  className="h-11 rounded-xl"
+                >
+                  {t('Take Selfie')}
+                </Button>
+                <button
+                  type="button"
+                  onClick={onRemove}
+                  className="h-11 px-4 rounded-xl border border-gray-200 dark:border-dark-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
+                >
+                  {t('Reset')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <input
+          ref={inputRef}
+          type="file"
+          className="hidden"
+          accept="image/png,image/jpeg,image/jpg,image/webp"
+          capture="user"
+          onChange={(e) => {
+            const selected = e.target.files?.[0];
+            if (selected) onCapture(selected);
+          }}
+        />
+      </div>
       {error && (
         <p className="text-sm text-error-500 flex items-center gap-1 mt-2">
           <AlertCircle size={14} /> {error}
@@ -187,25 +267,30 @@ export function WorkerOnboardingWizard({ onComplete }) {
     notes: '',
   });
 
+  const [identityDocType, setIdentityDocType] = useState('AADHAAR');
+
   // Steps 2-5: File uploads
   const [files, setFiles] = useState({
-    aadhaar: null,
-    pan: null,
+    identityProof: null,
     selfie: null,
     addressProof: null,
   });
   const [previews, setPreviews] = useState({
-    aadhaar: null,
-    pan: null,
+    identityProof: null,
     selfie: null,
     addressProof: null,
   });
   const [fileErrors, setFileErrors] = useState({
-    aadhaar: '',
-    pan: '',
+    identityProof: '',
     selfie: '',
     addressProof: '',
   });
+
+  useEffect(() => () => {
+    Object.values(previews).forEach((preview) => {
+      if (preview) URL.revokeObjectURL(preview);
+    });
+  }, [previews]);
 
   const handleFileSelect = useCallback((key, acceptedTypes) => (file) => {
     // Validate type
@@ -238,17 +323,16 @@ export function WorkerOnboardingWizard({ onComplete }) {
   const canGoNext = () => {
     switch (step) {
       case 1: return true;
-      case 2: return !!files.aadhaar;
-      case 3: return !!files.pan;
+      case 2: return !!files.identityProof;
+      case 3: return !!files.addressProof;
       case 4: return !!files.selfie;
-      case 5: return !!files.addressProof;
-      case 6: return true;
+      case 5: return true;
       default: return false;
     }
   };
 
   const goNext = () => {
-    if (step < 6 && canGoNext()) setStep(step + 1);
+    if (step < 5 && canGoNext()) setStep(step + 1);
   };
 
   const goBack = () => {
@@ -260,28 +344,50 @@ export function WorkerOnboardingWizard({ onComplete }) {
     setSubmitting(true);
     try {
       const uploadPromises = [];
-      const docMapping = {
-        aadhaar: 'ID_PROOF',
-        pan: 'CERTIFICATION',
-        selfie: 'PORTFOLIO',
-        addressProof: 'ADDRESS_PROOF',
-      };
 
-      for (const [key, file] of Object.entries(files)) {
-        if (file) {
-          uploadPromises.push(
-            uploadVerificationDocument(file).then(res => ({
-              type: docMapping[key],
-              url: res.url,
-            }))
-          );
-        }
+      if (files.identityProof) {
+        uploadPromises.push(
+          uploadVerificationDocument(files.identityProof).then(res => ({
+            type: 'ID_PROOF',
+            url: res.url,
+          }))
+        );
+      }
+
+      if (files.addressProof) {
+        uploadPromises.push(
+          uploadVerificationDocument(files.addressProof).then(res => ({
+            type: 'ADDRESS_PROOF',
+            url: res.url,
+          }))
+        );
+      }
+
+      if (files.selfie) {
+        uploadPromises.push(
+          uploadVerificationDocument(files.selfie).then(res => ({
+            type: 'PORTFOLIO',
+            url: res.url,
+          }))
+        );
       }
 
       const uploadedDocs = await Promise.all(uploadPromises);
 
+      const identityLabel = identityDocType === 'AADHAAR'
+        ? t('Aadhaar')
+        : identityDocType === 'PAN'
+          ? t('PAN')
+          : t('Other Identity Document');
+
+      const notesText = [
+        personalInfo.experience,
+        personalInfo.notes,
+        `${t('Identity proof type')}: ${identityLabel}`,
+      ].filter(Boolean).join('\n\n');
+
       await applyForVerification({
-        notes: [personalInfo.experience, personalInfo.notes].filter(Boolean).join('\n\n'),
+        notes: notesText,
         documents: uploadedDocs,
       });
 
@@ -360,66 +466,46 @@ export function WorkerOnboardingWizard({ onComplete }) {
           {/* Step 2: Aadhaar Upload */}
           {step === 2 && (
             <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  {t('Identity Proof Type')}
+                </label>
+                <select
+                  value={identityDocType}
+                  onChange={(e) => {
+                    setIdentityDocType(e.target.value);
+                    removeFile('identityProof');
+                  }}
+                  className="w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all bg-gray-50 dark:bg-dark-900 border-gray-200 dark:border-dark-600 text-gray-900 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                >
+                  <option value="AADHAAR">{t('Aadhaar Card')}</option>
+                  <option value="PAN">{t('PAN Card')}</option>
+                  <option value="OTHER">{t('Other Identity Document')}</option>
+                </select>
+                <p className="text-xs text-gray-400">{t('Choose the identity proof you want to submit, then upload a clear image or PDF.')}</p>
+              </div>
+
               <FileUploadZone
-                label={t("Aadhaar Card")}
+                label={t('Identity Proof')}
+                labelText={identityDocType === 'AADHAAR' ? t('Upload Aadhaar') : identityDocType === 'PAN' ? t('Upload PAN') : t('Upload Identity Document')}
                 acceptTypes={ACCEPTED_DOC_TYPES}
-                file={files.aadhaar}
-                preview={previews.aadhaar}
-                error={fileErrors.aadhaar}
-                onFileChange={handleFileSelect('aadhaar', ACCEPTED_DOC_TYPES)}
-                onRemove={() => removeFile('aadhaar')}
-                helpText={t("Upload front/back of your Aadhaar card (PNG, JPG, PDF up to 10MB)")}
+                file={files.identityProof}
+                preview={previews.identityProof}
+                error={fileErrors.identityProof}
+                onFileChange={handleFileSelect('identityProof', ACCEPTED_DOC_TYPES)}
+                onRemove={() => removeFile('identityProof')}
+                helpText={identityDocType === 'AADHAAR'
+                  ? t('Upload Aadhaar card image or PDF up to 10MB')
+                  : identityDocType === 'PAN'
+                    ? t('Upload PAN card image or PDF up to 10MB')
+                    : t('Upload any government identity document image or PDF up to 10MB')}
                 t={t}
               />
-              <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/30">
-                <p className="text-sm text-amber-700 dark:text-amber-300">
-                  <strong>{t('Important:')}</strong> {t('Ensure your Aadhaar card details are clearly visible. Blurry images will be rejected.')}
-                </p>
-              </div>
             </div>
           )}
 
-          {/* Step 3: PAN Upload */}
+          {/* Step 3: Address Proof */}
           {step === 3 && (
-            <div className="space-y-4">
-              <FileUploadZone
-                label={t("PAN Card")}
-                acceptTypes={ACCEPTED_DOC_TYPES}
-                file={files.pan}
-                preview={previews.pan}
-                error={fileErrors.pan}
-                onFileChange={handleFileSelect('pan', ACCEPTED_DOC_TYPES)}
-                onRemove={() => removeFile('pan')}
-                helpText={t("Upload your PAN card (PNG, JPG, PDF up to 10MB)")}
-                t={t}
-              />
-            </div>
-          )}
-
-          {/* Step 4: Selfie */}
-          {step === 4 && (
-            <div className="space-y-4">
-              <FileUploadZone
-                label={t("Live Selfie")}
-                acceptTypes={ACCEPTED_IMAGE_TYPES}
-                file={files.selfie}
-                preview={previews.selfie}
-                error={fileErrors.selfie}
-                onFileChange={handleFileSelect('selfie', ACCEPTED_IMAGE_TYPES)}
-                onRemove={() => removeFile('selfie')}
-                helpText={t("Take a clear, well-lit selfie photo (PNG, JPG only)")}
-                t={t}
-              />
-              <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30">
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  <strong>{t('Tips:')}</strong> {t('Face the camera directly, ensure good lighting, remove hats or sunglasses.')}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Step 5: Address Proof */}
-          {step === 5 && (
             <div className="space-y-4">
               <FileUploadZone
                 label={t("Address Proof")}
@@ -435,8 +521,28 @@ export function WorkerOnboardingWizard({ onComplete }) {
             </div>
           )}
 
-          {/* Step 6: Review & Submit */}
-          {step === 6 && (
+          {/* Step 4: Selfie */}
+          {step === 4 && (
+            <div className="space-y-4">
+              <SelfieCaptureZone
+                file={files.selfie}
+                preview={previews.selfie}
+                error={fileErrors.selfie}
+                onCapture={handleFileSelect('selfie', ACCEPTED_IMAGE_TYPES)}
+                onRemove={() => removeFile('selfie')}
+                helpText={t('Use your front camera and keep your face centered.')}
+                t={t}
+              />
+              <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  <strong>{t('Tips:')}</strong> {t('Face the camera directly, ensure good lighting, remove hats or sunglasses.')}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Review & Submit */}
+          {step === 5 && (
             <div className="space-y-6">
               <div className="p-4 rounded-xl bg-success-50 dark:bg-success-900/10 border border-success-100 dark:border-success-800/30">
                 <div className="flex items-center gap-2 mb-2">
@@ -451,10 +557,9 @@ export function WorkerOnboardingWizard({ onComplete }) {
               {/* Document Summary Grid */}
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { key: 'aadhaar', label: t('Aadhaar Card') },
-                  { key: 'pan', label: t('PAN Card') },
-                  { key: 'selfie', label: t('Selfie Photo') },
+                  { key: 'identityProof', label: t('Identity Proof') },
                   { key: 'addressProof', label: t('Address Proof') },
+                  { key: 'selfie', label: t('Selfie Photo') },
                 ].map(({ key, label }) => (
                   <div key={key} className="border rounded-xl p-3 border-gray-200 dark:border-dark-600">
                     {files[key] ? (
@@ -517,7 +622,7 @@ export function WorkerOnboardingWizard({ onComplete }) {
             {t('Back')}
           </Button>
 
-          {step < 6 ? (
+          {step < 5 ? (
             <Button
               onClick={goNext}
               disabled={!canGoNext()}
@@ -530,7 +635,7 @@ export function WorkerOnboardingWizard({ onComplete }) {
             <Button
               onClick={handleSubmit}
               loading={submitting}
-              disabled={!files.aadhaar || !files.pan || !files.selfie || !files.addressProof}
+              disabled={!files.identityProof || !files.selfie || !files.addressProof}
               icon={ShieldCheck}
               className="bg-success-600 hover:bg-success-700"
             >
