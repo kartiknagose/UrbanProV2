@@ -2,6 +2,49 @@ const { PrismaClient } = require('@prisma/client');
 
 const isDev = process.env.NODE_ENV === 'development';
 
+/**
+ * Configure Prisma connection pool
+ * 
+ * The connection pool manages database connections efficiently
+ * - maxOpenConnections: max connections to open to database
+ * - minOpenConnections: min connections to keep open
+ * 
+ * Default is small (2-10) which causes ECONNREFUSED at 50+ users
+ * We increase this for production to handle traffic
+ */
+const getConnectionString = () => {
+  let url = process.env.DATABASE_URL || '';
+  
+  // For PgBouncer / connection poolers, tune for performance
+  if (shouldEnablePgbouncerMode(url)) {
+    // PgBouncer mode: less aggressive since pooler handles connection management
+    const separator = url.includes('?') ? '&' : '?';
+    if (!url.includes('pgbouncer=')) {
+      url += `${separator}pgbouncer=true`;
+    }
+    // For pooler, use moderate settings
+    const poolSize = Math.max(parseInt(process.env.DATABASE_POOL_SIZE || '20', 10), 5);
+    
+    if (!url.includes('max_pool_size=')) {
+      url += `&max_pool_size=${poolSize}&pool_mode=transaction&connection_limit_reserve=5&statement_limit=20`;
+    }
+  } else {
+    // Direct connection: more aggressive pool sizing
+    const poolSize = Math.max(parseInt(process.env.DATABASE_POOL_SIZE || '50', 10), 20);
+    const connLifetime = Math.max(parseInt(process.env.DATABASE_CONN_LIFETIME || '600', 10), 60);
+    const idleTimeout = Math.max(parseInt(process.env.DATABASE_IDLE_TIMEOUT || '30', 10), 10);
+    
+    if (url && !url.includes('max_connections=')) {
+      const separator = url.includes('?') ? '&' : '?';
+      url += `${separator}max_connections=${poolSize}&connection_lifetime=${connLifetime}&idle_in_transaction_session_timeout=${idleTimeout}`;
+    }
+  }
+  
+  return url;
+};
+
+const connectionString = getConnectionString();
+
 const pooledDbMarkers = [
   'pooler',
   'pgbouncer',
@@ -119,6 +162,12 @@ const injectActiveUserFilter = (args = {}) => {
 };
 
 const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      // Use configured connection string with proper pool settings
+      url: connectionString,
+    },
+  },
   log: isDev
     ? [
         { level: 'query', emit: 'event' },
@@ -203,4 +252,28 @@ if (isDev) {
   });
 }
 
+/**
+ * Connect with retry logic
+ * Better handles connection pool exhaustion and transient connection errors
+ */
+const connectWithRetry = async (maxRetries = 3) => {
+  let lastError;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await prisma.$connect();
+      console.log('[Prisma] Connected to database');
+      return;
+    } catch (error) {
+      lastError = error;
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+      console.warn(`[Prisma] Connection attempt ${attempt} failed (retry in ${delay}ms):`, error.message);
+      if (attempt < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw lastError;
+};
+
 module.exports = prisma;
+module.exports.connectWithRetry = connectWithRetry;

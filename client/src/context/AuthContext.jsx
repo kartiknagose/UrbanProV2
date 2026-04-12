@@ -2,6 +2,7 @@ import { useReducer, useCallback, useEffect, useMemo } from 'react';
 import useSocket from '../hooks/useSocket';
 import { login as apiLogin, registerCustomer, registerWorker, logout as apiLogout, getCurrentUser } from '../api';
 import { resolveProfilePhotoUrl } from '../utils/profilePhoto';
+import { safeGetItem, safeSetItem, safeRemoveItem } from '../utils/storage';
 import { AuthContext } from './AuthContextBase';
 
 /**
@@ -108,14 +109,16 @@ const getApiErrorMessage = (error, fallback) => {
 };
 
 const getStoredUser = () => {
-  const raw = localStorage.getItem('user');
-  if (!raw) return null;
-
   try {
-    const parsed = JSON.parse(raw);
+    const raw = safeGetItem('user');
+    if (!raw) return null;
+
+    // Handle both string and object (safeGetItem might return either)
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
     return parsed && typeof parsed === 'object' ? parsed : null;
-  } catch {
-    localStorage.removeItem('user');
+  } catch (error) {
+    console.warn('Failed to retrieve stored user:', error.message);
+    safeRemoveItem('user');
     return null;
   }
 };
@@ -155,7 +158,7 @@ export function AuthProvider({ children }) {
         }
 
         if (user) {
-          localStorage.setItem('user', JSON.stringify(user));
+          safeSetItem('user', user);
         }
 
         // User is authenticated, restore their session
@@ -163,10 +166,10 @@ export function AuthProvider({ children }) {
           type: ACTIONS.LOGIN_SUCCESS,
           payload: user,
         });
-      } catch {
-        // Ignored
+      } catch (error) {
         // Session missing/expired or network error - clear auth state
-        localStorage.removeItem('user');
+        console.warn('Session check failed:', error.message);
+        safeRemoveItem('user');
         dispatch({ type: ACTIONS.LOGOUT });
       } finally {
         // Stop loading regardless of result
@@ -193,11 +196,11 @@ export function AuthProvider({ children }) {
     try {
       // Call logout API to clear server cookie
       await apiLogout();
-    } catch {
-      console.error('Logout error');
+    } catch (error) {
+      console.warn('Logout API error:', error.message);
     } finally {
-      // Clear auth state and cached user
-      localStorage.removeItem('user');
+      // Clear auth state and cached user (with fallback handling)
+      safeRemoveItem('user');
       dispatch({ type: ACTIONS.LOGOUT });
       dispatch({ type: ACTIONS.CLEAR_ERROR });
     }

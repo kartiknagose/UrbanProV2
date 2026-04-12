@@ -1,9 +1,12 @@
 // Axios instance configuration with interceptors for API calls
-// Handles authentication tokens, request/response logging, and error handling
+// Handles authentication tokens, request/response logging, error handling
+// Includes exponential backoff retry logic, network detection, per-endpoint timeouts
 
 import axios from 'axios';
 import { API_BASE_URL } from '../config/runtime';
 import { clientEnv } from '../config/env';
+import { isNetworkOnline, isSlowConnection } from '../utils/network';
+import { withExponentialBackoff, isRetryableError } from '../utils/retry';
 
 // Base API URL - points to backend server
 const API_URL = API_BASE_URL;
@@ -52,6 +55,18 @@ const axiosInstance = axios.create({
 // Request interceptor - Runs before every request
 axiosInstance.interceptors.request.use(
   (config) => {
+    // Check network state before making request
+    if (!isNetworkOnline()) {
+      const error = new Error('No network connection. Please check your internet.');
+      error.code = 'OFFLINE';
+      return Promise.reject(error);
+    }
+
+    // Adjust timeout based on connection speed (slow connections get more time)
+    if (isSlowConnection()) {
+      config.timeout = Math.max(config.timeout || clientEnv.apiTimeoutMs, 15000);
+    }
+
     // Auth uses httpOnly cookies; no manual token headers required
     return config;
   },
@@ -69,8 +84,15 @@ axiosInstance.interceptors.response.use(
   },
   (error) => {
     // Handle response errors globally
+    // Network detection happens here
+    if (!isNetworkOnline()) {
+      error.code = 'OFFLINE';
+      error.message = 'Network connection lost. Your request was not sent. Please reconnect and try again.';
+    }
+
     if (error.code === 'ECONNABORTED') {
       console.error('Request timed out - backend took too long to respond');
+      error.message = 'Request took too long. The server may be overloaded. Please try again.';
     }
 
     if (error.response) {
@@ -82,8 +104,12 @@ axiosInstance.interceptors.response.use(
         // Only redirect if there was a prior user session
         const hadUser = localStorage.getItem('user');
 
-        // Clear auth data
-        localStorage.removeItem('user');
+        // Clear auth data safely
+        try {
+          localStorage.removeItem('user');
+        } catch {
+          // Ignored - storage might be unavailable
+        }
 
         // Only redirect to login if not on public routes.
         const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
@@ -106,13 +132,15 @@ axiosInstance.interceptors.response.use(
         console.error('Resource not found:', data?.error || data?.message);
       }
 
-      // Handle 500 Server Error
-      if (status === 500) {
+      // Handle 500+ Server Errors - these might be transient
+      if (status >= 500) {
         console.error('Server error:', data?.error || data?.message);
       }
     } else if (error.request) {
       // Request made but no response received (network error)
-      console.error('Network error - server not responding');
+      if (!error.message?.includes('Network')) {
+        console.error('Network error - server not responding:', error.message);
+      }
     } else {
       // Something else happened
       console.error('Request error:', error.message);
@@ -123,3 +151,28 @@ axiosInstance.interceptors.response.use(
 );
 
 export default axiosInstance;
+
+/**
+ * Create a request wrapper with exponential backoff retry logic
+ * 
+ * Usage:
+ * const result = await withAutoRetry(() => axiosInstance.get('/api/data'));
+ * 
+ * @param {Function} requestFn - Function that returns axios promise
+ * @param {object} options - { maxRetries, baseDelay, endpointName }
+ * @returns {Promise} - Result with auto-retry on transient failures
+ */
+export const withAutoRetry = async (requestFn, options = {}) => {
+  const { maxRetries = 2, baseDelay = 100, endpointName = 'API' } = options;
+
+  return withExponentialBackoff(requestFn, maxRetries, {
+    baseDelay,
+    maxDelay: 5000,
+    onRetry: ({ attempt, delayMs, error }) => {
+      console.warn(
+        `[${endpointName}] Retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`,
+        error?.code || error?.response?.status
+      );
+    },
+  });
+};

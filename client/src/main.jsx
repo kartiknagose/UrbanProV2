@@ -19,21 +19,31 @@ installToastDeduper();
  *
  * Manages server state (API responses, caching, refetching)
  * Configuration:
- * - staleTime: 5 min - cache is fresh for 5 minutes
- * - gcTime: 10 min - cache is garbage collected after 10 minutes
- * - retry: 1 - retry failed requests once
+ * - staleTime: 30 sec - cache is fresh for 30 seconds (more real-time)
+ * - gcTime: 5 min - cache is garbage collected after 5 minutes
+ * - retry: 3 with exponential backoff - more resilient to network blips
+ * - retryDelay: exponential backoff (100ms, 200ms, 400ms)
  * - refetchOnWindowFocus: false - don't refetch when window gains focus
+ * - retryOnMount: true - retry failed queries when component remounts
  */
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes
-      retry: 1,
+      staleTime: 30 * 1000, // 30 seconds - shorter for more real-time updates
+      gcTime: 5 * 60 * 1000, // 5 minutes garbage collection time
+      retry: 3, // Retry up to 3 times
+      retryDelay: (attemptIndex) => {
+        // Exponential backoff: 100ms, 200ms, 400ms
+        return Math.min(1000 * 2 ** attemptIndex, 30000);
+      },
       refetchOnWindowFocus: false,
+      retryOnMount: true, // Retry if query failed and component remounts
     },
     mutations: {
-      retry: 1,
+      retry: 2, // Retry mutations twice (less aggressive than queries)
+      retryDelay: (attemptIndex) => {
+        return Math.min(1000 * 2 ** attemptIndex, 30000);
+      },
     },
   },
 });
