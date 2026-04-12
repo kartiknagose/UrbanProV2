@@ -170,6 +170,7 @@ export function AuthProvider({ children }) {
         // Session missing/expired or network error - clear auth state
         console.warn('Session check failed:', error.message);
         safeRemoveItem('user');
+        safeRemoveItem('authToken');
         dispatch({ type: ACTIONS.LOGOUT });
       } finally {
         // Stop loading regardless of result
@@ -201,6 +202,7 @@ export function AuthProvider({ children }) {
     } finally {
       // Clear auth state and cached user (with fallback handling)
       safeRemoveItem('user');
+      safeRemoveItem('authToken');
       dispatch({ type: ACTIONS.LOGOUT });
       dispatch({ type: ACTIONS.CLEAR_ERROR });
     }
@@ -220,6 +222,10 @@ export function AuthProvider({ children }) {
       // Call login API
       const data = await apiLogin(credentials);
 
+      if (data?.token) {
+        safeSetItem('authToken', data.token);
+      }
+
       // Fetch full user from session for consistent hydration
       let resolvedUser = data.user || null;
       try {
@@ -235,7 +241,7 @@ export function AuthProvider({ children }) {
 
       // Store user for UI convenience (cookie handles auth)
       if (resolvedUser) {
-        localStorage.setItem('user', JSON.stringify(resolvedUser));
+        safeSetItem('user', resolvedUser);
       }
 
       // Update auth state
@@ -244,7 +250,8 @@ export function AuthProvider({ children }) {
       return { success: true };
     } catch (error) {
       const errorMessage = getApiErrorMessage(error, 'Login failed');
-      localStorage.removeItem('user');
+      safeRemoveItem('user');
+      safeRemoveItem('authToken');
       dispatch({ type: ACTIONS.LOGOUT });
       dispatch({ type: ACTIONS.LOGIN_ERROR, payload: errorMessage });
       return { success: false, error: errorMessage };

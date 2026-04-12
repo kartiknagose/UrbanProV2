@@ -127,8 +127,10 @@ app.use((req, res, next) => {
       userAgent: req.get('user-agent')
     };
 
-    if (res.statusCode >= 400) {
+    if (res.statusCode >= 500) {
       logger.error(`HTTP request failed: ${req.method} ${req.originalUrl}`, logData);
+    } else if (res.statusCode >= 400) {
+      logger.warn(`HTTP request failed: ${req.method} ${req.originalUrl}`, logData);
     } else {
       logger.info(`HTTP request completed: ${req.method} ${req.originalUrl}`, logData);
     }

@@ -210,6 +210,7 @@ exports.login = asyncHandler(async (req, res) => {
   const { user, token } = await loginUser({ email, password });
   res.cookie('token', token, COOKIE_OPTIONS);
   res.json({
+    token,
     user: {
       id: user.id,
       name: user.name,

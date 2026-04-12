@@ -7,6 +7,7 @@ import { API_BASE_URL } from '../config/runtime';
 import { clientEnv } from '../config/env';
 import { isNetworkOnline, isSlowConnection } from '../utils/network';
 import { withExponentialBackoff } from '../utils/retry';
+import { safeGetItem, safeRemoveItem } from '../utils/storage';
 
 // Base API URL - points to backend server
 const API_URL = API_BASE_URL;
@@ -52,6 +53,11 @@ const axiosInstance = axios.create({
   withCredentials: true, // Important: Send cookies with requests for auth
 });
 
+const getStoredAuthToken = () => {
+  const token = safeGetItem('authToken');
+  return typeof token === 'string' ? token.trim() : '';
+};
+
 // Request interceptor - Runs before every request
 axiosInstance.interceptors.request.use(
   (config) => {
@@ -67,7 +73,14 @@ axiosInstance.interceptors.request.use(
       config.timeout = Math.max(config.timeout || clientEnv.apiTimeoutMs, 15000);
     }
 
-    // Auth uses httpOnly cookies; no manual token headers required
+    const authToken = getStoredAuthToken();
+    if (authToken) {
+      config.headers = {
+        ...(config.headers || {}),
+        Authorization: `Bearer ${authToken}`,
+      };
+    }
+
     return config;
   },
   (error) => {
@@ -110,6 +123,8 @@ axiosInstance.interceptors.response.use(
         } catch {
           // Ignored - storage might be unavailable
         }
+
+        safeRemoveItem('authToken');
 
         // Only redirect to login if not on public routes.
         const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
