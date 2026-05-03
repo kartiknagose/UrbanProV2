@@ -23,7 +23,7 @@ import { toast } from 'sonner';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { useAuth } from '../../hooks/useAuth';
 import { useRazorpay } from '../../hooks/useRazorpay';
-import { ensureRazorpayLoaded, getRazorpayKeyId } from '../../utils/razorpay';
+import { ensureRazorpayLoaded, getRazorpayKeyId, isRazorpayTestMode } from '../../utils/razorpay';
 import { useState } from 'react';
 
 export function CustomerWalletPage() {
@@ -34,9 +34,7 @@ export function CustomerWalletPage() {
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
 
   useRazorpay({
-    onError: () => {
-      toast.error('Payment system failed to load. Please refresh and try again.');
-    },
+    preload: false,
   });
 
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -79,6 +77,14 @@ export function CustomerWalletPage() {
           name: 'ExpertsHub V2',
           description: 'Wallet Top-up',
           order_id: order.id,
+          method: {
+            upi: true,
+            card: true,
+            netbanking: true,
+            wallet: true,
+            paylater: true,
+          },
+          ...(isRazorpayTestMode() ? { upi: { flow: 'collect' } } : {}),
           prefill: {
             name: user?.name,
             email: user?.email,

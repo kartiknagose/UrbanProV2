@@ -63,8 +63,11 @@ function init(server) {
   ioInstance.use(async (socket, next) => {
     try {
       const cookieHeader = socket.handshake.headers?.cookie || '';
-      const match = cookieHeader.match(/(?:^|; )token=([^;]+)/);
-      const token = match ? decodeURIComponent(match[1]) : null;
+      const cookieMatch = cookieHeader.match(/(?:^|; )token=([^;]+)/);
+      const authToken = String(socket.handshake.auth?.token || '').trim();
+      const queryToken = String(socket.handshake.query?.token || '').trim();
+      const headerToken = String(socket.handshake.headers?.authorization || '').trim().replace(/^Bearer\s+/i, '');
+      const token = authToken || queryToken || headerToken || (cookieMatch ? decodeURIComponent(cookieMatch[1]) : '');
 
       if (!token) {
         return next(new Error('Authentication required — no token provided.'));

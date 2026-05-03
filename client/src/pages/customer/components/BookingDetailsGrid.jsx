@@ -22,7 +22,7 @@ export function BookingDetailsGrid({ booking, onOpenMaps }) {
     return (
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="p-4 border-none ring-1 ring-black/5 dark:ring-white/10 shadow-sm">
+                <Card className="p-4 border-none ring-1 ring-black/5 dark:ring-white/10 shadow-sm overflow-hidden">
                     <div className="flex items-start gap-3">
                         <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-500 rounded-lg">
                             <Calendar size={18} />
@@ -35,7 +35,7 @@ export function BookingDetailsGrid({ booking, onOpenMaps }) {
                     </div>
                 </Card>
 
-                <Card className="p-5 border-none ring-1 ring-black/5 dark:ring-white/10 shadow-sm hover:shadow-md transition-shadow">
+                <Card className="p-5 border-none ring-1 ring-black/5 dark:ring-white/10 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                     <div className="flex items-start gap-4">
                         <div className="p-2.5 bg-purple-50 dark:bg-purple-900/20 text-purple-500 rounded-xl">
                             <Clock size={20} />
@@ -48,7 +48,7 @@ export function BookingDetailsGrid({ booking, onOpenMaps }) {
                     </div>
                 </Card>
 
-                <Card className="p-5 border-none ring-1 ring-black/5 dark:ring-white/10 shadow-sm md:col-span-2">
+                <Card className="p-5 border-none ring-1 ring-black/5 dark:ring-white/10 shadow-sm md:col-span-2 overflow-hidden">
                     <div className="flex items-start gap-4">
                         <div className="p-2.5 bg-green-50 dark:bg-green-900/20 text-green-500 rounded-xl">
                             <MapPin size={20} />

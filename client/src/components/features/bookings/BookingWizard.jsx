@@ -29,7 +29,6 @@ import { getServiceWorkers, getAllServices } from '../../../api/services';
 import { previewPrice } from '../../../api/bookings';
 import { validateCoupon } from '../../../api/growth';
 import { toast } from 'sonner';
-import { useCity } from '../../../context/CityContext';
 import { useAuth } from '../../../hooks/useAuth';
 
 const STEP_TITLES = {
@@ -64,7 +63,6 @@ const WizardStep = ({ step, isActive, isCompleted, title, icon: Icon }) => (
 export function BookingWizard({ onSuccess, initialService = null, initialWorker = null }) {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { selectedCity } = useCity();
   const [currentStep, setCurrentStep] = useState(0);
   const [bookingMode, setBookingMode] = useState('DIRECT'); // DIRECT or OPEN
   const [selectedService, setSelectedService] = useState(initialService);
@@ -181,27 +179,6 @@ export function BookingWizard({ onSuccess, initialService = null, initialWorker 
     };
   };
 
-  const workerSupportsSelectedCity = (worker) => {
-    if (!selectedCity) return true;
-
-    const cityNeedles = [selectedCity?.name, selectedCity?.slug]
-      .filter(Boolean)
-      .map((value) => String(value).toLowerCase());
-
-    const workerCity = String(worker?.city || '').toLowerCase();
-    if (cityNeedles.some((needle) => workerCity.includes(needle))) return true;
-
-    const serviceAreas = worker?.serviceAreas;
-    if (!serviceAreas) return true;
-
-    const searchText = JSON.stringify(serviceAreas).toLowerCase();
-    if (!/[a-z]/i.test(searchText)) {
-      // Geo-only polygons often have no city labels; avoid false-negative filtering.
-      return true;
-    }
-    return cityNeedles.some((needle) => searchText.includes(needle));
-  };
-
   const workerSupportsSelectedLocation = (worker) => {
     const lat = Number(selectedLocation?.lat);
     const lng = Number(selectedLocation?.lng);
@@ -221,7 +198,7 @@ export function BookingWizard({ onSuccess, initialService = null, initialWorker 
 
   const availableWorkers = workersData
     .map(normalizeWorker)
-    .filter((worker) => workerSupportsSelectedCity(worker) && workerSupportsSelectedLocation(worker));
+    .filter((worker) => workerSupportsSelectedLocation(worker));
 
   useEffect(() => {
     if (user?.role !== 'WORKER' || !selectedWorker) return;

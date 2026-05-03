@@ -214,13 +214,14 @@ export function LocationPicker({ onChange, initialLocation = null, className = '
                 </button>
             </div>
 
-            <div className={`relative h-72 rounded-3xl border-2 shadow-2xl border-gray-100 shadow-brand-500/10 dark:border-dark-700 dark:shadow-brand-500/5 ${className}`}>
-                <div className="absolute inset-0 overflow-hidden rounded-3xl">
+            <div className={`relative h-72 rounded-3xl border-2 overflow-hidden shadow-2xl border-gray-100 shadow-brand-500/10 dark:border-dark-700 dark:shadow-brand-500/5 ${className}`}>
+                <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
                 {position && typeof position.lat === 'number' && typeof position.lng === 'number' && !isNaN(position.lat) && !isNaN(position.lng) ? (
                     <MapContainer
                         center={position}
                         zoom={13}
                         style={{ height: '100%', width: '100%', zIndex: 1 }}
+                        className="location-picker-map rounded-[inherit] overflow-hidden"
                         zoomControl={false}
                         attributionControl={false}
                     >
@@ -246,8 +247,9 @@ export function LocationPicker({ onChange, initialLocation = null, className = '
                         <MapEvents onLocationSelect={handleMapClick} />
                     </MapContainer>
                 ) : (
-                    <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-dark-800">
+                    <div className="flex items-center justify-center h-full rounded-[inherit] bg-gray-50 dark:bg-dark-800">
                         <div className="text-center">
+                        className="location-picker-map rounded-[inherit] overflow-hidden"
                             <Layers className="mx-auto text-gray-300 mb-2 animate-pulse" size={40} />
                             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{t('Calibrating Map...')}</p>
                         </div>

@@ -49,6 +49,7 @@ export const BookingCard = memo(function BookingCard({
     }, [booking.scheduledAt, booking.scheduledDate, i18n.language]);
 
     const price = booking.totalPrice || booking.estimatedPrice || booking.service?.basePrice || 0;
+    const isPaid = booking.paymentStatus === 'PAID' || Boolean(booking.paidAt);
 
     // Compute review status from booking.reviews array
     const hasUserReviewed = useMemo(() => {
@@ -192,7 +193,7 @@ export const BookingCard = memo(function BookingCard({
                                 )}
 
                                 {/* Pay Now — shows for completed but unpaid bookings */}
-                                {booking.status === 'COMPLETED' && booking.paymentStatus !== 'PAID' && (
+                                {booking.status === 'COMPLETED' && !isPaid && (
                                     <Button
                                         size="sm"
                                         variant="primary"
@@ -206,7 +207,7 @@ export const BookingCard = memo(function BookingCard({
                                 )}
 
                                 {/* Download Invoice Box */}
-                                {booking.status === 'COMPLETED' && booking.paymentStatus === 'PAID' && (
+                                {booking.status === 'COMPLETED' && isPaid && (
                                     <Button
                                         size="sm"
                                         variant="outline"
@@ -239,7 +240,7 @@ export const BookingCard = memo(function BookingCard({
                                 )}
 
                                 {/* Review — shows after payment is done */}
-                                {booking.status === 'COMPLETED' && booking.paymentStatus === 'PAID' && !hasUserReviewed && (
+                                {booking.status === 'COMPLETED' && isPaid && !hasUserReviewed && (
                                     <QuickReview
                                         bookingId={booking.id}
                                         role="CUSTOMER"
@@ -302,7 +303,7 @@ export const BookingCard = memo(function BookingCard({
 
                                 {booking.status === 'COMPLETED' && (
                                     <div className="flex gap-2">
-                                        {booking.paymentStatus !== 'PAID' && (
+                                        {!isPaid && (
                                             <Button
                                                 size="sm"
                                                 variant="warning"

@@ -7,13 +7,31 @@ import { useAuth } from '../../../hooks/useAuth';
 
 const CHAT_STATE_KEY = 'ai_command_widget_state_v1';
 
+function getInitialOpenState() {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    const raw = window.sessionStorage.getItem(CHAT_STATE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed?.open === 'boolean') {
+        return parsed.open;
+      }
+    }
+  } catch {
+    // Ignore invalid stored state and fall back to a visible desktop panel.
+  }
+
+  return window.matchMedia('(min-width: 1024px)').matches;
+}
+
 const ROLE_CONFIG = {
   CUSTOMER: {
-    assistantName: 'Customer Copilot',
+    assistantName: 'Rico AI',
     roleLabel: 'Customer',
     accentClass: 'from-sky-600 via-cyan-500 to-emerald-500',
     starterSuggestions: [
-      'Book plumber tomorrow 10 AM in Pune',
+      'Book plumber tomorrow 10 AM in Shegaon',
       'Show my wallet balance',
       'Show my latest booking status',
       'Help me understand pending payments',
@@ -26,7 +44,7 @@ const ROLE_CONFIG = {
     ],
   },
   WORKER: {
-    assistantName: 'Worker Copilot',
+    assistantName: 'Vera AI',
     roleLabel: 'Professional',
     accentClass: 'from-emerald-600 via-teal-500 to-cyan-500',
     starterSuggestions: [
@@ -43,7 +61,7 @@ const ROLE_CONFIG = {
     ],
   },
   ADMIN: {
-    assistantName: 'Admin Copilot',
+    assistantName: 'Admin AI',
     roleLabel: 'Administrator',
     accentClass: 'from-amber-600 via-orange-500 to-rose-500',
     starterSuggestions: [
@@ -160,7 +178,7 @@ function MessageBubble({ role, text }) {
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
         className={[
-          'max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm break-words',
+          'max-w-[88%] rounded-2xl px-3 py-2 text-sm break-words',
           isUser
             ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20'
             : 'border border-white/10 bg-white/8 text-white shadow-sm shadow-black/20',
@@ -202,7 +220,7 @@ export default function AICommandWidget() {
   const { user } = useAuth();
   const { activeBooking } = useSOS();
   const roleConfig = useMemo(() => getRoleConfig(user?.role), [user?.role]);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(getInitialOpenState);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState(null);
@@ -398,8 +416,8 @@ export default function AICommandWidget() {
   const floatingOffsetClass = activeBooking ? 'bottom-24 lg:bottom-10' : 'bottom-5';
   const floatingRightClass = activeBooking ? 'right-5 lg:right-8' : 'right-5';
   const floatingPanelStyle = {
-    width: 'min(24rem, calc(100vw - 1rem))',
-    height: 'min(34rem, calc(100dvh - 6.5rem))',
+    width: 'min(23rem, calc(100vw - 0.75rem))',
+    height: 'min(31rem, calc(100dvh - 5.5rem))',
   };
 
   return (
@@ -421,19 +439,19 @@ export default function AICommandWidget() {
           className={`fixed ${floatingOffsetClass} ${floatingRightClass} z-[70] flex flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-950/95 shadow-2xl shadow-black/40 backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-950/95`}
           style={floatingPanelStyle}
         >
-          <div className={`bg-gradient-to-r ${roleConfig.accentClass} px-4 py-4 text-white shadow-lg shadow-black/10`}>
-            <div className="flex items-start justify-between gap-3">
+          <div className={`bg-gradient-to-r ${roleConfig.accentClass} px-3.5 py-3.5 text-white shadow-lg shadow-black/10`}>
+            <div className="flex items-start justify-between gap-2.5">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/15">
-                    <MessageSquare size={16} className="opacity-95" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/15">
+                    <MessageSquare size={15} className="opacity-95" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{roleConfig.assistantName}</p>
-                    <p className="text-[11px] font-medium uppercase tracking-[0.16em] opacity-80">{roleConfig.roleLabel} Mode</p>
+                    <p className="truncate text-sm font-semibold leading-tight">{roleConfig.assistantName}</p>
+                    <p className="text-[10px] font-medium uppercase tracking-[0.16em] opacity-80">{roleConfig.roleLabel} Mode</p>
                   </div>
                 </div>
-                <p className="mt-2 max-w-[18rem] text-xs leading-relaxed text-white/80">
+                <p className="mt-1.5 max-w-[18rem] text-[11px] leading-snug text-white/78">
                   Ask for bookings, payout status, wallet actions, or worker tools.
                 </p>
               </div>
@@ -442,30 +460,30 @@ export default function AICommandWidget() {
                 <button
                   type="button"
                   onClick={exportChat}
-                  className="rounded-xl p-2 text-white/85 transition hover:bg-white/15 hover:text-white"
+                  className="rounded-xl p-1.5 text-white/85 transition hover:bg-white/15 hover:text-white"
                   aria-label="Export chat"
                   title="Export chat"
                 >
-                  <Download size={16} />
+                  <Download size={15} />
                 </button>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="rounded-xl p-2 text-white/85 transition hover:bg-white/15 hover:text-white"
+                  className="rounded-xl p-1.5 text-white/85 transition hover:bg-white/15 hover:text-white"
                   aria-label="Close AI assistant"
                 >
-                  <X size={16} />
+                  <X size={15} />
                 </button>
               </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {roleConfig.quickActions.map((actionItem) => (
                 <button
                   key={actionItem.label}
                   type="button"
                   onClick={() => sendMessage(actionItem.prompt)}
-                  className="rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-[11px] font-semibold transition hover:bg-white/20"
+                  className="shrink-0 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-[11px] font-semibold whitespace-nowrap transition hover:bg-white/20"
                 >
                   {actionItem.label}
                 </button>
@@ -473,9 +491,9 @@ export default function AICommandWidget() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-2 text-white/70">
+          <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-3.5 py-2 text-white/70">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">Conversation</span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">Conversation</span>
             </div>
 
             {pendingConfirmation && (
@@ -484,7 +502,7 @@ export default function AICommandWidget() {
                   type="button"
                   onClick={() => handleConfirmation(true)}
                   disabled={loading}
-                  className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Confirm
                 </button>
@@ -492,7 +510,7 @@ export default function AICommandWidget() {
                   type="button"
                   onClick={() => handleConfirmation(false)}
                   disabled={loading}
-                  className="rounded-lg bg-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-300 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600"
+                  className="rounded-lg bg-zinc-200 px-2.5 py-1.5 text-[11px] font-semibold text-zinc-800 transition hover:bg-zinc-300 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600"
                 >
                   Cancel
                 </button>
@@ -500,20 +518,20 @@ export default function AICommandWidget() {
             )}
           </div>
 
-          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.10),transparent_40%),linear-gradient(180deg,rgba(9,9,11,0.92)_0%,rgba(17,24,39,0.98)_100%)] p-3">
-            <div className="space-y-3">
+          <div ref={messagesContainerRef} className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.10),transparent_40%),linear-gradient(180deg,rgba(9,9,11,0.92)_0%,rgba(17,24,39,0.98)_100%)] p-2.5">
+            <div className="space-y-2.5">
               {messages.map((message, index) => (
                 <MessageBubble key={`${message.role}-${index}`} role={message.role} text={message.text} />
               ))}
             </div>
             {loading && (
-              <div className="mt-3 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
-                <Loader2 size={14} className="animate-spin" />
+              <div className="mt-2.5 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+                <Loader2 size={13} className="animate-spin" />
                 Thinking...
               </div>
             )}
             {!loading && messages.length <= 1 && (
-              <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3 text-xs text-white/70">
+              <div className="mt-2.5 rounded-2xl border border-white/10 bg-white/5 p-3 text-xs text-white/70">
                 <p className="font-semibold text-white">Ready for worker tasks</p>
                 <p className="mt-1 leading-relaxed text-white/60">
                   Use a quick action above or type a request to see bookings, payouts, availability, or verification status.
@@ -523,15 +541,18 @@ export default function AICommandWidget() {
             <div ref={messagesEndRef} aria-hidden="true" />
           </div>
 
-          <div className="border-t border-white/10 bg-black/30 p-3 backdrop-blur-md">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">Suggested Prompts</p>
-            <div className="mb-3 flex flex-wrap gap-2">
+          <div className="border-t border-white/10 bg-black/30 px-3 py-2.5 backdrop-blur-md">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">Suggested Prompts</p>
+              <span className="text-[10px] text-white/35">Swipe to see more</span>
+            </div>
+            <div className="mb-2.5 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {suggestions.map((suggestion) => (
                 <button
                   key={suggestion}
                   type="button"
                   onClick={() => sendMessage(suggestion)}
-                  className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/75 transition hover:bg-white/10 hover:text-white"
+                  className="shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] whitespace-nowrap text-white/75 transition hover:bg-white/10 hover:text-white"
                 >
                   {suggestion}
                 </button>

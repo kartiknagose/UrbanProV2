@@ -9,8 +9,8 @@ import {
   Activity, Tag, AlertTriangle, Users, Wallet, X, Heart, Medal, Crown, Flag,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { resolveProfilePhotoUrl } from '../../utils/profilePhoto';
 import { useTranslation } from 'react-i18next';
+import { Avatar } from '../common/Avatar';
 
 const navConfig = {
   CUSTOMER: [
@@ -52,8 +52,6 @@ export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const links = navConfig[user?.role] || [];
-  const profilePhotoUrl = resolveProfilePhotoUrl(user?.profilePhotoUrl);
-  const profileInitial  = (user?.name || 'E').slice(0, 1).toUpperCase();
 
   const getRoleLabel = (role) => {
     switch (role) {
@@ -130,13 +128,7 @@ export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }) {
         <NavLink to={user?.role === 'WORKER' ? '/worker/profile' : '/customer/profile'} onClick={onClose} className={`px-3 py-3 border-b border-neutral-100 dark:border-dark-700/80 hover:bg-neutral-50 dark:hover:bg-dark-800 transition-colors block ${isCollapsed ? 'flex justify-center' : ''}`}>
           <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
             <div className="relative shrink-0">
-              {profilePhotoUrl ? (
-                <img src={profilePhotoUrl} alt="Profile" className="w-9 h-9 rounded-xl object-cover ring-2 ring-brand-500/30" />
-              ) : (
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center text-white text-sm font-black ring-2 ring-brand-500/30">
-                  {profileInitial}
-                </div>
-              )}
+              <Avatar name={user?.name} src={user?.profilePhotoUrl} size="md" className="ring-2 ring-brand-500/30 rounded-xl" />
               {/* Online indicator */}
               <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-success-500 border-2 border-white dark:border-dark-900" />
             </div>

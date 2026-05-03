@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 
 import { acceptBooking, cancelBooking, downloadInvoice, payBooking } from '../api/bookings';
 import { createReview } from '../api/reviews';
-import { ensureRazorpayLoaded, getRazorpayKeyId } from '../utils/razorpay';
+import { ensureRazorpayLoaded, getRazorpayKeyId, isRazorpayTestMode } from '../utils/razorpay';
 
 /**
  * Shared hook for booking action handling across worker pages.
@@ -130,6 +130,7 @@ export function useBookingActions({ invalidateKeys = [] } = {}) {
               email: user.email,
               contact: user.mobile,
             },
+            ...(isRazorpayTestMode() ? { upi: { flow: 'collect' } } : {}),
             handler: function (response) {
               onSuccess(response);
             },

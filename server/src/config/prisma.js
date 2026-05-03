@@ -13,7 +13,11 @@ const isDev = process.env.NODE_ENV === 'development';
  * We increase this for production to handle traffic
  */
 const getConnectionString = () => {
-  let url = process.env.DATABASE_URL || '';
+  let url = process.env.DATABASE_URL || process.env.DIRECT_DATABASE_URL || '';
+
+  if (!url) {
+    throw new Error('DATABASE_URL or DIRECT_DATABASE_URL must be set to connect to the database.');
+  }
   
   // For PgBouncer / connection poolers, tune for performance
   if (shouldEnablePgbouncerMode(url)) {
@@ -68,6 +72,10 @@ const ensurePgbouncerFlag = (url) => {
 
 if (process.env.DATABASE_URL) {
   process.env.DATABASE_URL = ensurePgbouncerFlag(process.env.DATABASE_URL);
+}
+
+if (!process.env.DATABASE_URL && process.env.DIRECT_DATABASE_URL) {
+  process.env.DATABASE_URL = ensurePgbouncerFlag(process.env.DIRECT_DATABASE_URL);
 }
 
 const hasDeletedAtFilter = (where) => {

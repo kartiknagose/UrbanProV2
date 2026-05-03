@@ -1,6 +1,12 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axiosInstance from '../api/axios';
 
+const normalizeCities = (value) => {
+    if (Array.isArray(value)) return value;
+    if (Array.isArray(value?.cities)) return value.cities;
+    return [];
+};
+
 const CityContext = createContext();
 
 export function CityProvider({ children }) {
@@ -12,15 +18,16 @@ export function CityProvider({ children }) {
         const fetchCities = async () => {
             try {
                 const res = await axiosInstance.get('/location/cities');
-                setCities(res.data.cities);
+                const nextCities = normalizeCities(res.data);
+                setCities(nextCities);
                 
                 // Load from localStorage or default to first city
                 const savedCitySlug = localStorage.getItem('selected_city');
                 if (savedCitySlug) {
-                    const city = res.data.cities.find(c => c.slug === savedCitySlug);
+                    const city = nextCities.find(c => c.slug === savedCitySlug);
                     if (city) setSelectedCity(city);
-                } else if (res.data.cities.length > 0) {
-                    setSelectedCity(res.data.cities[0]);
+                } else if (nextCities.length > 0) {
+                    setSelectedCity(nextCities[0]);
                 }
             } catch (err) {
                 console.error('Failed to fetch cities:', err);

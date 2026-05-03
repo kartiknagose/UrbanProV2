@@ -1,8 +1,8 @@
 // AuthLayout — glassmorphic brand panel, animated stats, responsive
 
 import { motion as Motion } from 'framer-motion';
-import { MainLayout } from './MainLayout';
 import { Shield, Star, Users } from 'lucide-react';
+import { Navbar } from './Navbar';
 
 /**
  * AuthLayout — split-screen for all auth pages
@@ -15,8 +15,10 @@ export function AuthLayout({ children, title, subtitle }) {
   ];
 
   return (
-    <MainLayout>
-      <div className="auth-redesign-shell min-h-[calc(100vh-64px)] flex bg-neutral-50 dark:bg-dark-950">
+    <div className="auth-redesign-shell min-h-screen flex flex-col bg-neutral-50 dark:bg-dark-950">
+      <Navbar showBrand={true} />
+
+      <div className="flex flex-1 min-h-0 bg-neutral-50 dark:bg-dark-950">
 
         {/* ── Left Panel — Brand Visual ─────────────────────────────────── */}
         <div className="hidden lg:flex flex-1 relative overflow-hidden items-center justify-center p-12">
@@ -114,6 +116,6 @@ export function AuthLayout({ children, title, subtitle }) {
           </div>
         </div>
       </div>
-    </MainLayout>
+      </div>
   );
 }

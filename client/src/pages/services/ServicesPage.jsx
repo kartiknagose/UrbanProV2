@@ -12,7 +12,6 @@ import { getPageLayout } from '../../constants/layout';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcut';
 import { queryKeys } from '../../utils/queryKeys';
 import { usePageTitle } from '../../hooks/usePageTitle';
-import { useCity } from '../../context/CityContext';
 import { useTranslation } from 'react-i18next';
 import { toFixedSafe } from '../../utils/numberFormat';
 
@@ -125,7 +124,6 @@ export function ServicesPage() {
   const [priceRange, setPriceRange] = useState({ min: 0, max: 10000 });
   const [minRating, setMinRating] = useState(0);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const { selectedCity } = useCity();
 
   // Keyboard shortcuts
   useKeyboardShortcuts([
@@ -134,15 +132,14 @@ export function ServicesPage() {
   ]);
 
   const { data: services = [], isLoading, isError, error, refetch } = useQuery({
-    queryKey: queryKeys.services.list({ search, category, priceRange, minRating, city: selectedCity?.slug }),
+    queryKey: queryKeys.services.list({ search, category, priceRange, minRating }),
     queryFn: async () => {
       const data = await getAllServices({
         search,
         category,
         minPrice: priceRange.min,
         maxPrice: priceRange.max,
-        minRating,
-        city: selectedCity?.slug
+        minRating
       });
       return Array.isArray(data.services) ? data.services : Array.isArray(data) ? data : [];
     },

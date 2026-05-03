@@ -11,7 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../context/ThemeContext';
-import { resolveProfilePhotoUrl } from '../../utils/profilePhoto';
+import { Avatar } from '../common/Avatar';
 import { Button } from '../ui/Button';
 import { NotificationDropdown } from '../features/notifications/NotificationDropdown';
 
@@ -79,8 +79,6 @@ export function Navbar({ onOpenSidebar = () => {}, sidebarOffset = '', showBrand
     }
   }, [user?.role, t]);
 
-  const profilePhotoUrl = resolveProfilePhotoUrl(user?.profilePhotoUrl);
-  const profileInitial  = (user?.name || 'E').slice(0, 1).toUpperCase();
   const isLinkActive    = (href) => location.pathname === href || location.pathname.startsWith(href + '/');
 
   return (
@@ -235,13 +233,7 @@ export function Navbar({ onOpenSidebar = () => {}, sidebarOffset = '', showBrand
                     aria-label="User menu"
                     aria-expanded={userMenuOpen}
                   >
-                    {profilePhotoUrl ? (
-                      <img src={profilePhotoUrl} alt="Profile" className="w-7 h-7 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center text-white text-xs font-black">
-                        {profileInitial}
-                      </div>
-                    )}
+                    <Avatar name={user?.name} src={user?.profilePhotoUrl} size="sm" />
                     <span className="text-sm font-semibold max-w-[80px] truncate text-neutral-700 dark:text-neutral-300">
                       {user?.name?.split(' ')[0]}
                     </span>
@@ -263,13 +255,7 @@ export function Navbar({ onOpenSidebar = () => {}, sidebarOffset = '', showBrand
                         {/* Profile header */}
                         <div className="px-4 py-3 border-b border-neutral-100 dark:border-dark-700">
                           <div className="flex items-center gap-3">
-                            {profilePhotoUrl ? (
-                              <img src={profilePhotoUrl} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center text-white font-black">
-                                {profileInitial}
-                              </div>
-                            )}
+                            <Avatar name={user?.name} src={user?.profilePhotoUrl} size="md" />
                             <div className="min-w-0">
                               <p className="text-sm font-bold text-neutral-900 dark:text-neutral-100 truncate">{user?.name || 'User'}</p>
                               <p className="text-xs text-neutral-400 truncate">{user?.email}</p>
@@ -419,13 +405,7 @@ export function Navbar({ onOpenSidebar = () => {}, sidebarOffset = '', showBrand
               {isAuthenticated ? (
                 <div className="pt-3 mt-3 border-t space-y-1 border-neutral-100 dark:border-dark-700">
                   <div className="flex items-center gap-3 px-4 py-2 mb-1">
-                    {profilePhotoUrl ? (
-                      <img src={profilePhotoUrl} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center text-white font-black">
-                        {profileInitial}
-                      </div>
-                    )}
+                    <Avatar name={user?.name} src={user?.profilePhotoUrl} size="md" />
                     <div>
                       <p className="font-bold text-sm text-neutral-900 dark:text-neutral-100">{user?.name}</p>
                       <p className="text-xs text-neutral-400">{user?.role === 'CUSTOMER' ? t('Customer') : user?.role === 'WORKER' ? t('Professional') : t('Administrator')}</p>

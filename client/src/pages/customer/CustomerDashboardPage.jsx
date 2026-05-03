@@ -47,7 +47,7 @@ import { formatCurrencyCompact } from '../../utils/formatters';
 import { toastSuccess, toastErrorFromResponse, toastInfo, toastError } from '../../utils/notifications';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { useRazorpay } from '../../hooks/useRazorpay';
-import { ensureRazorpayLoaded, getRazorpayKeyId } from '../../utils/razorpay';
+import { ensureRazorpayLoaded, getRazorpayKeyId, isRazorpayTestMode } from '../../utils/razorpay';
 import { asArray } from '../../utils/safeData';
 
 export function CustomerDashboardPage() {
@@ -60,9 +60,7 @@ export function CustomerDashboardPage() {
   const razorpayKeyId = getRazorpayKeyId();
 
   useRazorpay({
-    onError: () => {
-      toastError(t('Payment system failed to load. Please refresh and try again.'));
-    },
+    preload: false,
   });
 
   // Keyboard shortcuts
@@ -157,6 +155,14 @@ export function CustomerDashboardPage() {
       name: 'ExpertsHub V2',
       description: `Booking #${booking.id}`,
       order_id: order.id,
+      method: {
+        upi: true,
+        card: true,
+        netbanking: true,
+        wallet: true,
+        paylater: true,
+      },
+      ...(isRazorpayTestMode() ? { upi: { flow: 'collect' } } : {}),
       prefill: {
         name: user?.name,
         email: user?.email,
@@ -198,18 +204,18 @@ export function CustomerDashboardPage() {
         throw new Error('Failed to initiate payment.');
       }
 
-      await new Promise((resolve, reject) => {
+      const paidResponse = await new Promise((resolve, reject) => {
         launchRazorpayCheckout(
           order,
           booking,
           async (razorpayResponse) => {
             try {
-              await payBooking(booking.id, {
+              const paidResponse = await payBooking(booking.id, {
                 paymentReference: razorpayResponse.razorpay_payment_id,
                 paymentOrderId: razorpayResponse.razorpay_order_id,
                 paymentSignature: razorpayResponse.razorpay_signature,
               });
-              resolve();
+              resolve(paidResponse);
             } catch (error) {
               reject(error);
             }
@@ -220,18 +226,36 @@ export function CustomerDashboardPage() {
         );
       });
 
-      return { bookingId: booking.id };
+      return {
+        bookingId: booking.id,
+        booking: paidResponse?.booking || paidResponse || null,
+      };
     },
-    onSuccess: ({ bookingId }) => {
+    onSuccess: (result) => {
+      const bookingId = result?.bookingId;
+      const paidBooking = result?.booking || null;
       queryClient.setQueryData(queryKeys.bookings.customer(), (prev) => {
-        if (!prev || !Array.isArray(prev.bookings)) return prev;
+        if (!prev) return prev;
+
+        const patchBooking = (item) => {
+          if (String(item?.id) !== String(bookingId)) return item;
+          return {
+            ...item,
+            ...(paidBooking || {}),
+            paymentStatus: 'PAID',
+            paidAt: paidBooking?.paidAt || item?.paidAt || new Date().toISOString(),
+          };
+        };
+
+        if (Array.isArray(prev)) {
+          return prev.map(patchBooking);
+        }
+
+        if (!Array.isArray(prev.bookings)) return prev;
+
         return {
           ...prev,
-          bookings: prev.bookings.map((b) => (
-            String(b.id) === String(bookingId)
-              ? { ...b, paymentStatus: 'PAID' }
-              : b
-          )),
+          bookings: prev.bookings.map(patchBooking),
         };
       });
       toastSuccess(t('Payment successful! Thank you.'));
@@ -246,15 +270,16 @@ export function CustomerDashboardPage() {
 
   const bookings = useMemo(() => asArray(data?.bookings), [data?.bookings]);
   const activeBookings = useMemo(() =>
-    bookings.filter(b => {
-      // Always show active jobs
-      if (['PENDING', 'CONFIRMED', 'IN_PROGRESS'].includes(b.status)) return true;
-      // Keep completed jobs until customer has paid AND reviewed
-      if (b.status === 'COMPLETED') {
-        const hasReviewed = asArray(b.reviews).some(r => r.reviewerId === user?.id);
-        const hasPaid = b.paymentStatus === 'PAID';
-        return !hasPaid || !hasReviewed;
+    bookings.filter((booking) => {
+      if (['PENDING', 'CONFIRMED', 'IN_PROGRESS'].includes(booking.status)) {
+        return true;
       }
+
+      if (booking.status === 'COMPLETED') {
+        const hasReviewed = asArray(booking.reviews).some((review) => review.reviewerId === user?.id);
+        return !hasReviewed;
+      }
+
       return false;
     }),
     [bookings, user?.id]);

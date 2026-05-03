@@ -62,7 +62,7 @@ export function BookingWizardPage() {
 
         {/* Wizard Container */}
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white dark:bg-dark-900 rounded-2xl shadow-lg p-8">
+          <div className="bg-white dark:bg-dark-900 rounded-2xl shadow-lg p-8 overflow-hidden">
             <BookingWizard
               onSuccess={async (bookingData) => {
                 await createBookingMutation.mutateAsync(bookingData);

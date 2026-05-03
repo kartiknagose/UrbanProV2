@@ -94,18 +94,24 @@ export function LiveTrackingMap({
     const [lastInitial, setLastInitial] = useState(initialWorkerLocation);
     const [eta, setEta] = useState(null);
 
-    // Sync prop to state if it changes (e.g. after parent fetch)
-    if (initialWorkerLocation && (
-        !lastInitial ||
-        initialWorkerLocation.lat !== lastInitial.lat ||
-        initialWorkerLocation.lng !== lastInitial.lng
-    )) {
+    // Sync prop to state after render so we don't trigger rerender loops.
+    useEffect(() => {
+        if (!initialWorkerLocation) return;
+        if (
+            lastInitial &&
+            initialWorkerLocation.lat === lastInitial.lat &&
+            initialWorkerLocation.lng === lastInitial.lng
+        ) {
+            return;
+        }
+
         setLastInitial(initialWorkerLocation);
         setWorkerPos(initialWorkerLocation);
-        if (history.length === 0) {
-            setHistory([[initialWorkerLocation.lat, initialWorkerLocation.lng]]);
-        }
-    }
+        setHistory((prev) => {
+            if (prev.length > 0) return prev;
+            return [[initialWorkerLocation.lat, initialWorkerLocation.lng]];
+        });
+    }, [initialWorkerLocation, lastInitial]);
 
     useEffect(() => {
         const handleLocationUpdate = (event) => {

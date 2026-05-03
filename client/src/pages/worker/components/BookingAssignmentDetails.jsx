@@ -33,7 +33,7 @@ export function BookingAssignmentDetails({ booking, onOpenMaps }) {
         <Card className="overflow-hidden border-none ring-1 ring-black/5 dark:ring-white/10 shadow-sm">
             <div className="p-4 sm:p-5 space-y-4">
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.1fr]">
-                    <div className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/70 p-3 dark:border-dark-700 dark:bg-dark-900/40">
+                    <div className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/70 p-3 overflow-hidden dark:border-dark-700 dark:bg-dark-900/40">
                         <div className="p-2 rounded-lg shrink-0 bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400">
                             <Calendar size={18} />
                         </div>
@@ -49,7 +49,7 @@ export function BookingAssignmentDetails({ booking, onOpenMaps }) {
                         </div>
                     </div>
 
-                    <div className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/70 p-3 dark:border-dark-700 dark:bg-dark-900/40">
+                    <div className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/70 p-3 overflow-hidden dark:border-dark-700 dark:bg-dark-900/40">
                         <div className="p-2 rounded-lg shrink-0 bg-success-50 text-success-600 dark:bg-success-900/20 dark:text-success-400">
                             <MapPin size={18} />
                         </div>
@@ -76,7 +76,7 @@ export function BookingAssignmentDetails({ booking, onOpenMaps }) {
                         <Badge variant="outline" className="mt-2 text-micro font-black uppercase bg-success-50 text-success-700 border-success-200">{t('Guaranteed')}</Badge>
                     </div>
                     {hasCoordinates && (
-                        <div className="md:col-span-2 xl:col-span-3">
+                        <div className="md:col-span-2 xl:col-span-3 overflow-hidden rounded-xl">
                             <MiniMap lat={latitude} lng={longitude} height="180px" />
                         </div>
                     )}

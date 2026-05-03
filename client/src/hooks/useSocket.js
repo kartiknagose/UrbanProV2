@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { SOCKET_BASE_URL } from '../config/runtime';
+import { safeGetItem } from '../utils/storage';
 
 // Lightweight hook to connect to Socket.IO server and return socket instance.
 // If `user` is provided, the hook will automatically join user-specific rooms
@@ -13,6 +14,11 @@ import { SOCKET_BASE_URL } from '../config/runtime';
 export default function useSocket(user = null) {
   const socketRef = useRef(null);
 
+  const getStoredAuthToken = () => {
+    const token = safeGetItem('authToken');
+    return typeof token === 'string' ? token.trim() : '';
+  };
+
   useEffect(() => {
     if (!user?.id) {
       if (socketRef.current) {
@@ -24,6 +30,7 @@ export default function useSocket(user = null) {
     }
 
     const baseUrl = SOCKET_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+    const authToken = getStoredAuthToken();
 
     const socketOptions = {
       withCredentials: true,
@@ -32,6 +39,7 @@ export default function useSocket(user = null) {
       timeout: 10000,
       reconnectionAttempts: 10,
       reconnectionDelay: 800,
+      ...(authToken ? { auth: { token: authToken } } : {}),
     };
 
     const socket = io(baseUrl, socketOptions);

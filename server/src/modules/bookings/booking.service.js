@@ -459,11 +459,17 @@ async function createBooking(customerId, bookingData) {
       }
 
       // CHECK 1: DISTANCE-BASED FILTERING (Haversine)
+      // Direct bookings are explicit customer choices, so we keep distance as a
+      // soft signal rather than a hard gate. Availability and service matching
+      // are still enforced below.
       if (hasCoordinates) {
         const nearbyWorkers = await filterWorkersByDistance(latitude, longitude, serviceId, workerProfile.serviceRadius || 10);
         const isNearby = nearbyWorkers.some(w => w.id === workerProfileId);
         if (!isNearby) {
-          throw new AppError(400, `This worker is not within the service radius (${workerProfile.serviceRadius || 10} km) of the booking location.`);
+          console.warn(
+            `Direct booking outside service radius accepted for worker ${workerProfileId} ` +
+            `at booking location (${latitude}, ${longitude}).`
+          );
         }
       }
 
@@ -1185,7 +1191,7 @@ async function payBooking(bookingId, userId, userRole, reqOptions) {
         customerId: true,
         paymentStatus: true,
         totalPrice: true,
-        estimatedPrice: true,
+        basePrice: true,
         workerProfileId: true,
       },
     });
@@ -1209,7 +1215,7 @@ async function payBooking(bookingId, userId, userRole, reqOptions) {
       throw new AppError(400, 'Booking is already paid.');
     }
 
-    const payableAmount = Number(lockedBooking.totalPrice) || Number(lockedBooking.estimatedPrice) || 0;
+    const payableAmount = Number(lockedBooking.totalPrice) || Number(lockedBooking.basePrice) || 0;
     if (payWithWallet) {
       if (userRole !== 'CUSTOMER' || lockedBooking.customerId !== userId) {
         throw new AppError(403, 'Only the booking customer can pay from wallet.');

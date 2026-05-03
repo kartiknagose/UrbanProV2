@@ -4,6 +4,14 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 const disablePwa = String(globalThis.process?.env?.VITE_PWA_DISABLED || '').toLowerCase() === 'true'
+const apiProxyTarget = globalThis.process?.env?.VITE_API_PROXY_TARGET || 'http://localhost:3000'
+
+const backendProxy = {
+  target: apiProxyTarget,
+  changeOrigin: true,
+  secure: false,
+  ws: true,
+}
 
 export default defineConfig({
   plugins: [
@@ -49,6 +57,11 @@ export default defineConfig({
   ],
   server: {
     port: 5173,
+    proxy: {
+      '/api': backendProxy,
+      '/uploads': backendProxy,
+      '/health': backendProxy,
+    },
     // Reduce CPU usage
     hmr: {
       overlay: false, // Disable error overlay to reduce rendering

@@ -12,6 +12,14 @@ import { toast } from 'sonner';
  */
 export function PWAReloadPrompt() {
   useEffect(() => {
+    if ((import.meta.env.MODE || 'development') !== 'production') {
+      return undefined;
+    }
+
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+      return undefined;
+    }
+
     const updateServiceWorker = registerSW({
       onNeedRefresh() {
         toast('Updating ExpertsHub to the latest version...', {

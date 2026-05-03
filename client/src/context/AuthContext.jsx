@@ -54,7 +54,7 @@ function authReducer(state, action) {
       return {
         ...state,
         user: action.payload, // User object from API
-        isAuthenticated: true,
+        isAuthenticated: Boolean(action.payload),
         isLoading: false,
         error: null,
       };
@@ -115,7 +115,9 @@ const getStoredUser = () => {
 
     // Handle both string and object (safeGetItem might return either)
     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    return parsed && typeof parsed === 'object' ? parsed : null;
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (!parsed.id || !parsed.role) return null;
+    return parsed;
   } catch (error) {
     console.warn('Failed to retrieve stored user:', error.message);
     safeRemoveItem('user');
@@ -153,6 +155,13 @@ export function AuthProvider({ children }) {
           ? { ...storedUser, ...sessionUser }
           : sessionUser;
 
+        if (!user || !user.id || !user.role) {
+          safeRemoveItem('user');
+          safeRemoveItem('authToken');
+          dispatch({ type: ACTIONS.LOGOUT });
+          return;
+        }
+
         if (user?.profilePhotoUrl) {
           user.profilePhotoUrl = resolveProfilePhotoUrl(user.profilePhotoUrl);
         }
@@ -162,10 +171,7 @@ export function AuthProvider({ children }) {
         }
 
         // User is authenticated, restore their session
-        dispatch({
-          type: ACTIONS.LOGIN_SUCCESS,
-          payload: user,
-        });
+        dispatch({ type: ACTIONS.LOGIN_SUCCESS, payload: user });
       } catch (error) {
         // Session missing/expired or network error - clear auth state
         console.warn('Session check failed:', error.message);
@@ -239,6 +245,10 @@ export function AuthProvider({ children }) {
         resolvedUser.profilePhotoUrl = resolveProfilePhotoUrl(resolvedUser.profilePhotoUrl);
       }
 
+      if (!resolvedUser || !resolvedUser.id || !resolvedUser.role) {
+        throw new Error('Login succeeded but user data was missing');
+      }
+
       // Store user for UI convenience (cookie handles auth)
       if (resolvedUser) {
         safeSetItem('user', resolvedUser);
@@ -309,6 +319,8 @@ export function AuthProvider({ children }) {
     dispatch({ type: ACTIONS.CLEAR_ERROR });
   }, []);
 
+  const isAuthenticated = Boolean(state.user);
+
   /**
    * Value object passed to all children
    * This is what useAuth() hook returns
@@ -317,7 +329,7 @@ export function AuthProvider({ children }) {
   const value = useMemo(() => ({
     // State (read-only)
     user: state.user, // Current user object or null
-    isAuthenticated: state.isAuthenticated, // Boolean
+    isAuthenticated, // Boolean
     isLoading: state.isLoading, // Boolean
     error: state.error, // Error string or null
 
@@ -328,7 +340,7 @@ export function AuthProvider({ children }) {
     setUser, // Update user after login
     logout, // Clear user on logout
     clearError, // Clear error message
-  }), [state.user, state.isAuthenticated, state.isLoading, state.error, login, register, registerAsWorker, setUser, logout, clearError]);
+  }), [state.user, isAuthenticated, state.isLoading, state.error, login, register, registerAsWorker, setUser, logout, clearError]);
 
   // Initialize socket and auto-join rooms for the current user (if any)
   useSocket(state.user);

@@ -622,6 +622,13 @@
 
   /* ── Ring utilities ─────────────────────────────────────────────────────── */
   .ring-brand-glow { box-shadow: 0 0 0 4px rgba(59,130,246,0.20); }
+
+  /* ── Leaflet map clipping ───────────────────────────────────────────── */
+  .location-picker-map,
+  .location-picker-map .leaflet-container {
+    border-radius: inherit;
+    overflow: hidden;
+  }
 }
 
 /* ─── KEYFRAMES ─────────────────────────────────────────────────────────── */

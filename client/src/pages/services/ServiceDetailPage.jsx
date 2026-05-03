@@ -130,7 +130,7 @@ export function ServiceDetailPage() {
             <div className="space-y-8">
               <ServiceHeader service={service} />
 
-              <div className="bg-white dark:bg-dark-900 rounded-2xl shadow-lg p-6 sm:p-8">
+              <div className="bg-white dark:bg-dark-900 rounded-2xl shadow-lg p-6 sm:p-8 overflow-hidden">
                 <BookingWizard
                   onSuccess={handleWizardSubmit}
                   initialService={service}

@@ -33,7 +33,7 @@ import { CustomerOTPSection } from './components/CustomerOTPSection';
 import { CustomerMobileActions } from './components/CustomerMobileActions';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { useRazorpay } from '../../hooks/useRazorpay';
-import { getRazorpayKeyId, ensureRazorpayLoaded } from '../../utils/razorpay';
+import { getRazorpayKeyId, ensureRazorpayLoaded, isRazorpayTestMode } from '../../utils/razorpay';
 
 const formatInrAmount = (value) => {
     const amount = Number(value);
@@ -61,9 +61,7 @@ export function CustomerBookingDetailPage() {
     const razorpayKeyId = getRazorpayKeyId();
 
     useRazorpay({
-        onError: () => {
-            toast.error(t('Payment system failed to load. Please refresh and try again.'));
-        },
+            preload: false,
     });
 
     const { data, isLoading, isError, refetch } = useQuery({
@@ -102,6 +100,14 @@ export function CustomerBookingDetailPage() {
             name: 'ExpertsHub V2',
             description: `Booking #${booking.id}`,
             order_id: order.id,
+            method: {
+                upi: true,
+                card: true,
+                netbanking: true,
+                wallet: true,
+                paylater: true,
+            },
+            ...(isRazorpayTestMode() ? { upi: { flow: 'collect' } } : {}),
             prefill: {
                 name: user.name,
                 email: user.email,
